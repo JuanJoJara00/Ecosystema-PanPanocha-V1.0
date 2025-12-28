@@ -1,0 +1,93 @@
+{
+  "name": "@panpanocha/pos",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"tsc -p tsconfig.electron.json -w\" \"node run-electron.cjs\"",
+    "build": "tsc -p tsconfig.electron.json && node -e \"require('fs').writeFileSync('dist-electron/package.json', '{\\\"type\\\": \\\"commonjs\\\"}')\" && node -e \"require('fs').renameSync('dist-electron/main.js', 'dist-electron/main.cjs')\" && vite build && electron-builder",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "clean": "rm -rf dist dist-build dist-electron",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@panpanocha/config": "workspace:*",
+    "@panpanocha/shared": "workspace:*",
+    "@panpanocha/types": "workspace:*",
+    "@panpanocha/ui": "workspace:*",
+    "@powersync/drizzle-driver": "^0.7.1",
+    "@powersync/node": "^0.15.1",
+    "@supabase/supabase-js": "^2.87.1",
+    "@types/pdfkit": "^0.17.4",
+    "better-sqlite3": "^12.5.0",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.1",
+    "electron-squirrel-startup": "^1.0.1",
+    "lucide-react": "^0.561.0",
+    "pdfkit": "^0.17.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "uuid": "^13.0.0",
+    "zod": "^3.22.4",
+    "zustand": "^5.0.9"
+  },
+  "description": "Offline-First POS Client for Pan Panocha",
+  "author": "Pan Panocha Tech",
+  "build": {
+    "appId": "com.panpanocha.pos",
+    "productName": "POS PanPanocha",
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/icon.ico"
+    },
+    "directories": {
+      "output": "dist-build"
+    },
+    "extraResources": [
+      {
+        "from": "drizzle",
+        "to": "drizzle",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "**/dist-electron/db/worker.js",
+      "**/node_modules/better-sqlite3/**"
+    ],
+    "files": [
+      "dist-electron/**/*",
+      "dist/**/*",
+      "package.json"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.10.4",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@types/uuid": "^11.0.0",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.23",
+    "concurrently": "^9.2.1",
+    "drizzle-kit": "^0.31.8",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4",
+    "wait-on": "^9.0.3"
+  }
+}

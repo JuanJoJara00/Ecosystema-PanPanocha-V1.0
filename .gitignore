@@ -1,0 +1,69 @@
+# ------------------------------------------------------------------------------
+# PAN PANOCHA MONOREPO - MASTER GITIGNORE
+# Stack: Node, Pnpm, Next.js, Electron, Vite, Supabase
+# ------------------------------------------------------------------------------
+
+# --- Dependencias ---
+node_modules/
+.pnpm-store/
+
+# --- Environment & Secrets (CRÍTICO) ---
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# Excepciones (Archivos de ejemplo seguros)
+!.env.example
+!.env.template
+
+# --- Build Artifacts (General) ---
+dist/
+dist-build/
+build/
+out/
+coverage/
+.turbo/
+.cache/
+
+# --- Next.js ---
+.next/
+next-env.d.ts
+
+# --- Electron ---
+dist-electron/
+release/
+*.exe
+*.dmg
+*.AppImage
+
+# --- Supabase ---
+supabase/tmp/
+supabase/.temp/
+
+# --- IDE & Sistema Operativo ---
+.path
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# --- Logs ---
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# --- Archivos Temporales Detectados ---
+temp_seed.json
+*.bak
+*.tmp
