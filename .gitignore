@@ -67,3 +67,6 @@ yarn-debug.log*
 temp_seed.json
 *.bak
 *.tmp
+
+# Heavy Assets (Excluded)
+packages/assets/brand-kit/
