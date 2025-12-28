@@ -4,6 +4,7 @@ import { PowerSyncDatabase } from '@powersync/node';
 import { wrapPowerSyncWithDrizzle } from '@powersync/drizzle-driver';
 import { AppSchema, schema } from './schema';
 import { PowerSyncBackendConnector } from '@powersync/node';
+import { PosDatabase } from './types';
 
 // 1. Connector Logic
 class POSConnector implements PowerSyncBackendConnector {
@@ -19,9 +20,9 @@ class POSConnector implements PowerSyncBackendConnector {
 }
 
 // 2. Singleton Database Instance
-let dbInstance: ReturnType<typeof wrapPowerSyncWithDrizzle> | null = null;
+let dbInstance: PosDatabase | null = null;
 
-export const initDatabase = async () => {
+export const initDatabase = async (): Promise<PosDatabase> => {
     if (dbInstance) return dbInstance;
 
     console.log('[DB] Initializing Singleton...');

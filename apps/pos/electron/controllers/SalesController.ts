@@ -1,48 +1,36 @@
 
-import { eq, sql } from 'drizzle-orm';
-import { sales, saleItems, shifts, orders, orderItems, products } from '../db/schema';
+import { eq, sql, desc } from 'drizzle-orm';
+import { sales, saleItems, shifts, orders, orderItems } from '../db/schema';
 import { Sale, SaleItem } from '@panpanocha/types';
+import type { PosDatabase, NewSaleRecord, NewSaleItemRecord, SaleWithDetails } from '../db/types';
 
 export class SalesController {
-    constructor(private db: any) { }
+    constructor(private db: PosDatabase) { }
 
-    async saveSale(sale: Sale, items: SaleItem[]) {
+    async saveSale(sale: NewSaleRecord, items: NewSaleItemRecord[]) {
         // Validation: Check shift status if shift_id is present
         if (sale.shift_id && !sale.synced) {
-            const shift = await this.db.select().from(shifts).where(eq(shifts.id, sale.shift_id)).get();
+            const shift = await this.db.query.shifts.findFirst({
+                where: eq(shifts.id, sale.shift_id)
+            });
+
             if (!shift || shift.status !== 'open') {
                 throw new Error("Cannot register sale: Shift is closed or invalid.");
             }
         }
 
-        await this.db.transaction(async (tx: any) => {
-            await tx.insert(sales).values({
-                id: sale.id,
-                branch_id: sale.branch_id,
-                shift_id: sale.shift_id || null,
-                created_by: sale.created_by,
-                total_amount: sale.total_amount,
-                payment_method: sale.payment_method,
-                status: sale.status,
-                tip_amount: sale.tip_amount || 0,
-                discount_amount: sale.discount_amount || 0,
-                created_at: sale.created_at,
-                synced: !!sale.synced,
-                diners: sale.diners || 1,
-                sale_channel: sale.sale_channel as any || null,
-                created_by_system: sale.created_by_system || null,
-                client_id: sale.client_id || null
-            }).onConflictDoUpdate({ target: sales.id, set: { synced: !!sale.synced } }); // Simple Upsert logic
+        await this.db.transaction(async (tx) => {
+            // 1. Upsert Sale
+            await tx.insert(sales).values(sale)
+                .onConflictDoUpdate({
+                    target: sales.id,
+                    set: { synced: sale.synced }
+                });
 
-            for (const item of items) {
-                await tx.insert(saleItems).values({
-                    id: item.id,
-                    sale_id: item.sale_id,
-                    product_id: item.product_id,
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    total_price: item.total_price
-                }).onConflictDoNothing();
+            // 2. Insert Items
+            if (items.length > 0) {
+                await tx.insert(saleItems).values(items)
+                    .onConflictDoNothing();
             }
         });
 
@@ -50,9 +38,9 @@ export class SalesController {
         return { success: true };
     }
 
-    async getPendingSales() {
+    async getPendingSales(): Promise<SaleWithDetails[]> {
         return this.db.query.sales.findMany({
-            where: (sales: any, { eq }: any) => eq(sales.synced, false),
+            where: (sales, { eq }) => eq(sales.synced, false),
             with: {
                 items: {
                     with: {
@@ -65,8 +53,8 @@ export class SalesController {
 
     async getByShift(shiftId: string) {
         return this.db.query.sales.findMany({
-            where: (sales: any, { eq }: any) => eq(sales.shift_id, shiftId),
-            orderBy: (sales: any, { desc }: any) => [desc(sales.created_at)],
+            where: (sales, { eq }) => eq(sales.shift_id, shiftId),
+            orderBy: (sales, { desc }) => [desc(sales.created_at)],
             with: {
                 items: {
                     with: {
@@ -114,7 +102,7 @@ export class SalesController {
 
     async getSaleItems(saleId: string) {
         return this.db.query.saleItems.findMany({
-            where: (items: any, { eq }: any) => eq(items.sale_id, saleId),
+            where: (items, { eq }) => eq(items.sale_id, saleId),
             with: { product: true }
         });
     }
@@ -130,9 +118,10 @@ export class SalesController {
     async importBatch(batch: any[]) {
         if (!batch.length) return;
 
-        await this.db.transaction(async (tx: any) => {
+        await this.db.transaction(async (tx) => {
             for (const entry of batch) {
                 const s = entry.sale;
+                // Cast to NewSaleRecord if coming from external source untyped
                 await tx.insert(sales).values({
                     ...s,
                     shift_id: s.shift_id || null,
@@ -150,7 +139,7 @@ export class SalesController {
 
     async getAll() {
         return this.db.query.sales.findMany({
-            orderBy: (sales: any, { desc }: any) => [desc(sales.created_at)],
+            orderBy: (sales, { desc }) => [desc(sales.created_at)],
             with: {
                 items: {
                     with: { product: true }
@@ -159,11 +148,11 @@ export class SalesController {
         });
     }
 
-    // --- Order Logic (Migrated from OrderDAO) ---
+    // --- Order Logic ---
     async getPendingOrder(tableId: string) {
         return this.db.query.orders.findFirst({
-            where: (orders: any, { eq, and }: any) => and(eq(orders.table_id, tableId), eq(orders.status, 'pending')),
-            orderBy: (orders: any, { desc }: any) => [desc(orders.created_at)],
+            where: (orders, { eq, and }) => and(eq(orders.table_id, tableId), eq(orders.status, 'pending')),
+            orderBy: (orders, { desc }) => [desc(orders.created_at)],
             with: {
                 items: {
                     with: { product: true }
@@ -174,7 +163,7 @@ export class SalesController {
 
     async getAllOrders() {
         return this.db.query.orders.findMany({
-            where: (orders: any, { eq }: any) => eq(orders.status, 'pending'),
+            where: (orders, { eq }) => eq(orders.status, 'pending'),
             with: {
                 items: {
                     with: { product: true }
@@ -184,7 +173,9 @@ export class SalesController {
     }
 
     async createOrder(order: any, items: any[]) {
-        await this.db.transaction(async (tx: any) => {
+        await this.db.transaction(async (tx) => {
+            // Upsert/Insert logic for Orders - Keeping any for input here as refactoring OrderDAO fully wasn't main scope,
+            // but using tx from typed DB helps.
             await tx.insert(orders).values({
                 id: order.id,
                 branch_id: order.branch_id,
@@ -214,13 +205,13 @@ export class SalesController {
 
     async getOrderItems(orderId: string) {
         return this.db.query.orderItems.findMany({
-            where: (oi: any, { eq }: any) => eq(oi.order_id, orderId),
+            where: (oi, { eq }) => eq(oi.order_id, orderId),
             with: { product: true }
         });
     }
 
     async deleteOrder(orderId: string) {
-        await this.db.transaction(async (tx: any) => {
+        await this.db.transaction(async (tx) => {
             await tx.delete(orderItems).where(eq(orderItems.order_id, orderId));
             await tx.delete(orders).where(eq(orders.id, orderId));
         });
@@ -241,5 +232,4 @@ export class SalesController {
     async completeOrder(orderId: string) {
         await this.db.update(orders).set({ status: 'completed' }).where(eq(orders.id, orderId));
     }
-
 }

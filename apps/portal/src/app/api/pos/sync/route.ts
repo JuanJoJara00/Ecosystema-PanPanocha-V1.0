@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { ProductService } from '@/services/product.service';
 
 // Initialize a client specifically for this request context
 // We use the standard supabase-js here because we want to manually set the Auth header
@@ -72,8 +73,13 @@ export async function GET(request: Request) {
             { data: expenses },
             { data: sales }
         ] = await Promise.all([
-            // 1. Products (All active)
-            supabase.from('products').select('*').eq('active', true),
+
+            // 1. Products (Via Service)
+            (async () => {
+                const productService = new ProductService(supabase);
+                const products = await productService.getForPosSync(branchId);
+                return { data: products };
+            })(),
 
             // 2. Profiles (Staff)
             supabase.from('profiles').select('id, email, full_name, role'),
