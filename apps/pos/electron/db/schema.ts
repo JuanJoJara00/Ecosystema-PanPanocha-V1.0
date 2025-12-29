@@ -9,6 +9,26 @@ import { relations } from 'drizzle-orm';
 const orgId = () => text('organization_id').notNull();
 
 // 1. Core Commercial
+export const devices = sqliteTable('devices', {
+    id: text('id').primaryKey(), // UUID synced from Cloud
+    organization_id: text('organization_id').notNull(),
+    branch_id: text('branch_id').notNull(),
+    name: text('name').notNull(),
+
+    // Status and Metadata
+    status: text('status').default('active'), // 'pending' devices rarely sync, but good to have type parity
+    type: text('type').default('pos_terminal'),
+    fingerprint: text('fingerprint'), // Useful for local validation on startup
+
+    // Versioning
+    app_version: text('app_version'),
+
+    // Timestamps
+    created_at: text('created_at').notNull(),
+    updated_at: text('updated_at'),
+    deleted_at: text('deleted_at')
+});
+
 export const products = sqliteTable('products', {
     id: text('id').primaryKey(),
     organization_id: orgId(), // SaaS Injection
@@ -229,10 +249,24 @@ export const branches = sqliteTable('branches', {
 });
 
 
+
 // --- RELATIONS ---
+
+export const devicesRelations = relations(devices, ({ many }) => ({
+    sales: many(sales),
+    shifts: many(shifts)
+}));
+
+export const productsRelations = relations(products, ({ one }) => ({
+    // No explicit relations needed yet for products side, but keeping placeholder if needed or just empty
+    // Actually, usually we define the 'many' side here if reciprocal.
+    // Given the previous code didn't have much here, I'll close it properly.
+}));
+
 export const salesRelations = relations(sales, ({ many, one }) => ({
     items: many(saleItems),
-    shift: one(shifts, { fields: [sales.shift_id], references: [shifts.id] })
+    shift: one(shifts, { fields: [sales.shift_id], references: [shifts.id] }),
+    device: one(devices, { fields: [sales.source_device_id], references: [devices.id] })
 }));
 
 export const saleItemsRelations = relations(saleItems, ({ one }) => ({
@@ -256,19 +290,6 @@ export const shiftsRelations = relations(shifts, ({ many, one }) => ({
 
 // --- POWERSYNC SCHEMA (For Sync Rules) ---
 
-console.log('DEBUG: Initializing AppSchema');
-console.log('DEBUG: Table constructor:', Table);
-console.log('DEBUG: Schema constructor:', Schema);
-
-try {
-    const t = new Table({ test: column.text });
-    console.log('DEBUG: Test Table instance:', t);
-    console.log('DEBUG: Test Table proto:', Object.getPrototypeOf(t));
-    console.log('DEBUG: copyWithName type:', typeof t.copyWithName);
-} catch (e) {
-    console.error('DEBUG: Test Table creation failed:', e);
-}
-
 export const AppSchema = new Schema({
     products: new Table({
         organization_id: column.text,
@@ -280,6 +301,15 @@ export const AppSchema = new Schema({
     branches: new Table({
         organization_id: column.text,
         name: column.text
+    }),
+    devices: new Table({
+        branch_id: column.text,
+        name: column.text,
+        status: column.text,
+        type: column.text,
+        fingerprint: column.text,
+        created_at: column.text,
+        updated_at: column.text
     }),
     orders: new Table({
         organization_id: column.text,
@@ -342,9 +372,151 @@ export const schema = {
     rappiDeliveries,
     tables,
     stockReservations,
+    devices,
     // Relations
     salesRelations,
     saleItemsRelations,
     ordersRelations,
-    shiftsRelations
+    shiftsRelations,
+    devicesRelations,
+    productsRelations
 };
+
+export const devicesRelations = relations(devices, ({ many }) => ({
+    sales: many(sales), // One device -> Many Sales
+    shifts: many(shifts), // One device -> Many Shifts
+}));
+
+export const productsRelations = relations(products, ({ one }) => ({
+    export const salesRelations = relations(sales, ({ many, one }) => ({
+        items: many(saleItems),
+        shift: one(shifts, { fields: [sales.shift_id], references: [shifts.id] }),
+        device: one(devices, {
+            fields: [sales.source_device_id],
+            references: [devices.id],
+        })
+    }));
+
+    export const saleItemsRelations = relations(saleItems, ({ one }) => ({
+        sale: one(sales, { fields: [saleItems.sale_id], references: [sales.id] }),
+        product: one(products, { fields: [saleItems.product_id], references: [products.id] }),
+    }));
+
+    export const ordersRelations = relations(orders, ({ many, one }) => ({
+        items: many(orderItems),
+        table: one(tables, { fields: [orders.table_id], references: [tables.id] }),
+        shift: one(shifts, { fields: [orders.shift_id], references: [shifts.id] })
+    }));
+
+    export const shiftsRelations = relations(shifts, ({ many, one }) => ({
+        expenses: many(expenses),
+        sales: many(sales),
+        tips: many(tipDistributions),
+        user: one(users, { fields: [shifts.user_id], references: [users.id] }),
+        branch: one(branches, { fields: [shifts.branch_id], references: [branches.id] })
+    }));
+
+    // --- POWERSYNC SCHEMA (For Sync Rules) ---
+
+    console.log('DEBUG: Initializing AppSchema');
+    console.log('DEBUG: Table constructor:', Table);
+    console.log('DEBUG: Schema constructor:', Schema);
+
+    try {
+        const t = new Table({ test: column.text });
+        console.log('DEBUG: Test Table instance:', t);
+        console.log('DEBUG: Test Table proto:', Object.getPrototypeOf(t));
+        console.log('DEBUG: copyWithName type:', typeof t.copyWithName);
+    } catch(e) {
+        console.error('DEBUG: Test Table creation failed:', e);
+    }
+
+export const AppSchema = new Schema({
+        products: new Table({
+            organization_id: column.text,
+            name: column.text,
+            price: column.real,
+            stock: column.integer,
+            active: column.integer
+        }),
+        branches: new Table({
+            organization_id: column.text,
+            name: column.text
+        }),
+        devices: new Table({
+            branch_id: column.text,
+            name: column.text,
+            status: column.text,
+            type: column.text,
+            fingerprint: column.text,
+            created_at: column.text,
+            updated_at: column.text
+        }),
+        orders: new Table({
+            organization_id: column.text,
+            total_amount: column.real,
+            status: column.text,
+            created_at: column.text
+        }),
+        order_items: new Table({
+            organization_id: column.text,
+            order_id: column.text,
+            product_id: column.text,
+            quantity: column.real,
+            total_price: column.real
+        }),
+        sales: new Table({
+            organization_id: column.text,
+            total_amount: column.real,
+            status: column.text,
+            created_at: column.text
+        }),
+        sale_items: new Table({
+            organization_id: column.text,
+            sale_id: column.text,
+            product_id: column.text,
+            quantity: column.real,
+            total_price: column.real
+        }),
+        shifts: new Table({
+            organization_id: column.text,
+            user_id: column.text,
+            start_time: column.text,
+            status: column.text
+        }),
+        expenses: new Table({
+            organization_id: column.text,
+            amount: column.real,
+            description: column.text
+        }),
+        clients: new Table({
+            organization_id: column.text,
+            full_name: column.text,
+            points: column.integer
+        })
+    });
+
+    // Export unified object
+    export const schema = {
+        products,
+        users,
+        branches,
+        orders,
+        orderItems,
+        sales,
+        saleItems,
+        clients,
+        shifts,
+        expenses,
+        tipDistributions,
+        deliveries,
+        rappiDeliveries,
+        tables,
+        stockReservations,
+        // Relations
+        salesRelations,
+        saleItemsRelations,
+        ordersRelations,
+        shiftsRelations,
+        devicesRelations
+    };

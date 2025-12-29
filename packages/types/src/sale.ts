@@ -29,6 +29,7 @@ export interface Sale extends TenantEntity {
     client_id?: UUID;
     sale_channel?: SaleChannel;
     created_by_system?: string;
+    source_device_id?: UUID; // Hardware Attribution
 
     // Monetary Details
     tip_amount?: number;

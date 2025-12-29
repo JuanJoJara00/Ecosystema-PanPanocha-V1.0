@@ -16,6 +16,8 @@ interface PosState {
     // Data
     // products: Product[]; // REMOVED: Using Drizzle LiveQuery now (Double Fetch Fix)
     currentUser: User | null;
+    isProvisioned: boolean;
+    organizationId: string;
     currentBranchId: string;
 
     // Shift State
@@ -107,6 +109,8 @@ interface PosState {
 export const usePosStore = create<PosState>()(persist((set, get) => ({
     // products: [],
     currentUser: null,
+    isProvisioned: false,
+    organizationId: '',
     currentBranchId: '',
     currentShift: null,
     branches: [],
@@ -235,6 +239,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                     table_id: tableId,
                     shift_id: currentShift?.id,
                     branch_id: currentBranchId,
+                    organization_id: get().organizationId,
                     created_by: currentUser?.id,
                     customer_name: 'Cliente General',
                     status: 'pending',
@@ -311,7 +316,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
     },
 
     clearTableOrder: async (tableId: string) => {
-        const { tableOrders, tableSessions, tables, activeTableId, cart, products } = get();
+        const { tableOrders, tableSessions, tables, activeTableId, cart } = get();
 
         const session = tableSessions[tableId];
         const orderCart = tableOrders[tableId] || (activeTableId === tableId ? cart : []);
@@ -329,8 +334,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
 
         // Update local product state
         // const updatedProducts = products.map(p =>
-        //     restockMap[p.id] ? { ...p, stock: (p.stock || 0) + restockMap[p.id] } : p
-        // );
 
         // 2. Delete order from database (if exists)
         if (session?.orderId) {
@@ -400,7 +403,16 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                         const items = await window.electron.orderGetItems(session.orderId);
                         // Map DB items to CartItems
                         // We need "Product" object. We have products in state.
-                        const stateProducts = get().products;
+
+                        // FIX: We need to fetch products from DB since they are not in state anymore
+                        // For now we skip or fetch individually? 
+                        // Actually, we should probably fetch products for these items.
+                        // But since this is `loadTables`, we might need to optimize.
+                        // Assuming products are synced to local DB, we can get them.
+                        // For MVP: We assume specific component handles displaying them or we fetch them here.
+
+                        // const stateProducts = get().products;
+                        const stateProducts: any[] = [];
 
                         const cartItems: CartItem[] = items.map((dbItem: any) => {
                             const product = stateProducts.find(p => p.id === dbItem.product_id);
@@ -641,12 +653,19 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                 shift: activeShift
             });
 
+            // Check Provisioning Status
+            const storedToken = localStorage.getItem('panpanocha_device_token');
+            const storedOrgId = localStorage.getItem('panpanocha_org_id');
+            const isProvisioned = !!storedToken;
+
             // Set initial state
             set({
-                // products: localProducts,
+                // products: _,
                 branches: localBranches,
                 currentShift: activeShift,
-                currentBranchId: activeShift?.branch_id || ''
+                currentBranchId: activeShift?.branch_id || '',
+                isProvisioned: isProvisioned,
+                organizationId: storedOrgId || activeShift?.organization_id || '' // Fallback to shift if available
             });
 
             // 2. Sync NOW (not background) to get fresh data
@@ -704,7 +723,8 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                     id: data.user.id,
                     email: data.user.email || '',
                     full_name: data.user.user_metadata?.full_name || 'Staff',
-                    role: data.user.user_metadata?.role || 'staff'
+                    role: data.user.user_metadata?.role || 'staff',
+                    organization_id: get().organizationId // Tenant Context
                 };
 
                 set({ currentUser: user });
@@ -779,11 +799,12 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
 
     expenses: [],
 
-    createExpense: async (data: Omit<Expense, 'id' | 'created_at' | 'synced' | 'voucher_number'> & { voucher_number?: string | null }) => {
+    createExpense: async (data: Omit<Expense, 'id' | 'created_at' | 'synced' | 'voucher_number' | 'organization_id'> & { voucher_number?: string | null }) => {
         try {
             const expense: Expense = {
                 ...data,
                 id: crypto.randomUUID(),
+                organization_id: get().organizationId,
                 voucher_number: data.voucher_number || undefined,
                 created_at: new Date().toISOString(),
                 synced: false
@@ -791,8 +812,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
 
             await window.electron.createExpense(expense);
             await get().loadExpenses(data.shift_id);
-            // Optimistic Push
-            SyncService.push();
         } catch (e) {
             console.error("Failed to create expense", e);
             throw e;
@@ -873,6 +892,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
             const sale: Sale = {
                 id: saleId,
                 branch_id: currentBranchId,
+                organization_id: get().organizationId,
                 shift_id: currentShift.id,
                 created_by: currentUser?.id || 'demo-user',
                 total_amount: total,

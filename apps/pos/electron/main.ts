@@ -136,12 +136,43 @@ app.on('activate', () => {
     }
 });
 
+ipcMain.handle('get-machine-id', async () => {
+    try {
+        const { machineId } = require('node-machine-id');
+        const id = await machineId();
+        return id;
+    } catch (error) {
+        console.error('Failed to get machine ID:', error);
+        return 'fallback-dev-id-' + Math.random().toString(36).substring(7);
+    }
+});
+
+// Product Stock Handlers
 ipcMain.handle('update-product-stock', async (_event, id, delta) => {
     // ProductDAO.updateStock(id, delta);
     const db = getDb();
     await db.update(products)
         .set({ stock: sql`${products.stock} + ${delta}` })
         .where(eq(products.id, id));
+});
+
+// Security IPC
+import { SecurityManager } from './security';
+ipcMain.handle('security-encrypt', async (_event, text) => {
+    try {
+        return SecurityManager.encrypt(text);
+    } catch (e) {
+        console.error('Encryption failed:', e);
+        throw e;
+    }
+});
+ipcMain.handle('security-decrypt', async (_event, text) => {
+    try {
+        return SecurityManager.decrypt(text);
+    } catch (e) {
+        console.error('Decryption failed:', e);
+        throw e;
+    }
 });
 
 ipcMain.handle('set-product-stock', async (_event, id, newStock) => {

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { usePosStore } from './store';
 import { PosLayout } from './components/pos/PosLayout';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { ProvisioningScreen } from './components/auth/ProvisioningScreen';
 import { OpenShiftScreen } from './components/pos/OpenShiftScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/ToastContainer';
@@ -11,7 +12,7 @@ import { LoadingSpinner } from './components/Loading';
 
 function App() {
 
-  const { initialize, currentUser, currentShift, isLoading, refreshProductsTrigger, reloadProducts } = usePosStore();
+  const { initialize, currentUser, currentShift, isLoading, isProvisioned, refreshProductsTrigger, reloadProducts } = usePosStore();
 
   // Initial Load
   // Initial Load
@@ -76,6 +77,12 @@ function App() {
     );
   }
 
+  // 1. Provisioning Check (Device Auth)
+  if (!isProvisioned) {
+    return <ProvisioningScreen />;
+  }
+
+  // 2. User Auth
   if (!currentUser) {
     return <LoginScreen />;
   }

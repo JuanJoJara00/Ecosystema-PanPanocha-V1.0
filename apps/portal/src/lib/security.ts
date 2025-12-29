@@ -33,3 +33,12 @@ export function verifyHmacSignature(rawBody: string | Buffer, signature: string 
         return false;
     }
 }
+
+/**
+ * Genera un token aleatorio seguro (hex)
+ * @param length Longitud en bytes (el string resultante será el doble de largo)
+ */
+export function generateSecureToken(length: number = 32): string {
+    const { randomBytes } = require('crypto');
+    return randomBytes(length).toString('hex');
+}

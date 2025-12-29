@@ -28,6 +28,11 @@ declare global {
             printCombinedClosing: (data: { date: string; shifts: string[]; summary: any }) => Promise<{ success: boolean; filePath?: string }>;
             printOrderDetails: (order: Order & { items: any[] }) => Promise<void>;
 
+            // System Security
+            getMachineId: () => Promise<string>;
+            encrypt: (text: string) => Promise<string>;
+            decrypt: (text: string) => Promise<string>;
+
             // DB - Core
             getProducts: (params?: any) => Promise<any>; // Update return type to generic or PaginatedResponse
             syncProducts: (products: Product[]) => Promise<void>;

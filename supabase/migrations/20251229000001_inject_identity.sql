@@ -3,7 +3,7 @@
 DO $$
 DECLARE
     -- Lista exhaustiva de tablas a migrar basada en la auditoría
-    tables TEXT := ARRAY[
+    tables TEXT[] := ARRAY[
         'profiles', 'branches', 'products', 'inventory_items', 
         'branch_inventory', 'suppliers', 'purchase_orders', 
         'cash_closings', 'employees', 'payroll', 'clients',

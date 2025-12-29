@@ -22,7 +22,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 -- 2. Macro para aplicar políticas masivamente
 DO $$
 DECLARE
-    tables TEXT := ARRAY[
+    tables TEXT[] := ARRAY[
         'profiles', 'branches', 'products', 'inventory_items', 
         'branch_inventory', 'suppliers', 'purchase_orders', 
         'cash_closings', 'employees', 'payroll', 'clients',

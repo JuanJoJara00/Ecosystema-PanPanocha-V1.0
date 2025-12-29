@@ -14,6 +14,11 @@ contextBridge.exposeInMainWorld('electron', {
     printSiigoClosing: (closingData: any) => ipcRenderer.invoke('print-siigo-closing', closingData),
     printOrderDetails: (closingData: any) => ipcRenderer.invoke('print-order-details', closingData),
 
+    // System
+    getMachineId: () => ipcRenderer.invoke('get-machine-id'),
+    encrypt: (text: string) => ipcRenderer.invoke('security-encrypt', text),
+    decrypt: (text: string) => ipcRenderer.invoke('security-decrypt', text),
+
     // Database
     getProducts: (params?: any) => ipcRenderer.invoke('db:get-products', params),
     syncProducts: (products: any[]) => ipcRenderer.invoke('db-sync-products', products),

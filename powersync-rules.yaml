@@ -1,0 +1,23 @@
+bucket_definitions:
+  # Organization Data (Shared)
+  organization:
+    scope: organization_id
+    data:
+      - SELECT * FROM products
+      - SELECT * FROM product_categories
+      - SELECT * FROM users
+      - SELECT * FROM clients
+
+  # Branch Data (Isolated)
+  branch:
+    scope: branch_id
+    data:
+      - SELECT * FROM tables
+      - SELECT * FROM shifts
+      - SELECT * FROM sales
+      - SELECT * FROM sale_items
+      - SELECT * FROM expenses
+      - SELECT * FROM deliveries
+      - SELECT * FROM rappi_deliveries
+      # Device data needed for attribution
+      - SELECT * FROM devices

@@ -1,4 +1,4 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
 // Table Management
 export interface Table {
@@ -22,7 +22,7 @@ export interface TableOrderItem {
 }
 
 // Renamed from 'Order' in POS to avoid conflict with Supplier Order
-export interface TableOrder {
+export interface TableOrder extends TenantEntity {
     id: UUID;
     table_id?: UUID;
     shift_id?: UUID;
