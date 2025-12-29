@@ -1,9 +1,9 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 import type { Product } from './product';
 
 export type ShiftStatus = 'open' | 'closed';
 
-export interface Shift {
+export interface Shift extends TenantEntity {
     id: UUID;
     branch_id: UUID;
     user_id: UUID;
@@ -27,7 +27,7 @@ export interface Shift {
     synced: boolean;
 }
 
-export interface Expense {
+export interface Expense extends TenantEntity {
     id: UUID;
     branch_id: UUID;
     shift_id: UUID;
@@ -40,7 +40,7 @@ export interface Expense {
     synced: boolean;
 }
 
-export interface TipDistribution {
+export interface TipDistribution extends TenantEntity {
     id: UUID;
     shift_id: UUID;
     employee_id: UUID;

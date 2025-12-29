@@ -1,0 +1,28 @@
+# PowerSync Sync Rules (Phase 2: SaaS Multi-Tenancy)
+# These rules must be applied in the PowerSync Dashboard.
+
+bucket_definitions:
+  # Universal Tenant Bucket - Syncs data for the authenticated user's organization
+  tenant_data:
+    lines:
+      - SELECT * FROM products WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM sales WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM sale_items WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM orders WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM order_items WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM shifts WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM expenses WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM tip_distributions WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM clients WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM deliveries WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM rappi_deliveries WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM tables WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM stock_reservations WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM users WHERE organization_id = request.parameters.organization_id
+      - SELECT * FROM branches WHERE organization_id = request.parameters.organization_id
+
+# Parameter Definition
+parameters:
+  organization_id:
+    description: "The Organization ID from the authenticated user's JWT"
+    source: token.organization_id

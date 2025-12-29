@@ -1,9 +1,9 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
 export type OrderStatus = 'pending' | 'received' | 'partial' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'partial';
 
-export interface Order {
+export interface Order extends TenantEntity {
     id: UUID;
     branch_id: UUID;
     supplier_id?: UUID;

@@ -1,6 +1,6 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
-export interface Client {
+export interface Client extends TenantEntity {
     id: UUID;
     full_name: string;
     document_id: string;

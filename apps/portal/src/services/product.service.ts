@@ -63,11 +63,12 @@ export class ProductService {
      * Crea un producto y su receta de forma transaccional.
      * NOTA: Idealmente esto usaría un RPC, pero aquí simulamos transacción en cliente si RPC no existe.
      */
-    async createWithRecipe(productData: Partial<Product>, ingredients: { id: string; qty: number }[]) {
+    async createWithRecipe(organization_id: string, productData: Partial<Product>, ingredients: { id: string; qty: number }[]) {
         // 1. Crear Producto
         const { data: product, error: prodError } = await this.supabase
             .from('products')
             .insert({
+                organization_id, // Identity Injection
                 name: productData.name,
                 price: productData.price || 0,
                 category: productData.category,

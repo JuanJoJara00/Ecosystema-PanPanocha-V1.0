@@ -1,7 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+// import { supabase } from '@/lib/supabase' // Refactored to Server Actions
+import { supabase } from '@/lib/supabase' // Still needed for Realtime subscriptions in this specific component for now
+
 import {
     Package,
     Plus,
@@ -38,6 +40,7 @@ interface Category {
 }
 
 import { Product } from '@panpanocha/types'
+import { fetchProductsAction } from '@/actions/product.actions';
 
 interface Branch {
     id: string
@@ -175,11 +178,14 @@ export default function ProductList() {
     }
 
     const fetchProducts = async () => {
-        const { data } = await supabase
-            .from('products')
-            .select(`*, category:product_categories(name)`)
-            .order('name')
-        if (data) setProducts(data)
+        setLoading(true);
+        const { success, data, error } = await fetchProductsAction();
+        if (success && data) {
+            setProducts(data as Product[]);
+        } else {
+            console.error('Error loading products via action:', error);
+        }
+        setLoading(false);
     }
 
     const fetchBranches = async () => {

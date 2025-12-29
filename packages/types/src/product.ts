@@ -1,7 +1,7 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
 // Product types - unified from both Portal and POS
-export interface Product {
+export interface Product extends TenantEntity {
     id: UUID;
     name: string;
     description?: string;

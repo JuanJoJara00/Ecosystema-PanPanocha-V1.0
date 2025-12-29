@@ -1,4 +1,4 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 import type { Product } from './product';
 
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'rappi' | 'mixed';
@@ -13,7 +13,7 @@ export interface CartItem {
     modifiers?: { id: string; name: string; price: number }[];
 }
 
-export interface Sale {
+export interface Sale extends TenantEntity {
     id: UUID;
     branch_id: UUID;
     created_by: UUID; // user_id

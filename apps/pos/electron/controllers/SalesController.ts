@@ -1,6 +1,6 @@
 
 import { eq, sql, desc } from 'drizzle-orm';
-import { sales, saleItems, shifts, orders, orderItems } from '../db/schema';
+import { sales, saleItems, shifts, orders, orderItems, users } from '../db/schema';
 import { Sale, SaleItem } from '@panpanocha/types';
 import type { PosDatabase, NewSaleRecord, NewSaleItemRecord, SaleWithDetails } from '../db/types';
 
@@ -19,6 +19,36 @@ export class SalesController {
             }
         }
 
+        // SaaS Identity Injection (Phase 2)
+        // Ensure organization_id is present. If not (legacy frontend), resolve from user.
+        if (!sale.organization_id) {
+            console.warn('[SalesController] Missing organization_id in sale payload. Attempting resolution...');
+            // Try to resolve from user (created_by)
+            if (sale.created_by) {
+                const user = await this.db.query.users.findFirst({
+                    where: eq(users.id, sale.created_by),
+                    columns: { organization_id: true }
+                });
+                if (user?.organization_id) {
+                    // We must cast/mutate because NewSaleRecord definition says it's mandatory
+                    // but runtime payload might lack it.
+                    (sale as any).organization_id = user.organization_id;
+                } else {
+                    // Fallback to Legacy ID (assuming migration created it)
+                    (sale as any).organization_id = '00000000-0000-0000-0000-000000000000';
+                }
+            } else {
+                (sale as any).organization_id = '00000000-0000-0000-0000-000000000000';
+            }
+        }
+
+        // Propagate Identity to Items
+        const orgId = sale.organization_id;
+        const itemsWithOrg = items.map(item => ({
+            ...item,
+            organization_id: item.organization_id || orgId
+        }));
+
         await this.db.transaction(async (tx) => {
             // 1. Upsert Sale
             await tx.insert(sales).values(sale)
@@ -28,13 +58,13 @@ export class SalesController {
                 });
 
             // 2. Insert Items
-            if (items.length > 0) {
-                await tx.insert(saleItems).values(items)
+            if (itemsWithOrg.length > 0) {
+                await tx.insert(saleItems).values(itemsWithOrg)
                     .onConflictDoNothing();
             }
         });
 
-        console.log(`[SalesController] Saved sale ${sale.id} with ${items.length} items.`);
+        console.log(`[SalesController] Saved sale ${sale.id} with ${items.length} items for Org: ${orgId}`);
         return { success: true };
     }
 
@@ -173,11 +203,27 @@ export class SalesController {
     }
 
     async createOrder(order: any, items: any[]) {
+        // SaaS Injection for Orders
+        let orgId = order.organization_id;
+        if (!orgId && order.created_by) {
+            const user = await this.db.query.users.findFirst({
+                where: eq(users.id, order.created_by),
+                columns: { organization_id: true }
+            });
+            orgId = user?.organization_id || '00000000-0000-0000-0000-000000000000';
+        }
+
+        const itemsWithOrg = items.map(item => ({
+            ...item,
+            organization_id: item.organization_id || orgId
+        }));
+
         await this.db.transaction(async (tx) => {
             // Upsert/Insert logic for Orders - Keeping any for input here as refactoring OrderDAO fully wasn't main scope,
             // but using tx from typed DB helps.
             await tx.insert(orders).values({
                 id: order.id,
+                organization_id: orgId || '00000000-0000-0000-0000-000000000000',
                 branch_id: order.branch_id,
                 shift_id: order.shift_id || null,
                 table_id: order.table_id || null,
@@ -189,7 +235,7 @@ export class SalesController {
                 created_at: order.created_at || new Date().toISOString(),
                 synced: !!order.synced
             });
-            for (const item of items) {
+            for (const item of itemsWithOrg) {
                 await tx.insert(orderItems).values(item);
             }
         });

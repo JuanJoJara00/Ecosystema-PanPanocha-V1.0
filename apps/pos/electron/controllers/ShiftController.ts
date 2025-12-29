@@ -1,24 +1,38 @@
 
 import { eq, desc, sql } from 'drizzle-orm';
-import { shifts, expenses, tipDistributions, sales, saleItems, products } from '../db/schema';
+import { shifts, expenses, tipDistributions, sales, saleItems, products, users } from '../db/schema';
 import { Shift, Expense, TipDistribution } from '@panpanocha/types';
 
 export class ShiftController {
     constructor(private db: any) { }
 
     async openShift(shift: Shift) {
+        // SaaS Identity Injection
+        if (!shift.organization_id && shift.user_id) {
+            const user = await this.db.select({ organization_id: users.organization_id })
+                .from(users).where(eq(users.id, shift.user_id)).get();
+
+            if (user?.organization_id) {
+                (shift as any).organization_id = user.organization_id;
+            } else {
+                (shift as any).organization_id = '00000000-0000-0000-0000-000000000000';
+            }
+        }
+        const orgId = shift.organization_id || '00000000-0000-0000-0000-000000000000';
+
         // Reuse logic: check open shift
         const existing = await this.db.select().from(shifts)
             .where(sql`${shifts.user_id} = ${shift.user_id} AND ${shifts.branch_id} = ${shift.branch_id} AND ${shifts.status} = 'open'`)
             .get();
 
         if (existing) {
-            console.log('[ShiftTheController] Found existing open shift, reusing:', existing);
+            console.log('[ShiftController] Found existing open shift, reusing:', existing);
             return { status: 'exists', shift: existing };
         }
 
         await this.db.insert(shifts).values({
             id: shift.id,
+            organization_id: orgId, // Injected
             branch_id: shift.branch_id,
             user_id: shift.user_id,
             start_time: shift.start_time,
@@ -93,9 +107,17 @@ export class ShiftController {
 
     // --- Expenses ---
     async createExpense(expense: Expense) {
+        // SaaS Injection
+        if (!expense.organization_id && expense.user_id) {
+            const user = await this.db.select({ organization_id: users.organization_id })
+                .from(users).where(eq(users.id, expense.user_id)).get();
+            (expense as any).organization_id = user?.organization_id || '00000000-0000-0000-0000-000000000000';
+        }
+
         // Insert
         await this.db.insert(expenses).values({
             id: expense.id,
+            organization_id: expense.organization_id, // Injected
             branch_id: expense.branch_id,
             shift_id: expense.shift_id || null,
             user_id: expense.user_id,
@@ -142,10 +164,33 @@ export class ShiftController {
     }
 
     async createTipDistributions(items: TipDistribution[]) {
+        if (!items.length) return;
+
+        // Resolve Org ID from first item's shift -> user? Or assume current session context?
+        // Tips are created usually by the user closing the shift.
+        // We can look up the shift to find the user, then finding the org.
+        const shiftId = items[0].shift_id;
+        let orgId = items[0].organization_id;
+
+        if (!orgId) {
+            const shift = await this.db.select({ user_id: shifts.user_id }).from(shifts).where(eq(shifts.id, shiftId)).get();
+            if (shift?.user_id) {
+                const user = await this.db.select({ organization_id: users.organization_id }).from(users).where(eq(users.id, shift.user_id)).get();
+                orgId = user?.organization_id;
+            }
+        }
+        orgId = orgId || '00000000-0000-0000-0000-000000000000';
+
+        const itemsWithOrg = items.map(item => ({
+            ...item,
+            organization_id: item.organization_id || orgId
+        }));
+
         await this.db.transaction(async (tx: any) => {
-            for (const item of items) {
+            for (const item of itemsWithOrg) {
                 await tx.insert(tipDistributions).values({
                     id: item.id,
+                    organization_id: item.organization_id, // Injected
                     shift_id: item.shift_id,
                     employee_id: item.employee_id,
                     employee_name: item.employee_name || '',

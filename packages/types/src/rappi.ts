@@ -1,8 +1,8 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
 export type RappiOrderStatus = 'pending' | 'dispatched' | 'delivered' | 'cancelled' | 'ready' | 'picked_up';
 
-export interface RappiDelivery {
+export interface RappiDelivery extends TenantEntity {
     id: UUID;
     rappi_order_id: string;
     // Portal uses customer_name/client_name inconsistently, we will unify

@@ -1,8 +1,8 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
 export type UserRole = 'admin' | 'cajero' | 'manager' | 'employee' | 'mesero' | 'cocina' | 'encargado';
 
-export interface User {
+export interface User extends TenantEntity {
     id: UUID;
     email: string;
     full_name: string;

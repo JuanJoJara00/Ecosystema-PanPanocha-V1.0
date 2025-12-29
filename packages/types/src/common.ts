@@ -2,6 +2,11 @@
 export type UUID = string;
 export type ISODateString = string;
 
+// Base interface for all multi-tenant entities
+export interface TenantEntity {
+    organization_id: UUID;
+}
+
 export interface PaginationParams {
     page?: number;
     limit?: number;

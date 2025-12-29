@@ -1,6 +1,6 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
-export interface Delivery {
+export interface Delivery extends TenantEntity {
     id: UUID;
     sale_id?: UUID;
     customer_name: string;
@@ -13,6 +13,10 @@ export interface Delivery {
     created_at: ISODateString;
 }
 
+// Conflict resolution: RappiDelivery is exported from ./rappi.ts
+// export interface RappiDelivery { ... } removed to avoid duplication
+
+/*
 export interface RappiDelivery {
     id: UUID;
     order_id: string; // alphanumeric rappi id
@@ -24,3 +28,4 @@ export interface RappiDelivery {
     created_at: ISODateString;
     synced: boolean;
 }
+*/

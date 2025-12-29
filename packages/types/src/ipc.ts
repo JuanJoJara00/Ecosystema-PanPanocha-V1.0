@@ -2,7 +2,8 @@
 import { Sale, SaleItem } from './sale';
 import { Shift } from './shift';
 import { Product } from './product';
-import { Delivery, RappiDelivery } from './delivery'; // Assuming these exist
+import type { Delivery } from './delivery';
+import type { RappiDelivery } from './rappi';
 import { User } from './user';
 import { Client } from './client';
 import { Expense } from './shift'; // Expense is defined in shift.ts

@@ -1,6 +1,6 @@
-import type { UUID, ISODateString } from './common';
+import type { UUID, ISODateString, TenantEntity } from './common';
 
-export interface Branch {
+export interface Branch extends TenantEntity {
     id: UUID;
     name: string;
     city: string;
