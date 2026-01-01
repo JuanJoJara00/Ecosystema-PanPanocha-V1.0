@@ -486,7 +486,11 @@ export default function ClosingHistory() {
                                     >
                                         <FileText className="w-4 h-4 mr-2" /> Exportar PDF
                                     </Button>
-                                    <button onClick={() => setSelectedUnified(null)} className="p-2 hover:bg-orange-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                                    <button
+                                        onClick={() => setSelectedUnified(null)}
+                                        className="p-2 hover:bg-orange-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                        aria-label="Cerrar detalle"
+                                    >
                                         <X className="w-6 h-6 text-gray-400 hover:text-orange-500" />
                                     </button>
                                 </div>
@@ -559,6 +563,7 @@ export default function ClosingHistory() {
                                                             ref={panpanochaInvoiceInputRef}
                                                             className="hidden"
                                                             accept="image/*"
+                                                            aria-label="Subir factura PanPanocha"
                                                             onChange={(e) => handleFileUpload(e, 'panpanocha_invoice')}
                                                         />
 
@@ -708,6 +713,7 @@ export default function ClosingHistory() {
                                                 ref={dataphoneInputRef}
                                                 className="hidden"
                                                 accept="image/*"
+                                                aria-label="Subir voucher datáfono"
                                                 onChange={(e) => handleFileUpload(e, 'dataphone')}
                                             />
                                             <input
@@ -715,6 +721,7 @@ export default function ClosingHistory() {
                                                 ref={invoiceInputRef}
                                                 className="hidden"
                                                 accept="image/*"
+                                                aria-label="Subir factura POS"
                                                 onChange={(e) => handleFileUpload(e, 'invoice')}
                                             />
 

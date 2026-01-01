@@ -4,8 +4,23 @@ if (typeof window !== 'undefined' && !window.electron) {
 
     // @ts-ignore
     window.electron = {
-        printTicket: async (data: any) => { console.log("[Mock] Print Ticket:", data); return { success: true }; },
+        // Generic IPC
+        invoke: async (channel: string, ...args: any[]) => { console.log(`[Mock] Invoke ${channel}`, args); return null; },
+        on: (channel: string, func: (...args: any[]) => void) => {
+            console.log(`[Mock] Listening on ${channel}`);
+            return () => { };
+        },
+
+        printTicket: async (data: any) => { console.log("[Mock] Print Ticket:", data); },
         printClosing: async (data: any) => { console.log("[Mock] Print Closing:", data); return { success: true }; },
+        printSiigoClosing: async (data: any) => { console.log("[Mock] Print Siigo Closing:", data); return { success: true }; },
+        printCombinedClosing: async (data: any) => { console.log("[Mock] Print Combined Closing:", data); return { success: true }; },
+        printOrderDetails: async (order: any) => { console.log("[Mock] Print Order Details:", order); },
+
+        // Security
+        getMachineId: async () => "mock-machine-id",
+        encrypt: async (text: string) => `encrypted-${text}`,
+        decrypt: async (text: string) => text.replace("encrypted-", ""),
 
         // Database
         getProducts: async () => [
@@ -16,22 +31,29 @@ if (typeof window !== 'undefined' && !window.electron) {
         syncProducts: async (products: any[]) => { console.log("[Mock] Sync Products", products.length); },
 
         getUsers: async () => [
-            { id: 'u1', email: 'cajero@panpanocha.com', full_name: 'Cajero Demo', role: 'cajero' }
+            { id: 'u1', email: 'cajero@panpanocha.com', full_name: 'Cajero Demo', role: 'cajero', organization_id: 'org-1' }
         ],
-        syncUsers: async (users: any[]) => { console.log("[Mock] Sync Users", users.length); return true; },
+        syncUsers: async (users: any[]) => { console.log("[Mock] Sync Users", users.length); },
 
-        saveSale: async (sale: any, items: any[]) => { console.log("[Mock] Save Sale", sale, items); return true; },
+        saveSale: async (sale: any, items: any[]) => { console.log("[Mock] Save Sale", sale, items); },
         getPendingSales: async () => [],
         getAllSales: async () => [],
+        getSalesByShift: async (_shiftId: string) => [],
+        importSalesBatch: async (sales: any[]) => { console.log("[Mock] Import Sales Batch", sales.length); },
         getProductTrends: async (_days: number) => [],
+        getProductTrendsByRange: async (_start: string, _end: string) => [],
+        getProductDailyTrends: async (_days: number) => [],
         updateSaleShift: async (saleId: string, shiftId: string) => { console.log("[Mock] Update Sale Shift", saleId, shiftId); },
         resetSalesData: async () => { console.log("[Mock] Reset Sales Data"); },
         markSynced: async (id: string) => { console.log("[Mock] Mark Synced", id); },
+        pruneData: async (days: number) => { console.log("[Mock] Prune Data", days); },
 
         // Clients
         searchClients: async (_query: string) => [],
         createClient: async (client: any) => ({ ...client, id: 'c-' + Date.now() }),
         syncClients: async (clients: any[]) => { console.log("[Mock] Sync Clients", clients.length); },
+        getPendingClients: async () => [],
+        markClientSynced: async (id: string) => { console.log("[Mock] Mark Client Synced", id); },
 
         // Branches
         getBranches: async () => [
@@ -41,12 +63,22 @@ if (typeof window !== 'undefined' && !window.electron) {
         syncBranches: async (branches: any[]) => { console.log("[Mock] Sync Branches", branches.length); },
 
         // Shifts
-        openShift: async (shift: any) => { console.log("[Mock] Open Shift", shift); return { status: 'created', shift }; },
+        openShift: async (shift: any) => { console.log("[Mock] Open Shift", shift); return { ...shift, id: 'mock-shift-id' }; },
         closeShift: async (_data: any) => { console.log("[Mock] Close Shift", _data); },
         getShift: async () => null,
-        getShiftSummary: async (shiftId: string) => ({ totalSales: 0, cash: 0, card: 0 }),
+        getShiftSummary: async (_shiftId: string) => ({
+            totalSales: 150000,
+            cashSales: 100000,
+            cardSales: 50000,
+            transferSales: 0,
+            totalTips: 10000,
+            totalExpenses: 5000,
+            productsSold: [],
+            salesCount: 15
+        }),
         getPendingShifts: async () => [],
-        markShiftSynced: async (id: string) => { console.log("[Mock] Mark Shift Synced", id); return true; },
+        markShiftSynced: async (id: string) => { console.log("[Mock] Mark Shift Synced", id); },
+        updateShift: async (id: string, data: any) => { console.log("[Mock] Update Shift", id, data); },
 
         // Stock Updates
         updateProductStock: async (id: string, delta: number) => { console.log("[Mock] Update Stock", id, delta); },
@@ -54,8 +86,12 @@ if (typeof window !== 'undefined' && !window.electron) {
 
         // Expenses
         createExpense: async (expense: any) => { console.log("[Mock] Create Expense", expense); },
+        deleteExpense: async (id: string) => { console.log("[Mock] Delete Expense", id); },
         getExpensesByShift: async (_shiftId: string) => [],
         syncExpenses: async (expenses: any[]) => { console.log("[Mock] Sync Expenses", expenses.length); },
+        getPendingExpenses: async () => [],
+        markExpenseSynced: async (id: string) => { console.log("[Mock] Mark Expense Synced", id); },
+        getAllExpenses: async () => [],
 
         // Tip Distributions
         createTipDistribution: async (distribution: any) => { console.log("[Mock] Create Tip Distribution", distribution); },
@@ -66,6 +102,7 @@ if (typeof window !== 'undefined' && !window.electron) {
         getPendingTipDistributions: async () => [],
         markTipDistributionSynced: async (id: string) => { console.log("[Mock] Mark Tip Synced", id); },
         syncTipDistributions: async (distributions: any[]) => { console.log("[Mock] Sync Tips", distributions.length); },
+        devGenerateEmployees: async () => { console.log("[Mock] Dev Generate Employees"); },
 
         // Tables
         getTables: async (_branchId: string) => [
@@ -91,6 +128,22 @@ if (typeof window !== 'undefined' && !window.electron) {
         getAllOrders: async () => { console.log("[Mock] Get All Orders"); return []; },
         getSaleItems: async (_saleId: string) => [],
 
+        // Rappi
+        createRappiDelivery: async (delivery: any) => ({ ...delivery }),
+        getRappiDeliveries: async () => [],
+        getPendingRappi: async () => [],
+        markRappiSynced: async (id: string) => { console.log("[Mock] Mark Rappi Synced", id); },
+        updateRappiStatus: async (id: string, status: string) => { console.log("[Mock] Update Rappi Status", id, status); },
+
+        // Standard Deliveries
+        createDelivery: async (delivery: any) => ({ ...delivery }),
+        getDeliveries: async () => [],
+        getDeliveriesByBranch: async (_branchId: string) => [],
+        getPendingDeliveries: async () => [],
+        markDeliverySynced: async (id: string) => { console.log("[Mock] Mark Delivery Synced", id); },
+        updateDeliveryStatus: async (id: string, status: string) => { console.log("[Mock] Update Delivery Status", id, status); },
+        syncDeliveries: async (items: any[]) => { console.log("[Mock] Sync Deliveries", items.length); },
+
         // Stock Reservations
         addReservation: async (productId: string, quantity: number, _sourceType: string, _sourceId: string) => { console.log("[Mock] Add Reservation", productId, quantity); },
         addReservations: async (items: any[], _sourceType: string, _sourceId: string) => { console.log("[Mock] Add Reservations", items.length); },
@@ -108,3 +161,4 @@ if (typeof window !== 'undefined' && !window.electron) {
         }
     };
 }
+

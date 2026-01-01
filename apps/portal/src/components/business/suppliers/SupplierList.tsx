@@ -128,6 +128,7 @@ export default function SupplierList({ initialSuppliers, initialStats }: Supplie
                     <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
+                        aria-label="Filtrar por estado"
                         className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:ring-4 focus:ring-pp-gold/10 focus:border-pp-gold outline-none cursor-pointer w-full transition-all"
                     >
                         <option value="active">Activos</option>

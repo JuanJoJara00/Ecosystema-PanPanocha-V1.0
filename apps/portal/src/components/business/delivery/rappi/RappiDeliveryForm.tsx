@@ -230,6 +230,7 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
                     <select
                         required
                         value={formData.branch_id}
+                        aria-label="Seleccionar Sede"
                         onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
                         className={inputClassName}
                     >
@@ -246,6 +247,7 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
                 <div className="flex gap-2 mb-4">
                     <select
                         className={inputClassName}
+                        aria-label="Agregar producto"
                         onChange={(e) => {
                             if (e.target.value) {
                                 addToCart(e.target.value)
@@ -281,7 +283,7 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
                                         <span className="px-2 py-1 bg-white font-mono text-sm w-8 text-center">{qty}</span>
                                         <button type="button" onClick={() => updateQuantity(id, qty + 1)} className="px-2 py-1 hover:bg-gray-100 text-gray-600 font-bold">+</button>
                                     </div>
-                                    <button type="button" onClick={() => removeFromCart(id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                                    <button type="button" onClick={() => removeFromCart(id)} className="text-red-400 hover:text-red-600" aria-label="Eliminar producto"><Trash2 className="h-4 w-4" /></button>
                                 </div>
                             </div>
                         )
@@ -310,8 +312,8 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
                         </label>
                         {ticketProofUrl && (
                             <div className="mt-2 relative h-20 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <img src={ticketProofUrl} className="w-full h-full object-cover" />
-                                <button type="button" onClick={() => { setTicketProof(null); setTicketProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
+                                <img src={ticketProofUrl} alt="Prueba de comanda" className="w-full h-full object-cover" />
+                                <button type="button" onClick={() => { setTicketProof(null); setTicketProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1" aria-label="Eliminar comanda"><X className="h-3 w-3" /></button>
                             </div>
                         )}
                     </div>
@@ -330,8 +332,8 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
                         </label>
                         {orderReadyProofUrl && (
                             <div className="mt-2 relative h-20 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <img src={orderReadyProofUrl} className="w-full h-full object-cover" />
-                                <button type="button" onClick={() => { setOrderReadyProof(null); setOrderReadyProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
+                                <img src={orderReadyProofUrl} alt="Prueba de pedido listo" className="w-full h-full object-cover" />
+                                <button type="button" onClick={() => { setOrderReadyProof(null); setOrderReadyProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1" aria-label="Eliminar foto pedido"><X className="h-3 w-3" /></button>
                             </div>
                         )}
                     </div>

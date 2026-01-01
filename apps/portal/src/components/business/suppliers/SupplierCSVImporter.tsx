@@ -205,6 +205,7 @@ export default function SupplierCSVImporter({ onSuccess }: SupplierCSVImporterPr
                         ref={fileInputRef}
                         type="file"
                         accept=".csv"
+                        aria-label="Seleccionar archivo CSV"
                         onChange={handleFileInput}
                         className="hidden"
                     />
@@ -239,6 +240,7 @@ export default function SupplierCSVImporter({ onSuccess }: SupplierCSVImporterPr
                         <button
                             onClick={() => { setFile(null); setPreview([]); }}
                             className="text-gray-400 hover:text-red-500 transition-colors"
+                            aria-label="Eliminar archivo seleccionado"
                         >
                             <CircleX className="h-5 w-5" />
                         </button>

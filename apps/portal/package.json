@@ -1,6 +1,7 @@
 {
   "name": "@panpanocha/portal",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "engines": {
     "node": "22.x"
@@ -22,6 +23,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/papaparse": "^5.5.1",
     "clsx": "^2.1.1",
+    "jose": "^6.1.3",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",

@@ -174,6 +174,7 @@ export default function EmployeeList() {
                     <select
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
+                        aria-label="Filtrar por estado"
                         className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-pp-gold/50 outline-none"
                     >
                         <option value="all">Todos los estados</option>

@@ -607,14 +607,15 @@ export default function ProductList() {
                                     <form onSubmit={handleUpdateCategory} className="flex flex-1 gap-2 items-center">
                                         <input
                                             autoFocus
+                                            aria-label="Nombre de categoría"
                                             className="flex-1 border rounded px-2 py-1 text-sm bg-white outline-none focus:ring-1 focus:ring-green-500"
                                             value={editingCategory.name}
                                             onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
                                         />
-                                        <button type="submit" className="text-green-600 hover:bg-green-50 p-1 rounded transition-colors">
+                                        <button type="submit" className="text-green-600 hover:bg-green-50 p-1 rounded transition-colors" aria-label="Guardar cambios">
                                             <Check className="h-4 w-4" />
                                         </button>
-                                        <button type="button" onClick={() => setEditingCategory(null)} className="text-gray-500 hover:bg-gray-200 p-1 rounded transition-colors">
+                                        <button type="button" onClick={() => setEditingCategory(null)} className="text-gray-500 hover:bg-gray-200 p-1 rounded transition-colors" aria-label="Cancelar edición">
                                             <X className="h-4 w-4" />
                                         </button>
                                     </form>
@@ -676,6 +677,7 @@ export default function ProductList() {
                                                 type="checkbox"
                                                 className="sr-only peer"
                                                 checked={active}
+                                                aria-label={`Disponibilidad en ${branch.name}`}
                                                 onChange={() => toggleBranchAvailability(branch.id, active)}
                                             />
                                             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pp-gold/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>

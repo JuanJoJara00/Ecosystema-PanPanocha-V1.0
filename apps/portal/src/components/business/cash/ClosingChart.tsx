@@ -301,7 +301,6 @@ export const ClosingChart = ({ currentData, prevData }: ClosingChartProps) => {
                                             textAnchor="middle"
                                             dominantBaseline="middle"
                                             className="text-[10px] font-medium fill-gray-400"
-                                            style={{ fontSize: '10px' }} // Explicit fallback
                                         >
                                             {d.label}
                                         </text>

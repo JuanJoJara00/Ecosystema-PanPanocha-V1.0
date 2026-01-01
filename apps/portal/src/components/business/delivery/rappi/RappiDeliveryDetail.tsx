@@ -258,6 +258,7 @@ export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdat
                                         type="file"
                                         accept="image/*"
                                         disabled={uploadingTicket}
+                                        aria-label="Subir foto de comanda"
                                         onChange={async (e) => {
                                             const file = e.target.files?.[0]
                                             if (file) {
@@ -286,6 +287,7 @@ export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdat
                                         type="file"
                                         accept="image/*"
                                         disabled={uploadingOrderReady}
+                                        aria-label="Subir foto de pedido listo"
                                         onChange={async (e) => {
                                             const file = e.target.files?.[0]
                                             if (file) {
@@ -334,6 +336,7 @@ export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdat
                                                         type="number"
                                                         min="0"
                                                         value={p.quantity}
+                                                        aria-label={`Cantidad de ${p.name}`}
                                                         onChange={(e) => handleQuantityChange(i, parseInt(e.target.value) || 0)}
                                                         className="w-16 text-center border rounded p-1 outline-none focus:ring-2 focus:ring-[#FF441F]"
                                                     />

@@ -107,6 +107,7 @@ export default function EmployeeDetail({ employee, onEdit, onClose, onRegisterPa
                 <button
                     onClick={onClose}
                     className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                    aria-label="Cerrar detalle"
                 >
                     <X className="h-6 w-6" />
                 </button>

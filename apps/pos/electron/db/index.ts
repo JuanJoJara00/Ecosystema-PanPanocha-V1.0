@@ -1,9 +1,8 @@
 import { app } from 'electron';
 import path from 'path';
-import { PowerSyncDatabase } from '@powersync/node';
-import { wrapPowerSyncWithDrizzle } from '@powersync/drizzle-driver';
+import { Worker } from 'worker_threads';
+import { PowerSyncDatabase, PowerSyncBackendConnector } from '@powersync/node';
 import { AppSchema, schema } from './schema';
-import { PowerSyncBackendConnector } from '@powersync/node';
 import { PosDatabase } from './types';
 
 // 1. Connector Logic
@@ -26,7 +25,7 @@ export const initDatabase = async (): Promise<PosDatabase> => {
     if (dbInstance) return dbInstance;
 
     console.log('[DB] Initializing Singleton...');
-    const dbPath = path.join(app.getPath('userData'), 'pos-main-v2.db');
+    const dbPath = path.join(app.getPath('userData'), 'pos-main-v5.db');
 
     // CRITICAL: Resolve worker path correctly for ASAR Unpacked vs Dev
     // Dev: __dirname/worker.js (compiled by tsc to same dir as index.js)
@@ -50,7 +49,19 @@ export const initDatabase = async (): Promise<PosDatabase> => {
     });
 
     await powerSync.init();
-    await powerSync.connect(new POSConnector());
+    console.log('[DB] Connecting...');
+    // await powerSync.connect(new POSConnector()); // Already connected above? No, I see one call at line 54 and one I added at 55.
+    // The previous view_file showed:
+    // 53: await powerSync.init();
+    // 54: await powerSync.connect(new POSConnector());
+    // 55: await powerSync.connect(new POSConnector()); // duplicate
+
+    // I will remove line 55 and add logs.
+
+    console.log('[DB] Importing Drizzle Driver...');
+    const drizzleDriver = await import('@powersync/drizzle-driver');
+    console.log('[DB] Drizzle Driver Imported:', drizzleDriver);
+    const wrapPowerSyncWithDrizzle = drizzleDriver.wrapPowerSyncWithDrizzle;
 
     // Wrap with Drizzle
     const db = wrapPowerSyncWithDrizzle(powerSync, { schema });

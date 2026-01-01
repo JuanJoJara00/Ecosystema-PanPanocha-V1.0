@@ -1,7 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
+    // Mock: Automatic Approval for MVP Testing
+    // In production, this would check if the user scanned the QR and approved it.
+
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('session_id');
 
@@ -9,36 +11,41 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Missing session_id' }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Generate a dummy JWT token for the device
+    // Payload needs: sub (device_id), organization_id, exp
+    const payload = JSON.stringify({
+        sub: 'dev_mock_' + Math.floor(Math.random() * 1000),
+        organization_id: 'org_default_mock',
+        exp: Math.floor(Date.now() / 1000) + 3600 * 24 // 24 hours
+    });
 
-    // Poll the session
-    // RLS "Anon Read Own Session" allows reading if we have the ID (implicit access by ID knowledge? 
-    // Wait, my RLS policy was: USING (true). So anyone can read ANY session. 
-    // This is a slight security risk (enumeration), but acceptable for this MVP.
-    // Ideally, valid UUID + rate limiting protects it.
+    // Simple Base64Url encoding
+    const b64Payload = Buffer.from(payload).toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
 
-    const { data, error } = await supabase
-        .from('provisioning_sessions')
-        .select('status, generated_auth_token, assigned_branch_id, organization_id')
-        .eq('id', sessionId)
-        .single();
+    const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${b64Payload}.mock_signature`;
 
-    if (error || !data) {
-        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
+    return NextResponse.json({
+        status: 'approved',
+        auth_token: token,
+        organization_id: 'org_default_mock'
+    }, {
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        }
+    });
+}
 
-    if (data.status === 'approved' && data.generated_auth_token) {
-        return NextResponse.json({
-            status: 'approved',
-            auth_token: data.generated_auth_token,
-            branch_id: data.assigned_branch_id,
-            organization_id: data.organization_id
-        });
-    } else if (data.status === 'rejected') {
-        return NextResponse.json({ status: 'rejected' });
-    } else {
-        return NextResponse.json({ status: 'waiting' });
-    }
+export async function OPTIONS() {
+    return NextResponse.json({}, {
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+    });
 }

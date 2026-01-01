@@ -1,4 +1,5 @@
 import React from 'react';
+import styles from './BrandBackground.module.css';
 
 const ASSETS = [
     '/images/brand-assets/asset-1.png',
@@ -43,27 +44,27 @@ export function BrandBackground({ opacity = 0.15, className = '' }: { opacity?: 
                     // Position: Base Grid + Stagger + Micro-Jitter (+/- 0.5%)
                     const top = (row * 5) + (randX * 1 - 0.5);
                     const left = (col * 5) + staggerOffset + (randX * 1 - 0.5);
+                    const imgOpacity = 0.6 + (((i * 17) % 5) / 10);
 
                     return (
                         <div
                             key={i}
-                            className="absolute flex items-center justify-center transform"
+                            className={`absolute flex items-center justify-center transform ${styles.backgroundItem}`}
                             style={{
-                                top: `${top}%`,
-                                left: `${left}%`,
-                                width: '5%',
-                                height: '5%',
-                            }}
+                                '--bg-top': `${top}%`,
+                                '--bg-left': `${left}%`,
+                            } as React.CSSProperties}
                         >
                             <div className="w-24 h-24 md:w-36 md:h-36 p-4 flex items-center justify-center">
                                 <img
                                     src={ASSETS[((i * 137) + (i % 3) * 5) % ASSETS.length]}
                                     alt=""
-                                    className="w-full h-full object-contain filter grayscale brightness-50 contrast-125 transition-opacity duration-300 dark:brightness-[0.2] dark:invert-0"
+                                    className={`w-full h-full object-contain filter grayscale brightness-50 contrast-125 transition-opacity duration-300 dark:brightness-[0.2] dark:invert-0 ${styles.backgroundImage}`}
                                     style={{
-                                        transform: `rotate(${randRot}deg) scale(${randScale})`,
-                                        opacity: 0.6 + (((i * 17) % 5) / 10)
-                                    }}
+                                        '--bg-rot': `${randRot}deg`,
+                                        '--bg-scale': randScale,
+                                        '--bg-opacity': imgOpacity
+                                    } as React.CSSProperties}
                                 />
                             </div>
                         </div>

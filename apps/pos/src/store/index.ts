@@ -14,7 +14,6 @@ interface CartItem {
 
 interface PosState {
     // Data
-    // products: Product[]; // REMOVED: Using Drizzle LiveQuery now (Double Fetch Fix)
     currentUser: User | null;
     isProvisioned: boolean;
     organizationId: string;
@@ -76,7 +75,6 @@ interface PosState {
     // Sync & Init
     initialize: () => Promise<void>;
     sync: (silent?: boolean) => Promise<void>;
-    reloadProducts: () => Promise<void>; // Reload products from database
 
     // Shift Actions
     openShift: (branchId: string, initialCash: number) => Promise<void>;
@@ -107,7 +105,6 @@ interface PosState {
 }
 
 export const usePosStore = create<PosState>()(persist((set, get) => ({
-    // products: [],
     currentUser: null,
     isProvisioned: false,
     organizationId: '',
@@ -238,9 +235,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                     id: crypto.randomUUID(),
                     table_id: tableId,
                     shift_id: currentShift?.id,
-                    branch_id: currentBranchId,
                     organization_id: get().organizationId,
-                    created_by: currentUser?.id,
                     customer_name: 'Cliente General',
                     status: 'pending',
                     total_amount: 0,
@@ -466,12 +461,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         // 1. Live Stock Deduction
         window.electron.updateProductStock(product.id, -1).catch((err: any) => console.error("Failed to deduct stock", err));
 
-        // 2. Update Local Product State
-        // const updatedProducts = products.map(p =>
-        //     p.id === product.id ? { ...p, stock: (p.stock || 0) - 1 } : p
-        // );
-
-        // 3. Update Cart
+        // 2. Update Cart
         const existing = cart.find(item =>
             item.product.id === product.id &&
             (item.note || '') === (note || '')
@@ -480,7 +470,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         if (existing) {
             const newQty = existing.quantity + 1;
             set({
-                // products: updatedProducts,
                 cart: cart.map(item =>
                     item.id === existing.id
                         ? { ...item, quantity: newQty }
@@ -504,7 +493,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
             };
 
             set({
-                // products: updatedProducts,
                 cart: [...cart, newItem]
             });
 
@@ -537,12 +525,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         window.electron.updateProductStock(item.product.id, -delta).catch(console.error);
 
         // 2. Update Local Product State
-        // const updatedProducts = products.map(p =>
-        //     p.id === item.product.id ? { ...p, stock: (p.stock || 0) - delta } : p
-        // );
-
         set({
-            // products: updatedProducts,
             cart: cart.map(cartItem => {
                 if (cartItem.id === itemId) {
                     const newQty = cartItem.quantity + delta;
@@ -586,7 +569,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         window.electron.updateProductStock(item.product.id, item.quantity).catch(console.error);
 
         set({
-            // products: updatedProducts,
             cart: cart.filter(product => product.id !== itemId)
         });
 
@@ -643,12 +625,10 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         try {
             // 1. Load local data first (for offline)
             // 1. Load local data first (for offline)
-            // const localProducts = await window.electron.getProducts(); // REMOVED: Managed by useLiveQuery in UI
             const localBranches = await window.electron.getBranches();
             const activeShift = await window.electron.getShift();
 
             console.log("[Store] Loaded local data:", {
-                // products: localProducts.length,
                 branches: localBranches.length,
                 shift: activeShift
             });
@@ -660,7 +640,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
 
             // Set initial state
             set({
-                // products: _,
                 branches: localBranches,
                 currentShift: activeShift,
                 currentBranchId: activeShift?.branch_id || '',
@@ -672,7 +651,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
             try {
                 // With PowerSync, data might already be coming in.
                 // We just ensure we have the latest view from SQLite.
-                // await get().reloadProducts(); // REMOVED
             } catch (syncErr) {
                 console.warn('[Init] ⚠️ Reload failed, using local data:', syncErr);
                 // Continue with local data - offline mode
@@ -690,7 +668,6 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         try {
             // With PowerSync, we just need to reload from the local DB
             // The replication happens in the background.
-            // await get().reloadProducts(); // REMOVED
 
             // Also trigger other reloads if needed
             set({ refreshHistoryTrigger: get().refreshHistoryTrigger + 1 });
@@ -704,9 +681,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         }
     },
 
-    reloadProducts: async () => {
-        // REMOVED: Replaced by LiveQuery
-    },
+
 
     login: async (email, password) => {
         set({ isLoading: true });

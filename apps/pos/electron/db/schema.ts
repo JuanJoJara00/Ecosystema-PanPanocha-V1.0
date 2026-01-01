@@ -294,64 +294,198 @@ export const AppSchema = new Schema({
     products: new Table({
         organization_id: column.text,
         name: column.text,
+        description: column.text,
         price: column.real,
+        cost_price: column.real,
+        sku: column.text,
+        barcode: column.text,
+        tax_rate: column.real,
+        category: column.text,
         stock: column.integer,
-        active: column.integer
+        min_stock: column.integer,
+        max_stock: column.integer,
+        supplier_id: column.text,
+        image_url: column.text,
+        active: column.integer,
+        last_synced_at: column.text,
+        deleted_at: column.text
     }),
     branches: new Table({
         organization_id: column.text,
-        name: column.text
+        name: column.text,
+        city: column.text,
+        address: column.text,
+        nit: column.text,
+        phone: column.text,
+        deleted_at: column.text
     }),
     devices: new Table({
+        organization_id: column.text,
         branch_id: column.text,
         name: column.text,
         status: column.text,
         type: column.text,
         fingerprint: column.text,
+        app_version: column.text,
         created_at: column.text,
-        updated_at: column.text
+        updated_at: column.text,
+        deleted_at: column.text
     }),
     orders: new Table({
         organization_id: column.text,
+        branch_id: column.text,
+        sale_id: column.text,
+        table_id: column.text,
+        shift_id: column.text,
+        created_by: column.text,
         total_amount: column.real,
         status: column.text,
-        created_at: column.text
+        customer_name: column.text,
+        diners: column.integer,
+        cancellation_reason: column.text,
+        created_at: column.text,
+        synced: column.integer
     }),
     order_items: new Table({
         organization_id: column.text,
         order_id: column.text,
         product_id: column.text,
         quantity: column.real,
-        total_price: column.real
+        unit_price: column.real,
+        total_price: column.real,
+        notes: column.text
     }),
     sales: new Table({
         organization_id: column.text,
+        branch_id: column.text,
+        shift_id: column.text,
         total_amount: column.real,
         status: column.text,
-        created_at: column.text
+        payment_method: column.text,
+        payment_data: column.text,
+        tip_amount: column.real,
+        discount_amount: column.real,
+        discount_reason: column.text,
+        diners: column.integer,
+        created_at: column.text,
+        created_by: column.text,
+        sale_channel: column.text,
+        source_device_id: column.text,
+        created_by_system: column.text,
+        client_id: column.text,
+        synced: column.integer
     }),
     sale_items: new Table({
         organization_id: column.text,
         sale_id: column.text,
         product_id: column.text,
         quantity: column.real,
+        unit_price: column.real,
+        unit_cost: column.real,
+        tax_amount: column.real,
         total_price: column.real
     }),
     shifts: new Table({
         organization_id: column.text,
+        branch_id: column.text,
         user_id: column.text,
         start_time: column.text,
-        status: column.text
+        end_time: column.text,
+        initial_cash: column.real,
+        final_cash: column.real,
+        expected_cash: column.real,
+        status: column.text,
+        turn_type: column.text,
+        closing_metadata: column.text,
+        notes: column.text,
+        pending_tips: column.real,
+        synced: column.integer,
+        deleted_at: column.text
     }),
     expenses: new Table({
         organization_id: column.text,
+        branch_id: column.text,
+        shift_id: column.text,
+        user_id: column.text,
+        description: column.text,
         amount: column.real,
-        description: column.text
+        category: column.text,
+        voucher_number: column.text,
+        authorize_user_id: column.text,
+        created_at: column.text,
+        synced: column.integer
     }),
     clients: new Table({
         organization_id: column.text,
         full_name: column.text,
-        points: column.integer
+        document_id: column.text,
+        phone: column.text,
+        email: column.text,
+        points: column.integer,
+        last_visit: column.text,
+        preferences: column.text,
+        created_at: column.text,
+        updated_at: column.text,
+        synced: column.integer,
+        deleted_at: column.text
+    }),
+    users: new Table({
+        organization_id: column.text,
+        email: column.text,
+        full_name: column.text,
+        role: column.text,
+        deleted_at: column.text
+    }),
+    tables: new Table({
+        organization_id: column.text,
+        branch_id: column.text,
+        name: column.text,
+        status: column.text,
+        created_at: column.text,
+        updated_at: column.text
+    }),
+    tip_distributions: new Table({
+        organization_id: column.text,
+        shift_id: column.text,
+        employee_id: column.text,
+        employee_name: column.text,
+        amount: column.real,
+        created_at: column.text,
+        synced: column.integer
+    }),
+    deliveries: new Table({
+        organization_id: column.text,
+        branch_id: column.text,
+        customer_name: column.text,
+        customer_phone: column.text,
+        customer_address: column.text,
+        product_details: column.text,
+        delivery_fee: column.real,
+        status: column.text,
+        assigned_driver: column.text,
+        created_at: column.text,
+        synced: column.integer
+    }),
+    rappi_deliveries: new Table({
+        organization_id: column.text,
+        rappi_order_id: column.text,
+        branch_id: column.text,
+        product_details: column.text,
+        total_value: column.real,
+        status: column.text,
+        delivery_code: column.text,
+        notes: column.text,
+        created_at: column.text,
+        synced: column.integer
+    }),
+    stock_reservations: new Table({
+        organization_id: column.text,
+        product_id: column.text,
+        quantity: column.real,
+        source_type: column.text,
+        source_id: column.text,
+        status: column.text,
+        created_at: column.text
     })
 });
 

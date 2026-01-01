@@ -1,0 +1,11 @@
+.backgroundItem {
+    width: 5%;
+    height: 5%;
+    top: var(--bg-top);
+    left: var(--bg-left);
+}
+
+.backgroundImage {
+    transform: rotate(var(--bg-rot)) scale(var(--bg-scale));
+    opacity: var(--bg-opacity);
+}
