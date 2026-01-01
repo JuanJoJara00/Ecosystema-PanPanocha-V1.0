@@ -19,8 +19,9 @@ export function BrandBackground({ opacity = 0.15, className = '' }: { opacity?: 
 
     return (
         <div
-            className={`absolute inset-0 z-0 pointer-events-none overflow-hidden select-none ${className}`}
-            style={{ opacity }}
+            className={`absolute inset-0 z-0 pointer-events-none overflow-hidden select-none ${className} ${styles.root}`}
+            // eslint-disable-next-line
+            style={{ '--main-opacity': opacity } as React.CSSProperties}
         >
             {/* Background tint (Matched to POS) */}
             <div className="absolute inset-0 bg-brand-accent/5 mix-blend-multiply dark:bg-transparent" />
@@ -50,6 +51,7 @@ export function BrandBackground({ opacity = 0.15, className = '' }: { opacity?: 
                         <div
                             key={i}
                             className={`absolute flex items-center justify-center transform ${styles.backgroundItem}`}
+                            // eslint-disable-next-line
                             style={{
                                 '--bg-top': `${top}%`,
                                 '--bg-left': `${left}%`,
@@ -60,6 +62,7 @@ export function BrandBackground({ opacity = 0.15, className = '' }: { opacity?: 
                                     src={ASSETS[((i * 137) + (i % 3) * 5) % ASSETS.length]}
                                     alt=""
                                     className={`w-full h-full object-contain filter grayscale brightness-50 contrast-125 transition-opacity duration-300 dark:brightness-[0.2] dark:invert-0 ${styles.backgroundImage}`}
+                                    // eslint-disable-next-line
                                     style={{
                                         '--bg-rot': `${randRot}deg`,
                                         '--bg-scale': randScale,
