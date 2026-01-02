@@ -18,6 +18,21 @@ const originalHandle = ipcMain.handle;
     return originalHandle.call(ipcMain, channel, listener);
 };
 
+// --- Sync Service Integration ---
+// import { SyncService } from './services/SyncService'; // REMOVED
+import { connector } from './db/index';
+
+// Initialize Sync Service
+// SyncService.start(); // REMOVED - PowerSync handles this
+
+ipcMain.handle('auth-set-token', (event, token: string) => {
+    console.log('[Main] Auth Token Received for PowerSync Connector');
+    connector.setToken(token);
+    // Optionally set Branch ID if available in token or separate call
+    // connector.setBranchId(...); 
+    return true;
+});
+
 // Initialize DB
 import { initDatabase, getDb } from './db/index';
 import Database from 'better-sqlite3';
@@ -327,17 +342,14 @@ function registerBottomHandlers() {
         user: z.any().optional()
     });
 
-    ipcMain.handle('print-ticket', async (e, rawPayload) => {
-        console.log('[Main] Received print-ticket request');
+    // === SHARED PRINT LOGIC ===
+    const handlePrintRequest = async (rawPayload: any, forceTarget?: 'receipt' | 'kitchen') => {
+        console.log(`[Main] Received print request (Force Target: ${forceTarget || 'Auto'})`);
         try {
-            // 1. Validation (Security)
+            // 1. Validation
             const payload = PrintTicketSchema.parse(rawPayload);
 
-            // 2. Data Enrichment (Business Logic - preventing Frontend spoofing of Reference Data ideally)
-            // For now, we fetch Branch/User if not fully provided, or trust what is passed but validate IDs?
-            // Let's trust payload structure but ensure existence.
-
-            // Ensure Branch/User data is present if just IDs are passed (Optimistic enhancement)
+            // 2. Data Enrichment
             if (!payload.branch && payload.sale.branch_id) {
                 payload.branch = await branchController.get(String(payload.sale.branch_id));
             }
@@ -345,22 +357,30 @@ function registerBottomHandlers() {
                 payload.user = await userController.get(String(payload.sale.created_by));
             }
 
-            // 3. Delegate to Worker (Performance)
-            const pdfPath = await PrinterService.getInstance().printTicket(payload);
+            // 3. Determine Target
+            const target = forceTarget || ((rawPayload.target === 'kitchen') ? 'kitchen' : 'receipt');
 
-            // 4. Open PDF (Shell interaction)
-            shell.openPath(pdfPath);
+            // 4. Delegate to Printer Service
+            await PrinterService.getInstance().printTicket(payload, target);
 
-            return { success: true, message: 'PDF Generated', filePath: pdfPath };
+            return { success: true, message: `Print Job Sent to ${target}` };
 
         } catch (error) {
-            console.error('[Main] Print Error:', error);
+            console.error(`[Main] Print Error (${forceTarget}):`, error);
             return {
                 success: false,
                 error: error instanceof z.ZodError ? 'Validation Failed' : (error instanceof Error ? error.message : 'Unknown Error'),
                 details: error instanceof z.ZodError ? error.errors : undefined
             };
         }
+    };
+
+    ipcMain.handle('print-ticket', async (e, rawPayload) => {
+        return handlePrintRequest(rawPayload);
+    });
+
+    ipcMain.handle('print-kitchen', async (e, rawPayload) => {
+        return handlePrintRequest(rawPayload, 'kitchen');
     });
 
     // Print Closing Receipt IPC

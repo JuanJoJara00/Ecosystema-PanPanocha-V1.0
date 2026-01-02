@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { ProvisioningSession } from '@panpanocha/types';
 
@@ -17,9 +17,17 @@ export function DeviceApprovalForm({ session, branches }: Props) {
     const [deviceName, setDeviceName] = useState(session.device_name || '');
     const [selectedBranch, setSelectedBranch] = useState(branches[0]?.id || '');
     const [error, setError] = useState<string | null>(null);
-    const [status, setStatus] = useState<'pending' | 'success' | 'rejected'>(session.status === 'waiting' ? 'pending' : session.status as any);
+    // Helper to map DB status to UI status
+    const mapStatus = (s: string): 'pending' | 'success' | 'rejected' | 'approved' => {
+        if (s === 'waiting') return 'pending';
+        if (s === 'approved' || s === 'success') return 'approved'; // Map both to approved/success UI state
+        if (s === 'rejected') return 'rejected';
+        return 'pending'; // Default fallback
+    };
 
-    if (status !== 'pending' && status !== 'waiting') {
+    const [status, setStatus] = useState<ReturnType<typeof mapStatus>>(mapStatus(session.status));
+
+    if (status !== 'pending') {
         const isApproved = status === 'approved' || status === 'success';
         return (
             <div className="text-center py-12">
@@ -84,7 +92,7 @@ export function DeviceApprovalForm({ session, branches }: Props) {
         setIsLoading(true);
 
         try {
-            const supabase = createBrowserClient();
+            // const supabase = createBrowserClient(); // Removed factory call
             const { error } = await supabase
                 .from('provisioning_sessions')
                 .update({ status: 'rejected' })
@@ -154,6 +162,7 @@ export function DeviceApprovalForm({ session, branches }: Props) {
                         <select
                             value={selectedBranch}
                             onChange={(e) => setSelectedBranch(e.target.value)}
+                            title="Seleccionar Sede"
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary outline-none transition-all bg-white"
                         >
                             {branches.map(b => (
