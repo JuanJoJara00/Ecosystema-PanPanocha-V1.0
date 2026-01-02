@@ -142,6 +142,18 @@ export class PrinterService {
      */
     public async printClosing(data: ClosingData): Promise<void> {
         console.log('[Printer] Starting closing print job');
+
+        // Validate critical fields to prevent misleading receipts
+        if (!data.shift || data.shift.initial_cash === undefined) {
+            throw new Error('Invalid closing data: shift.initial_cash is required');
+        }
+        if (!data.summary) {
+            throw new Error('Invalid closing data: summary is required');
+        }
+        if (data.cashCount === undefined) {
+            throw new Error('Invalid closing data: cashCount is required');
+        }
+
         const printer = this.createPrinter('receipt');
 
         const {
@@ -336,6 +348,28 @@ export class PrinterService {
      */
     public async printOrderDetails(data: OrderDetailsData): Promise<void> {
         console.log('[Printer] Starting order details print job');
+
+        // Validate items array
+        if (!data.items || !Array.isArray(data.items)) {
+            throw new Error('Invalid order details: items array is required');
+        }
+        if (data.items.length === 0) {
+            throw new Error('Invalid order details: items array cannot be empty');
+        }
+
+        // Validate each item has required numeric fields
+        const invalidItems = data.items.filter(item =>
+            !item.name ||
+            typeof item.quantity !== 'number' ||
+            typeof item.price !== 'number' ||
+            isNaN(item.quantity) ||
+            isNaN(item.price)
+        );
+
+        if (invalidItems.length > 0) {
+            throw new Error(`Invalid order details: ${invalidItems.length} item(s) missing required numeric fields (name, quantity, price)`);
+        }
+
         const printer = this.createPrinter('receipt');
 
         const { items, user } = data;
@@ -352,12 +386,12 @@ export class PrinterService {
         if (user) printer.println(`Cajero: ${user.full_name || 'Staff'}`);
         printer.drawLine();
 
-        // Items
+        // Items (now guaranteed to have valid data)
         printer.alignLeft();
-        items.forEach((item: any) => {
-            const name = (item.name || 'Producto').slice(0, 30);
-            const qty = item.quantity || 1;
-            const price = item.price || 0;
+        items.forEach((item) => {
+            const name = item.name.slice(0, 30);
+            const qty = item.quantity;
+            const price = item.price;
             const total = qty * price;
 
             printer.println(name);
@@ -369,7 +403,7 @@ export class PrinterService {
 
         printer.drawLine();
 
-        const grandTotal = items.reduce((acc: number, i: any) => acc + (i.quantity * i.price), 0);
+        const grandTotal = items.reduce((acc, i) => acc + (i.quantity * i.price), 0);
         printer.bold(true);
         printer.tableCustom([
             { text: "TOTAL:", align: "LEFT", width: 0.4 },
@@ -393,6 +427,22 @@ export class PrinterService {
      */
     public async printCombinedClosing(data: CombinedClosingData): Promise<void> {
         console.log('[Printer] Starting combined closing print job');
+
+        // Validate summary contains required fields
+        const requiredFields = [
+            'totalBase', 'totalCashSales', 'totalExpenses',
+            'expectedCash', 'realCash', 'difference',
+            'cashToDeliver', 'totalCard', 'totalTransfer'
+        ] as const;
+
+        const missingFields = requiredFields.filter(field =>
+            data.summary[field] === undefined || data.summary[field] === null
+        );
+
+        if (missingFields.length > 0) {
+            throw new Error(`Invalid combined closing: summary missing required fields: ${missingFields.join(', ')}`);
+        }
+
         const printer = this.createPrinter('receipt');
 
         const { shift, user, summary } = data;

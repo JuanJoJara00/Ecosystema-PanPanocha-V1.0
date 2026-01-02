@@ -17,8 +17,7 @@ BEGIN
 
     -- Validate that Purchase Order exists and has a branch
     IF target_branch_id IS NULL THEN
-        RAISE WARNING 'Purchase Order % not found or has no branch. Skipping inventory update.', NEW.order_id;
-        RETURN NEW; -- Skip the insert but allow the item creation
+        RAISE EXCEPTION 'Purchase Order % not found or has no branch. Cannot update inventory.', NEW.order_id;
     END IF;
 
     -- Upsert into Branch Inventory

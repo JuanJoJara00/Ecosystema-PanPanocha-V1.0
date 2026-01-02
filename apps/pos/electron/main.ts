@@ -33,6 +33,13 @@ ipcMain.handle('auth-set-token', (event, token: string) => {
     return true;
 });
 
+// IPC handler to update printer organization config dynamically
+ipcMain.handle('printer-set-organization', (event, config: { name: string; nit: string; website?: string }) => {
+    console.log('[Printer] Updating organization config:', config.name);
+    PrinterService.getInstance().setOrganizationConfig(config);
+    return true;
+});
+
 // Initialize DB
 import { initDatabase, getDb } from './db/index';
 import Database from 'better-sqlite3';
@@ -224,6 +231,20 @@ app.on('ready', async () => {
     }
     // ---------------------------
 
+    // Initialize PrinterService with organization branding
+    // TODO: Load from organization settings when tenant system is fully implemented
+    // For now, use default PanPanocha branding with override capability via IPC
+    try {
+        PrinterService.getInstance().setOrganizationConfig({
+            name: 'PAN PANOCHA',
+            nit: '900.123.456-7',
+            website: 'www.panpanocha.com'
+        });
+        console.log('[Printer] Organization config initialized with default branding.');
+    } catch (e) {
+        console.error('[Printer] Failed to initialize organization config:', e);
+    }
+
     createWindow();
 });
 
@@ -384,33 +405,130 @@ function registerBottomHandlers() {
     });
 
     // Print Closing Receipt IPC
+    // === CLOSING SCHEMAS ===
+
+    const ClosingDataSchema = z.object({
+        shift: z.object({
+            id: z.string(),
+            initial_cash: z.number(),
+            turn_type: z.string().optional()
+        }).passthrough(),
+        branch: z.any().optional(),
+        user: z.any().optional(),
+        summary: z.object({
+            totalSales: z.number(),
+            cashSales: z.number(),
+            cardSales: z.number(),
+            transferSales: z.number(),
+            totalExpenses: z.number(),
+            salesCount: z.number()
+        }).passthrough(),
+        cashCount: z.number(),
+        cashCounts: z.record(z.number()).optional(),
+        difference: z.number(),
+        cashToDeliver: z.number(),
+        closingType: z.string().optional(),
+        productsSold: z.array(z.any()).optional()
+    });
+
+    const SiigoClosingSchema = z.object({
+        shift: z.any(),
+        branch: z.any().optional(),
+        user: z.any().optional(),
+        sales_cash: z.number().default(0),
+        sales_card: z.number().default(0),
+        sales_transfer: z.number().default(0),
+        expenses: z.array(z.object({ amount: z.number() })).default([]),
+        finalCash: z.number(),
+        difference: z.number(),
+        products: z.array(z.any()).optional(),
+        cashCounts: z.record(z.number()).optional()
+    });
+
+    const CombinedClosingSchema = z.object({
+        shift: z.object({
+            name: z.string().optional()
+        }).passthrough(),
+        user: z.object({
+            full_name: z.string().optional()
+        }).passthrough().optional(),
+        summary: z.object({
+            totalBase: z.number().default(0),
+            totalCashSales: z.number().default(0),
+            totalExpenses: z.number().default(0),
+            tipsDelivered: z.number().default(0),
+            expectedCash: z.number().default(0),
+            realCash: z.number().default(0),
+            difference: z.number().default(0),
+            cashToDeliver: z.number().default(0),
+            totalCard: z.number().default(0),
+            totalTransfer: z.number().default(0)
+        }).passthrough()
+    });
+
     // Print Closing Receipt IPC
     ipcMain.handle('print-closing', async (e, closingData) => {
         console.log('[Printer] Generating Closing Receipt via ESC/POS...');
         try {
-            await PrinterService.getInstance().printClosing(closingData);
+            const validated = ClosingDataSchema.parse(closingData);
+            await PrinterService.getInstance().printClosing(validated);
             return { success: true, message: 'Print Job Sent' };
         } catch (error) {
             console.error('[Printer] Closing print failed:', error);
             // dialog.showErrorBox('Error de Impresión', String(error));
-            return { success: false, error: String(error) };
+            return {
+                success: false,
+                error: error instanceof z.ZodError ? 'Validation Failed' : String(error),
+                details: error instanceof z.ZodError ? error.errors : undefined
+            };
         }
     });
 
     // Print Siigo Closing Receipt IPC
-    // Print Siigo Closing Receipt IPC
     ipcMain.handle('print-siigo-closing', async (e, closingData) => {
         console.log('[Printer] Generating Siigo Closing via ESC/POS...');
+
+        // Defensive validation: check closingData is an object
+        if (!closingData || typeof closingData !== 'object') {
+            return { success: false, error: 'Invalid closing data: expected an object' };
+        }
+
+        // Validate required fields exist
+        if (!closingData.shift) {
+            return { success: false, error: 'Invalid closing data: shift is required' };
+        }
+
         try {
-            // Map Siigo data to standard closing data
+            const validated = SiigoClosingSchema.parse(closingData);
             const {
                 shift, branch, user,
                 sales_cash, sales_card, sales_transfer,
                 expenses, finalCash, difference, products, cashCounts
-            } = closingData;
+            } = validated;
 
-            const totalExpenses = (expenses || []).reduce((acc: any, curr: any) => acc + (curr.amount || 0), 0);
-            const totalSales = (sales_cash || 0) + (sales_card || 0) + (sales_transfer || 0);
+            // Defensive: ensure expenses is an array before reduce
+            const expensesArray = Array.isArray(expenses) ? expenses : [];
+            const totalExpenses = expensesArray.reduce((acc, curr) => {
+                const amount = typeof curr?.amount === 'number' ? curr.amount : 0;
+                return acc + amount;
+            }, 0);
+
+            // Defensive: coerce sales values to numbers with defaults
+            const safeSalesCash = Number(sales_cash) || 0;
+            const safeSalesCard = Number(sales_card) || 0;
+            const safeSalesTransfer = Number(sales_transfer) || 0;
+            const safeFinalCash = Number(finalCash) || 0;
+            const safeDifference = Number(difference) || 0;
+
+            const totalSales = safeSalesCash + safeSalesCard + safeSalesTransfer;
+
+            // Defensive: ensure products is an array before accessing length
+            const productsArray = Array.isArray(products) ? products : [];
+
+            // Defensive: validate cashCounts shape
+            const safeCashCounts = (cashCounts && typeof cashCounts === 'object' && !Array.isArray(cashCounts))
+                ? cashCounts
+                : undefined;
 
             const mappedData = {
                 shift,
@@ -419,17 +537,17 @@ function registerBottomHandlers() {
                 closingType: 'SIIGO',
                 summary: {
                     totalSales,
-                    cashSales: sales_cash,
-                    cardSales: sales_card,
-                    transferSales: sales_transfer,
+                    cashSales: safeSalesCash,
+                    cardSales: safeSalesCard,
+                    transferSales: safeSalesTransfer,
                     totalExpenses,
-                    salesCount: products?.length || 0
+                    salesCount: productsArray.length
                 },
-                cashCount: finalCash,
-                cashCounts,
-                difference,
-                cashToDeliver: finalCash,
-                productsSold: products
+                cashCount: safeFinalCash,
+                cashCounts: safeCashCounts,
+                difference: safeDifference,
+                cashToDeliver: safeFinalCash,
+                productsSold: productsArray
             };
 
             await PrinterService.getInstance().printClosing(mappedData);
@@ -437,29 +555,39 @@ function registerBottomHandlers() {
 
         } catch (error) {
             console.error('[Printer] Error generating Siigo closing:', error);
-            // dialog.showErrorBox('Error de Impresión', String(error));
-            return { success: false, error: 'Failed to print' };
+            return {
+                success: false,
+                error: error instanceof z.ZodError ? 'Validation Failed' : String(error),
+                details: error instanceof z.ZodError ? error.errors : undefined
+            };
         }
     });
 
-    // Print Order Details IPC (Standalone)
-    ipcMain.handle('print-order-details', async (e, { items }) => {
+    // Print Order Details Schema & IPC
+    const OrderDetailsSchema = z.object({
+        items: z.array(z.object({
+            name: z.string(),
+            quantity: z.number().positive(),
+            price: z.number().nonnegative()
+        })).min(1, "At least one item required"),
+        user: z.object({
+            full_name: z.string().optional()
+        }).optional()
+    });
+
+    ipcMain.handle('print-order-details', async (e, data) => {
         console.log('[Printer] Generating Order Details via ESC/POS...');
-        if (!items || items.length === 0) return { success: false, error: 'No items' };
-
-        // Validation: Check for required fields
-        const validItems = items.filter((i: any) => i && i.name && typeof i.quantity === 'number' && typeof i.price === 'number');
-        if (validItems.length !== items.length) {
-            console.warn('[Printer] Some items were invalid and filtered out.');
-            if (validItems.length === 0) return { success: false, error: 'All items were invalid (missing name, quantity, or price)' };
-        }
-
         try {
-            await PrinterService.getInstance().printOrderDetails({ items: validItems });
+            const validated = OrderDetailsSchema.parse(data);
+            await PrinterService.getInstance().printOrderDetails(validated);
             return { success: true, message: 'Print Job Sent' };
         } catch (error) {
             console.error('[Printer] Order details print failed:', error);
-            return { success: false, error: String(error) };
+            return {
+                success: false,
+                error: error instanceof z.ZodError ? 'Validation Failed' : String(error),
+                details: error instanceof z.ZodError ? error.errors : undefined
+            };
         }
     });
 
@@ -608,14 +736,30 @@ function registerBottomHandlers() {
         }
     });
 
-    ipcMain.handle('print-combined-closing', async (e, data: any) => {
+    ipcMain.handle('print-combined-closing', async (e, data) => {
         console.log('[Printer] Generating Combined Closing via ESC/POS...');
+
+        // Defensive validation: check data is an object
+        if (!data || typeof data !== 'object') {
+            return { success: false, error: 'Invalid combined closing data: expected an object' };
+        }
+
+        // Validate required summary field exists
+        if (!data.summary || typeof data.summary !== 'object') {
+            return { success: false, error: 'Invalid combined closing data: summary is required' };
+        }
+
         try {
-            await PrinterService.getInstance().printCombinedClosing(data);
+            const validated = CombinedClosingSchema.parse(data);
+            await PrinterService.getInstance().printCombinedClosing(validated);
             return { success: true, message: 'Print Job Sent' };
-        } catch (error: any) {
+        } catch (error) {
             console.error('[Printer] Error combined closing:', error);
-            return { success: false, error: error.message };
+            return {
+                success: false,
+                error: error instanceof z.ZodError ? 'Validation Failed' : String(error),
+                details: error instanceof z.ZodError ? error.errors : undefined
+            };
         }
     });
 };

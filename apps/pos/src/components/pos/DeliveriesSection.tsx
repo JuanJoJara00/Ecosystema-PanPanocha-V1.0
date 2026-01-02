@@ -73,16 +73,15 @@ export default function DeliveriesSection() {
 
             const allDeliveries: Delivery[] = [
                 ...standardDeliveries.map(d => {
-                    const anyD = d as any;
                     return {
                         ...d,
                         order_type: 'domicilio' as const,
-                        // Fix status mismatch ("assigned" vs "dispatched") by casting or remapping
-                        status: (d.status === 'assigned' ? 'dispatched' : d.status) as any,
+                        // Status is now correctly typed as 'dispatched' in canonical type
+                        status: d.status as Delivery['status'],
                         customer_phone: d.phone,
                         customer_address: d.address,
-                        product_details: anyD.product_details ?? '[]',
-                        delivery_fee: anyD.delivery_fee ?? 0
+                        product_details: (d as { product_details?: string }).product_details ?? '[]',
+                        delivery_fee: (d as { delivery_fee?: number }).delivery_fee ?? 0
                     };
                 }),
                 ...(Array.isArray(rappiRes) ? rappiRes : []).map(d => ({
@@ -95,7 +94,7 @@ export default function DeliveriesSection() {
                                 d.status === 'delivered' ? 'delivered' :
                                     d.status === 'cancelled' ? 'cancelled' :
                                         'pending'
-                    ) as any,
+                    ) as Delivery['status'],
                     customer_name: d.customer_name || d.client_name || 'Pedido Rappi',
                     // Note: Rappi doesn't provide phone/address in basic integration, keep fallback or null
                     phone: 'Rappi',
@@ -248,7 +247,7 @@ export default function DeliveriesSection() {
                 shift_id: currentShift?.id,
                 created_by: currentUser?.id || 'system',
                 created_by_system: isRappi ? 'pos-rappi' : 'pos-delivery',
-                sale_channel: (isRappi ? 'rappi' : 'delivery') as any,
+                sale_channel: isRappi ? 'rappi' as const : 'delivery' as const,
                 total_amount: totalAmount,
                 payment_method: 'transfer' as const,
                 status: 'completed' as const,

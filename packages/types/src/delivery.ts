@@ -6,7 +6,7 @@ export interface Delivery extends TenantEntity {
     customer_name: string;
     phone: string;
     address: string;
-    status: 'pending' | 'assigned' | 'delivered' | 'cancelled';
+    status: 'pending' | 'dispatched' | 'delivered' | 'cancelled';
     delivery_person?: string;
     delivery_cost: number;
     notes?: string;

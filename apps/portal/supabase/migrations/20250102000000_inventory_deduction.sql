@@ -111,6 +111,9 @@ BEGIN
     ELSE
       -- Product Changed: Handle both old and new products
       -- 1. Restore OLD stock (Always valid)
+      -- Lock OLD product row
+      PERFORM 1 FROM products WHERE id = OLD.product_id FOR UPDATE;
+
       UPDATE products
       SET stock = stock + OLD.quantity
       WHERE id = OLD.product_id;

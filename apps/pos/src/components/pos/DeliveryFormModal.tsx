@@ -69,9 +69,17 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
             // Generate explicit ID for reservation tracking
             const deliveryId = crypto.randomUUID();
 
+            // Validate organizationId before proceeding
+            const organizationId = usePosStore.getState().organizationId;
+            if (!organizationId || organizationId.trim() === '') {
+                showAlert('error', 'Error de Configuración', 'El ID de la organización no está configurado. Por favor, reinicie la aplicación o contacte soporte.');
+                setLoading(false);
+                return;
+            }
+
             const dataToSave = {
                 id: deliveryId, // Use explicit ID
-                organization_id: usePosStore.getState().organizationId,
+                organization_id: organizationId,
                 branch_id: currentBranchId,
                 customer_name: 'Domicilio Externo',
                 phone: '', // No driver phone collected in this form

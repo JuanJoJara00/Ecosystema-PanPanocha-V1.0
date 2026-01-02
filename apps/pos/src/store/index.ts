@@ -1018,3 +1018,28 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         closingSession: state.closingSession
     }),
 }));
+
+/**
+ * Asserts that organizationId is set and non-empty.
+ * Throws an error if organizationId is empty.
+ * @returns The organizationId if valid
+ */
+export function assertOrganizationId(): string {
+    const organizationId = usePosStore.getState().organizationId;
+    if (!organizationId || organizationId.trim() === '') {
+        throw new Error('Organization ID is not set. Please ensure the device is properly provisioned.');
+    }
+    return organizationId;
+}
+
+/**
+ * Gets organizationId or returns null if empty.
+ * Use this when you need to check before showing an error.
+ */
+export function getOrganizationIdSafe(): string | null {
+    const organizationId = usePosStore.getState().organizationId;
+    if (!organizationId || organizationId.trim() === '') {
+        return null;
+    }
+    return organizationId;
+}

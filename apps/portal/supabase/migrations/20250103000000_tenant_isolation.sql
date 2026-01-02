@@ -132,6 +132,14 @@ CREATE POLICY "Branch Isolation" ON shifts
     USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
     WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
 
+-- Add FK constraint from sales.shift_id to shifts (after shifts table exists)
+ALTER TABLE sales
+    ADD CONSTRAINT IF NOT EXISTS sales_shift_id_fkey
+    FOREIGN KEY (shift_id) REFERENCES shifts(id);
+
+-- Index for efficient queries filtering by shift_id
+CREATE INDEX IF NOT EXISTS idx_sales_shift_id ON sales(shift_id);
+
 
 -- --- EXPENSES ---
 CREATE TABLE IF NOT EXISTS expenses (
@@ -145,7 +153,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     category text DEFAULT 'general',
     voucher_number text,
     authorize_user_id text,
-    created_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
     synced boolean DEFAULT false
 );
 
@@ -168,7 +176,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
     delivery_fee decimal(10,2) DEFAULT 0,
     status text DEFAULT 'pending',
     assigned_driver text,
-    created_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
     synced boolean DEFAULT false
 );
 
@@ -178,3 +186,32 @@ CREATE POLICY "Branch Isolation" ON deliveries
     USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
     WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
 
+
+-- ============================================================================
+-- PERFORMANCE INDEXES
+-- Indexes for RLS subqueries, FK joins, and common query patterns
+-- ============================================================================
+
+-- RLS Branch Isolation Indexes (critical for all RLS policy evaluations)
+CREATE INDEX IF NOT EXISTS idx_profiles_branch_id ON profiles(branch_id);
+CREATE INDEX IF NOT EXISTS idx_branch_inventory_branch_id ON branch_inventory(branch_id);
+CREATE INDEX IF NOT EXISTS idx_sales_branch_id ON sales(branch_id);
+CREATE INDEX IF NOT EXISTS idx_sale_items_branch_id ON sale_items(branch_id);
+CREATE INDEX IF NOT EXISTS idx_shifts_branch_id ON shifts(branch_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_branch_id ON expenses(branch_id);
+CREATE INDEX IF NOT EXISTS idx_deliveries_branch_id ON deliveries(branch_id);
+
+-- FK Join Indexes (common foreign key relationships)
+CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
+CREATE INDEX IF NOT EXISTS idx_sale_items_product_id ON sale_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_sales_created_by ON sales(created_by);
+CREATE INDEX IF NOT EXISTS idx_expenses_shift_id ON expenses(shift_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
+CREATE INDEX IF NOT EXISTS idx_shifts_user_id ON shifts(user_id);
+
+-- Query Pattern Indexes (common lookups and filters)
+CREATE INDEX IF NOT EXISTS idx_sales_created_at ON sales(created_at);
+CREATE INDEX IF NOT EXISTS idx_sales_status ON sales(status);
+CREATE INDEX IF NOT EXISTS idx_shifts_status ON shifts(status);
+CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);
+CREATE INDEX IF NOT EXISTS idx_expenses_created_at ON expenses(created_at);

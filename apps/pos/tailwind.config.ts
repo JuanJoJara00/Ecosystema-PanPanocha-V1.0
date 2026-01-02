@@ -2,7 +2,7 @@ import type { Config } from 'tailwindcss';
 import { tailwindConfig as sharedConfig } from '@panpanocha/config';
 
 const config: Config = {
-    ...(sharedConfig as any),
+    ...(sharedConfig as Config),
     content: [
         "./index.html",
         "./src/**/*.{js,ts,jsx,tsx}",

@@ -317,7 +317,6 @@ export function PosLayout() {
             >
                 <SidebarNavigation
                     activeSection={sidebarSection || 'history'}
-                    onSectionChange={(section) => usePosStore.setState({ sidebarSection: section })}
                 />
 
                 {/* Sidebar Content Sections */}

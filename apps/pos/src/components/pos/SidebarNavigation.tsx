@@ -1,9 +1,9 @@
 import { History, Truck, DoorClosed, Wallet } from 'lucide-react';
 import type { SidebarSection } from './Sidebar';
+import { usePosStore } from '../../store';
 
 interface SidebarNavigationProps {
     activeSection: SidebarSection;
-    onSectionChange: (section: SidebarSection) => void;
 }
 
 const sections = [
@@ -13,7 +13,8 @@ const sections = [
     { id: 'close-shift' as SidebarSection, label: 'Cerrar Turno', icon: DoorClosed },
 ];
 
-export default function SidebarNavigation({ activeSection, onSectionChange }: SidebarNavigationProps) {
+export default function SidebarNavigation({ activeSection }: SidebarNavigationProps) {
+    const setSidebarSection = (section: SidebarSection) => usePosStore.setState({ sidebarSection: section });
     return (
         <div className="border-b border-gray-200 bg-gray-50">
             <nav className="flex overflow-x-auto">
@@ -24,7 +25,7 @@ export default function SidebarNavigation({ activeSection, onSectionChange }: Si
                     return (
                         <button
                             key={section.id}
-                            onClick={() => onSectionChange(section.id)}
+                            onClick={() => setSidebarSection(section.id)}
                             className={`
                                 flex items-center gap-2 px-4 py-3 whitespace-nowrap
                                 border-b-2 transition-all flex-1 justify-center
