@@ -21,7 +21,7 @@ function findProjectRoot(startPath: string): string {
         }
         current = path.dirname(current);
     }
-    throw new Error(`Could not find project root (package.json) starting from ${startPath}`);
+    throw new Error(`Could not find project root (package.json) starting from ${startPath}.`);
 }
 
 const projectRoot = findProjectRoot(__dirname);
