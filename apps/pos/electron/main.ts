@@ -583,7 +583,7 @@ function registerBottomHandlers() {
     // Print Order Details Schema & IPC
     const OrderDetailsSchema = z.object({
         items: z.array(z.object({
-            name: z.string(),
+            name: z.string().trim().min(1, "Item name is required"),
             quantity: z.number().positive(),
             price: z.number().nonnegative()
         })).min(1, "At least one item required"),

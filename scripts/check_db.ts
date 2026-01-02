@@ -7,7 +7,6 @@
  * Requires: pnpm add -D @types/node dotenv @supabase/supabase-js (at workspace root)
  */
 import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -26,7 +25,33 @@ function findProjectRoot(startPath: string): string {
 }
 
 const projectRoot = findProjectRoot(__dirname);
-dotenv.config({ path: path.join(projectRoot, 'apps/portal/.env.local') });
+const envPath = path.join(projectRoot, 'apps/portal/.env.local');
+
+// Manual .env parsing to avoid dotenv dependency
+if (fs.existsSync(envPath)) {
+    try {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        envContent.split('\n').forEach(line => {
+            const match = line.match(/^([^= #]+)=(.*)$/);
+            if (match) {
+                const key = match[1].trim();
+                const value = match[2].trim().replace(/^['"](.*)['"]$/, '$1');
+                if (!process.env[key]) {
+                    process.env[key] = value;
+                }
+            }
+        });
+        console.log(`Loaded env from: ${envPath}`);
+    } catch (e: unknown) {
+        console.error(`Failed to load env file from: ${envPath}`);
+        if (e instanceof Error) console.error('Error:', e.message);
+        process.exit(1);
+    }
+} else {
+    console.error(`Error: Environment file not found at ${envPath}`);
+    console.error('Please ensure apps/portal/.env.local exists with Supabase credentials.');
+    process.exit(1);
+}
 
 /**
  * Types for Supabase tables (DB-specific).

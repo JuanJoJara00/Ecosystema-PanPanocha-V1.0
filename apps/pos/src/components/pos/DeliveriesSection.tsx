@@ -24,7 +24,7 @@ interface Delivery {
 }
 
 export default function DeliveriesSection() {
-    const { currentBranchId, refreshDeliveriesTrigger, currentShift, currentUser, sidebarDateFilter } = usePosStore();
+    const { currentBranchId, refreshDeliveriesTrigger, currentShift, currentUser, sidebarDateFilter, organizationId } = usePosStore();
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -106,7 +106,7 @@ export default function DeliveriesSection() {
                     delivery_fee: d.total_amount || d.total_value || 0,
                     delivery_cost: 0,
                     delivery_person: 'Rappi',
-                    organization_id: usePosStore.getState().organizationId,
+                    organization_id: organizationId,
                     notes: d.notes
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -170,6 +170,13 @@ export default function DeliveriesSection() {
         try {
             const delivery = deliveries.find(d => d.id === deliveryId);
             if (!delivery) throw new Error('Delivery not found');
+
+            // Require authenticated user for sale creation
+            if (!currentUser?.id) {
+                toast.error('❌ No se puede completar: Usuario no autenticado');
+                setProcessing(false);
+                return;
+            }
 
             if (delivery.status === 'delivered') {
                 toast.success('Este pedido ya fue entregado previamente.');
@@ -245,7 +252,7 @@ export default function DeliveriesSection() {
                 id: saleId,
                 branch_id: currentBranchId,
                 shift_id: currentShift?.id,
-                created_by: currentUser?.id || 'system',
+                created_by: currentUser.id,
                 created_by_system: isRappi ? 'pos-rappi' : 'pos-delivery',
                 sale_channel: isRappi ? 'rappi' as const : 'delivery' as const,
                 total_amount: totalAmount,
@@ -257,7 +264,7 @@ export default function DeliveriesSection() {
                 diners: 1,
                 created_at: new Date().toISOString(),
                 synced: false,
-                organization_id: usePosStore.getState().organizationId,
+                organization_id: organizationId,
             };
 
             const saleItems = products.map((item: any) => ({
@@ -299,7 +306,7 @@ export default function DeliveriesSection() {
                             : `Pago domiciliario - ${delivery.assigned_driver || 'N/A'}`,
                         created_at: new Date().toISOString(),
                         synced: false,
-                        organization_id: usePosStore.getState().organizationId
+                        organization_id: organizationId
                     };
 
                     try {
