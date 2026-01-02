@@ -61,6 +61,7 @@ if (fs.existsSync(envPath)) {
 interface DbBranch {
     id: string;
     organization_id: string;
+    nit?: string;
     name: string;
     city?: string;
     address?: string;
@@ -68,6 +69,7 @@ interface DbBranch {
     is_active?: boolean;
     created_at?: string;
     updated_at?: string;
+    deleted_at?: string;
 }
 
 interface DbInventoryItem {
@@ -138,17 +140,18 @@ async function check(): Promise<void> {
             console.log('Sample Item:', itemList[0]);
         }
 
-        // Check Branch Inventory
-        const { data: joinData, error: errJoin } = await supabase
-            .from('branch_inventory')
-            .select('*');
+    }
 
-        if (errJoin) {
-            console.error('Error fetching branch_inventory:', errJoin);
-        } else {
-            const joinList = joinData as DbBranchInventory[] | null;
-            console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
-        }
+    // Check Branch Inventory
+    const { data: joinData, error: errJoin } = await supabase
+        .from('branch_inventory')
+        .select('*');
+
+    if (errJoin) {
+        console.error('Error fetching branch_inventory:', errJoin);
+    } else {
+        const joinList = joinData as DbBranchInventory[] | null;
+        console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
     }
 }
 

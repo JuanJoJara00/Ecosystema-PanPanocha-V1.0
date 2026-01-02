@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Check, X, MapPin, Trash2 } from 'lucide-react';
-import { usePosStore, assertOrganizationId, getOrganizationIdSafe } from '../../store';
+import { usePosStore, assertOrganizationId } from '../../store';
 // import { supabase } from '../../api/client'; // Removed direct cloud dependency
 
 import { formatCurrency } from '@panpanocha/shared';
@@ -41,8 +41,7 @@ export default function DeliveriesSection() {
             setLoading(true);
 
             // Strict Tenant Check
-            assertOrganizationId();
-            const orgId = getOrganizationIdSafe();
+            const orgId = assertOrganizationId();
 
             let queryStartTime = new Date();
             queryStartTime.setHours(0, 0, 0, 0);
@@ -176,8 +175,7 @@ export default function DeliveriesSection() {
             if (!delivery) throw new Error('Delivery not found');
 
             // Strict Tenant Check
-            assertOrganizationId();
-            const orgId = getOrganizationIdSafe();
+            const orgId = assertOrganizationId();
 
             // Require authenticated user for sale creation
             if (!currentUser?.id) {

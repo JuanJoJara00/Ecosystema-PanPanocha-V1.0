@@ -37,7 +37,7 @@ ipcMain.handle('auth-set-token', (event, token: string) => {
 const OrganizationConfigSchema = z.object({
     name: z.string().min(1, 'Organization name is required'),
     nit: z.string().min(1, 'NIT is required'),
-    website: z.string().optional()
+    website: z.string().url('Invalid website URL format').optional().or(z.literal(''))
 });
 
 ipcMain.handle('printer-set-organization', (event, config) => {
