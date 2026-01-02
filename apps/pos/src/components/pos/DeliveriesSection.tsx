@@ -148,8 +148,6 @@ export default function DeliveriesSection() {
 
             // 2. PowerSync handles background sync automatically
 
-
-
             const sourceType = isRappi ? 'rappi' : 'delivery';
             await window.electron.removeReservation(sourceType, deliveryId);
             usePosStore.getState().triggerProductsRefresh();

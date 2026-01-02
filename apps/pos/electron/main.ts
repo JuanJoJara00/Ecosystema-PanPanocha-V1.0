@@ -254,7 +254,7 @@ app.on('ready', async () => {
         PrinterService.getInstance().setOrganizationConfig({
             name: 'PAN PANOCHA',
             nit: '900.123.456-7',
-            website: 'www.panpanocha.com'
+            website: 'https://www.panpanocha.com'
         });
         console.log('[Printer] Organization config initialized with default branding.');
     } catch (e) {
