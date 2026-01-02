@@ -442,7 +442,7 @@ function registerBottomHandlers() {
             cardSales: z.number().nonnegative(),
             transferSales: z.number().nonnegative(),
             totalExpenses: z.number().nonnegative(),
-            salesCount: z.number()
+            salesCount: z.number().int().nonnegative()
         }).passthrough(),
         cashCount: z.number().nonnegative(),
         cashCounts: z.record(z.number()).optional(),

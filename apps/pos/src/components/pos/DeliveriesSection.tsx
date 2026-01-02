@@ -29,6 +29,7 @@ export default function DeliveriesSection() {
     const [loading, setLoading] = useState(true);
     const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
     const loadTodaysDeliveries = useCallback(async () => {
         try {
@@ -78,7 +79,8 @@ export default function DeliveriesSection() {
                         customer_phone: d.phone,
                         customer_address: d.address,
                         product_details: (d as { product_details?: string }).product_details ?? '[]',
-                        delivery_fee: (d as { delivery_fee?: number }).delivery_fee ?? 0
+                        delivery_fee: (d as { delivery_fee?: number }).delivery_fee ?? 0,
+                        organization_id: orgId
                     };
                 }),
                 ...(Array.isArray(rappiRes) ? rappiRes : []).map(d => ({
@@ -629,11 +631,7 @@ export default function DeliveriesSection() {
                                         </button>
 
                                         <button
-                                            onClick={() => {
-                                                if (confirm('¿Cancelar este pedido? El stock se restaurará.')) {
-                                                    handleCancelDelivery(selectedDelivery.id);
-                                                }
-                                            }}
+                                            onClick={() => setShowCancelConfirm(true)}
                                             disabled={processing}
                                             className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-xl text-sm uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
                                         >
@@ -650,6 +648,39 @@ export default function DeliveriesSection() {
                                 )}
                             </div>
                         </div>
+
+                        {/* Confirmation Overlay */}
+                        {showCancelConfirm && (
+                            <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-[70] flex items-center justify-center p-8 rounded-[30px] animate-in fade-in duration-200">
+                                <div className="w-full max-w-sm text-center space-y-4">
+                                    <div className="mx-auto w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-2">
+                                        <Trash2 size={24} />
+                                    </div>
+                                    <h3 className="text-xl font-black text-gray-900">¿Cancelar Pedido?</h3>
+                                    <p className="text-gray-500 text-sm leading-relaxed">
+                                        Esta acción restaurará el stock y marcará el pedido como cancelado. <br />
+                                        <span className="font-bold text-red-500">¿Estás seguro?</span>
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-3 pt-2">
+                                        <button
+                                            onClick={() => setShowCancelConfirm(false)}
+                                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl text-sm transition-colors"
+                                        >
+                                            VOLVER
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (selectedDelivery) handleCancelDelivery(selectedDelivery.id);
+                                                setShowCancelConfirm(false);
+                                            }}
+                                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-lg shadow-red-200"
+                                        >
+                                            SÍ, CANCELAR
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

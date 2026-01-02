@@ -21,7 +21,7 @@ function findProjectRoot(startPath: string): string {
         }
         current = path.dirname(current);
     }
-    return startPath;
+    throw new Error(`Could not find project root (package.json) starting from ${startPath}`);
 }
 
 const projectRoot = findProjectRoot(__dirname);
@@ -39,13 +39,7 @@ if (fs.existsSync(envPath)) {
                 const key = match[1];
                 let value = match[2] ? match[2].trim() : '';
 
-                // Remove inline comments if present (e.g. KEY=val # comment)
-                // Be careful not to strip # inside quotes
-                if (value.includes('#')) {
-                    // Simple heuristic: if # is after whitespace/quote closure?
-                    // For simplicity in this script, just assume simple env files.
-                    // Or just split by ' #' if needed. relying on simpler valid parsing for now.
-                }
+                // Inline comments support is omitted for simplicity in this utility script.
 
                 // Strip surrounding quotes
                 if (value.length > 1 &&
@@ -54,6 +48,8 @@ if (fs.existsSync(envPath)) {
                     value = value.slice(1, -1);
                 }
 
+                // Precedence: Existing process.env vars (SYSTEM) > .env file
+                // Only set if not already defined to preserve system/container settings
                 if (!process.env[key]) {
                     process.env[key] = value;
                 }
@@ -72,42 +68,14 @@ if (fs.existsSync(envPath)) {
 }
 
 /**
- * Types for Supabase tables (DB-specific).
- * These match the actual database schema, not the application types.
- * TODO: Consider generating Supabase types with `npx supabase gen types typescript`
+ * Types for Supabase tables (Generated).
+ * These match the actual database schema.
  */
-interface DbBranch {
-    id: string;
-    organization_id: string;
-    nit?: string;
-    name: string;
-    city?: string;
-    address?: string;
-    phone?: string;
-    is_active?: boolean;
-    created_at?: string;
-    updated_at?: string;
-    deleted_at?: string;
-}
+import type { Database } from '../apps/portal/src/types/supabase';
 
-interface DbInventoryItem {
-    id: string;
-    organization_id: string;
-    name: string;
-    sku?: string;
-    category?: string;
-    unit?: string;
-    cost_price?: number;
-    created_at?: string;
-}
-
-interface DbBranchInventory {
-    id?: string;
-    branch_id: string;
-    item_id: string;
-    quantity: number;
-    last_updated?: string;
-}
+type DbBranch = Database['public']['Tables']['branches']['Row'];
+type DbInventoryItem = Database['public']['Tables']['inventory_items']['Row'];
+type DbBranchInventory = Database['public']['Tables']['branch_inventory']['Row'];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -125,6 +93,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function check(): Promise<void> {
+    let hasErrors = false;
     console.log('Checking Supabase connection...');
     console.log(`Using project root: ${projectRoot}`);
 
@@ -135,6 +104,7 @@ async function check(): Promise<void> {
 
     if (errBranches) {
         console.error('Error fetching branches:', errBranches);
+        hasErrors = true;
     } else {
         const branchList = branches as DbBranch[] | null;
         console.log(`Branches found: ${branchList?.length ?? 0}`);
@@ -150,6 +120,7 @@ async function check(): Promise<void> {
 
     if (errItems) {
         console.error('Error fetching inventory_items:', errItems);
+        hasErrors = true;
     } else {
         const itemList = items as DbInventoryItem[] | null;
         console.log(`Inventory Items found: ${itemList?.length ?? 0}`);
@@ -167,9 +138,15 @@ async function check(): Promise<void> {
 
     if (errJoin) {
         console.error('Error fetching branch_inventory:', errJoin);
+        hasErrors = true;
     } else {
         const joinList = joinData as DbBranchInventory[] | null;
         console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
+    }
+
+    if (hasErrors) {
+        console.error('❌ One or more database checks failed.');
+        process.exit(1);
     }
 }
 
