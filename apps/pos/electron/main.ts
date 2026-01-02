@@ -384,682 +384,74 @@ function registerBottomHandlers() {
     });
 
     // Print Closing Receipt IPC
+    // Print Closing Receipt IPC
     ipcMain.handle('print-closing', async (e, closingData) => {
-        console.log('[Printer] Generating PDF closing receipt...');
-
+        console.log('[Printer] Generating Closing Receipt via ESC/POS...');
         try {
-            const PDFDocument = require('pdfkit');
-            const {
-                shift,
-                branch,
-                user,
-                summary,
-                cashCount,
-                cashCounts, // Denomination breakdown: { [denom]: count }
-                difference,
-                cashToDeliver,
-                closingType,
-                productsSold
-            } = closingData;
-
-            console.log('[Printer] Received closing data:', {
-                hasCashCounts: !!cashCounts,
-                cashCountsKeys: cashCounts ? Object.keys(cashCounts) : [],
-                productsSoldLength: productsSold?.length,
-                productsSoldData: productsSold // Log actual data to verify
-            });
-
-            // Define directory to save receipts
-            const documentsPath = app.getPath('documents');
-            const closingsDir = path.join(documentsPath, 'PanPanocha_Cierres');
-            if (!fs.existsSync(closingsDir)) {
-                fs.mkdirSync(closingsDir, { recursive: true });
-            }
-
-            const dateNow = new Date();
-            const dateStr = dateNow.toLocaleDateString('es-CO');
-            const timeStr = dateNow.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const filename = `Cierre_${closingType}_${dateNow.toISOString().slice(0, 10)}_${dateNow.getTime()}.pdf`;
-            const filePath = path.join(closingsDir, filename);
-
-            // Create PDF document - 80mm thermal paper
-            const doc = new PDFDocument({
-                size: [226.77, 841.89],
-                margins: { top: 10, bottom: 10, left: 10, right: 10 }
-            });
-
-            const stream = fs.createWriteStream(filePath);
-            doc.pipe(stream);
-
-            // === LOGO ===
-            const logoPath = path.join(__dirname, '..', 'public', 'images', 'logo_v2.png');
-            const alternateLogo = path.join(process.cwd(), 'public', 'images', 'logo_v2.png');
-
-            if (fs.existsSync(logoPath)) {
-                try {
-                    doc.image(logoPath, 88, 15, { width: 50, height: 50 });
-                    doc.y = 75;
-                } catch (err) { console.log('[Printer] Logo error:', err); }
-            } else if (fs.existsSync(alternateLogo)) {
-                try {
-                    doc.image(alternateLogo, 88, 15, { width: 50, height: 50 });
-                    doc.y = 75;
-                } catch (err) { console.log('[Printer] Logo error:', err); }
-            }
-
-            // === HEADER ===
-            doc.font('Courier-Bold');
-            doc.fontSize(11).text('PANPANOCHA', { align: 'center' });
-            doc.fontSize(9).text('CIERRE DE CAJA', { align: 'center' });
-            doc.fontSize(8).font('Courier').text(`Tipo: ${closingType.toUpperCase()}`, { align: 'center' });
-
-            doc.moveDown(0.3);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === SHIFT INFO ===
-            doc.fontSize(8).font('Courier');
-            doc.text(`Sede: ${branch?.name || 'Principal'}`);
-            doc.text(`Cajero: ${user?.full_name || 'Staff'}`);
-            doc.text(`Fecha: ${dateStr}`);
-            doc.text(`Hora: ${timeStr}`);
-            doc.text(`Turno: ${shift?.turn_type || 'Único'}`);
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.2);
-            doc.fontSize(9).font('Courier-Bold').text('RESUMEN DE VENTAS', { align: 'center' });
-            doc.moveDown(0.2);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === SALES SUMMARY ===
-            doc.fontSize(8).font('Courier');
-
-            const totalSales = summary?.totalSales || 0;
-            const cashSales = summary?.cashSales || 0;
-            const cardSales = summary?.cardSales || 0;
-            const transferSales = summary?.transferSales || 0;
-            const totalExpenses = summary?.totalExpenses || 0;
-            const salesCount = summary?.salesCount || 0;
-
-            doc.text(`Ventas (#${salesCount}):`, { continued: true });
-            doc.text(`$${totalSales.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.text(`  Efectivo:`, { continued: true });
-            doc.text(`$${cashSales.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`  Tarjeta:`, { continued: true });
-            doc.text(`$${cardSales.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`  Transferencia:`, { continued: true });
-            doc.text(`$${transferSales.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.text(`Gastos de Caja:`, { continued: true });
-            doc.text(`-$${totalExpenses.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.2);
-            doc.fontSize(9).font('Courier-Bold').text('ARQUEO DE CAJA', { align: 'center' });
-            doc.moveDown(0.2);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === INVENTARIO DE EFECTIVO (Denomination Breakdown) ===
-            if (cashCounts) {
-                // Always print section if cashCounts exists, even if 0 to show it was checked
-                doc.fontSize(8).font('Courier-Bold').text('Inventario de efectivo', { align: 'left' });
-                doc.moveDown(0.2);
-
-                // Helper to safely get count regardless of key type (string/number)
-                const getCount = (denom: number) => {
-                    return (cashCounts[denom] || cashCounts[String(denom)] || 0);
-                };
-
-                // MONEDAS
-                const coins = [1000, 500, 200, 100, 50];
-                doc.font('Courier-Bold').text('MONEDAS', { align: 'left' });
-                doc.font('Courier');
-                coins.forEach(denom => {
-                    const count = getCount(denom);
-                    if (count > 0) {
-                        const total = denom * count;
-                        doc.text(`  ${denom.toLocaleString('es-CO')} X ${count} = $${total.toLocaleString('es-CO')}`, { align: 'right' });
-                    }
-                });
-
-                doc.moveDown(0.2);
-
-                // BILLETES
-                const bills = [2000, 5000, 10000, 20000, 50000, 100000];
-                doc.font('Courier-Bold').text('BILLETES', { align: 'left' });
-                doc.font('Courier');
-                bills.forEach(denom => {
-                    const count = getCount(denom);
-                    if (count > 0) {
-                        const total = denom * count;
-                        doc.text(`  ${denom.toLocaleString('es-CO')} X ${count} = $${total.toLocaleString('es-CO')}`, { align: 'right' });
-                    }
-                });
-
-                doc.moveDown(0.3);
-                doc.font('Courier-Bold');
-                doc.text(`Efectivo contado:`, { continued: true });
-                doc.text(`$${(cashCount || 0).toLocaleString('es-CO')}`, { align: 'right' });
-                doc.moveDown(0.3);
-                doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-                doc.moveDown(0.3);
-            } else {
-                console.log('[Printer] No cashCounts data provided or it is empty.');
-            }
-
-            // === CASH COUNT SUMMARY ===
-            doc.fontSize(8).font('Courier');
-            const expectedCash = (shift?.initial_cash || 0) + cashSales - totalExpenses;
-
-            doc.text(`Base Inicial:`, { continued: true });
-            doc.text(`$${(shift?.initial_cash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`+ Ventas Efectivo:`, { continued: true });
-            doc.text(`$${cashSales.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`- Gastos:`, { continued: true });
-            doc.text(`$${totalExpenses.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.font('Courier-Bold');
-            doc.text(`ESPERADO:`, { continued: true });
-            doc.text(`$${expectedCash.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`CONTADO:`, { continued: true });
-            const finalCashCount = cashCount || 0;
-            doc.text(`$${finalCashCount.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            const diffLabel = difference > 0 ? 'SOBRANTE' : difference < 0 ? 'FALTANTE' : 'CUADRE PERFECTO';
-            doc.fontSize(9);
-            doc.text(`${diffLabel}:`, { continued: true });
-            doc.text(`$${Math.abs(difference || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === CASH TO DELIVER ===
-            doc.fontSize(10).font('Courier-Bold');
-            doc.text('A ENTREGAR:', { continued: true });
-            doc.text(`$${(cashToDeliver || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.5);
-
-
-
-            // === SIGNATURE LINE ===
-            doc.moveDown(1);
-            doc.fontSize(8).font('Courier');
-            doc.text('_________________________', { align: 'center' });
-            doc.text('Firma Cajero', { align: 'center' });
-
-            doc.moveDown(1);
-            doc.text('_________________________', { align: 'center' });
-            doc.text('Firma Encargado', { align: 'center' });
-
-            doc.moveDown(0.5);
-            doc.fontSize(7);
-            doc.text('www.panpanocha.com', { align: 'center' });
-
-            // Finalize Main PDF
-            doc.end();
-
-            await new Promise<void>((resolve, reject) => {
-                stream.on('finish', () => {
-                    console.log('[Printer] Main closing PDF stream finished writing.');
-                    resolve();
-                });
-                stream.on('error', (err) => {
-                    console.error('[Printer] Error writing main closing PDF stream:', err);
-                    reject(err);
-                });
-            });
-
-            console.log('[Printer] Closing PDF saved to:', filePath);
-            console.log('[Printer] Opening main closing PDF...');
-            shell.openPath(filePath);
-
-            // === SEPARATE PRODUCTS RECEIPT ===
-            if (productsSold && productsSold.length > 0) {
-                try {
-                    console.log('[Printer] Generating separate products receipt...');
-                    const productsFilename = `Cierre_Productos_${closingType}_${dateNow.toISOString().slice(0, 10)}_${dateNow.getTime()}.pdf`;
-                    const productsFilePath = path.join(closingsDir, productsFilename);
-
-                    const docProd = new PDFDocument({
-                        size: [226.77, 841.89], // 80mm width
-                        margins: { top: 10, bottom: 10, left: 10, right: 10 }
-                    });
-
-                    const streamProd = fs.createWriteStream(productsFilePath);
-                    docProd.pipe(streamProd);
-                    console.log(`[Printer] Products PDF stream created for: ${productsFilePath}`);
-
-                    // -- Logo --
-                    if (fs.existsSync(logoPath)) {
-                        try {
-                            docProd.image(logoPath, 88, 15, { width: 50, height: 50 });
-                            docProd.y = 75;
-                            console.log('[Printer] Products PDF: Logo from __dirname loaded.');
-                        } catch (err) { console.log('[Printer] Products PDF: Logo error from __dirname:', err); }
-                    } else if (fs.existsSync(alternateLogo)) {
-                        try {
-                            docProd.image(alternateLogo, 88, 15, { width: 50, height: 50 });
-                            docProd.y = 75;
-                            console.log('[Printer] Products PDF: Logo from process.cwd loaded.');
-                        } catch (err) { console.log('[Printer] Products PDF: Logo error from process.cwd:', err); }
-                    } else {
-                        console.log('[Printer] Products PDF: No logo found at either path.');
-                    }
-
-                    // -- Header --
-                    docProd.font('Courier-Bold');
-                    docProd.fontSize(10).text('PANPANOCHA', { align: 'center' });
-                    docProd.fontSize(9).text('REPORTE DE PRODUCTOS', { align: 'center' });
-                    docProd.fontSize(8).font('Courier').text(`Fecha: ${dateStr} - ${timeStr}`, { align: 'center' });
-                    docProd.text(`Cajero: ${user?.full_name || 'Staff'}`);
-
-                    docProd.moveDown(0.3);
-                    docProd.moveTo(10, docProd.y).lineTo(216.77, docProd.y).stroke();
-                    docProd.moveDown(0.3);
-
-                    // -- Products List --
-                    docProd.fontSize(8).font('Courier');
-
-                    productsSold.forEach((p: { name: string; quantity: number; total: number }) => {
-                        const pName = (p.name || '').slice(0, 20);
-                        docProd.text(`${pName}`, { continued: true });
-                        docProd.text(` x${p.quantity}`, { align: 'right' });
-                    });
-
-                    // Summary
-                    docProd.moveDown(0.5);
-                    docProd.moveTo(10, docProd.y).lineTo(216.77, docProd.y).stroke();
-                    docProd.moveDown(0.2);
-                    const totalItems = productsSold.reduce((acc: number, curr: any) => acc + (curr.quantity || 0), 0);
-                    docProd.fontSize(9).font('Courier-Bold');
-                    docProd.text(`Total Items: ${totalItems}`, { align: 'center' });
-
-                    docProd.moveDown(1);
-                    docProd.fontSize(7).font('Courier');
-                    docProd.text('www.panpanocha.com', { align: 'center' });
-
-                    docProd.end();
-
-                    await new Promise<void>((resolve, reject) => {
-                        streamProd.on('finish', () => {
-                            console.log('[Printer] Products PDF stream finished writing.');
-                            resolve();
-                        });
-                        streamProd.on('error', (err) => {
-                            console.error('[Printer] Error writing products PDF stream:', err);
-                            reject(err);
-                        });
-                    });
-
-                    console.log('[Printer] Products PDF saved to:', productsFilePath);
-
-                    // Open separate PDF
-                    console.log('[Printer] Opening products PDF with a delay...');
-                    setTimeout(() => {
-                        shell.openPath(productsFilePath);
-                    }, 1000); // Small delay to ensure OS handles first open
-
-                } catch (prodErr) {
-                    console.error('[Printer] Error generating products PDF:', prodErr);
-                }
-            } else {
-                console.log('[Printer] No productsSold data provided or it is empty, skipping products PDF generation.');
-            }
-
-            return { success: true, message: 'PDF Generated', filePath };
-
+            await PrinterService.getInstance().printClosing(closingData);
+            return { success: true, message: 'Print Job Sent' };
         } catch (error) {
-            console.error('[Printer] Error generating closing PDF:', error);
-            dialog.showErrorBox('Error de Impresión', `No se pudo generar el PDF de cierre.\nError: ${error instanceof Error ? error.message : String(error)}`);
-            return { success: false, error: 'Failed to generate PDF' };
+            console.error('[Printer] Closing print failed:', error);
+            // dialog.showErrorBox('Error de Impresión', String(error));
+            return { success: false, error: String(error) };
         }
     });
 
     // Print Siigo Closing Receipt IPC
+    // Print Siigo Closing Receipt IPC
     ipcMain.handle('print-siigo-closing', async (e, closingData) => {
-        console.log('[Printer] Generating Siigo Closing PDF (Standard Layout)...');
-
+        console.log('[Printer] Generating Siigo Closing via ESC/POS...');
         try {
-            const PDFDocument = require('pdfkit');
+            // Map Siigo data to standard closing data
             const {
+                shift, branch, user,
+                sales_cash, sales_card, sales_transfer,
+                expenses, finalCash, difference, products, cashCounts
+            } = closingData;
+
+            const totalExpenses = (expenses || []).reduce((acc: any, curr: any) => acc + (curr.amount || 0), 0);
+            const totalSales = (sales_cash || 0) + (sales_card || 0) + (sales_transfer || 0);
+
+            const mappedData = {
                 shift,
                 branch,
                 user,
-                // Siigo specific data mapping
-                base_cash,
-                sales_cash,
-                sales_card,
-                sales_transfer,
-                tips,
-                difference,
-                finalCash,    // This corresponds to 'cashCount' (actual counted cash)
-                products,     // corresponds to productsSold
-                expenses,     // corresponds to expensesList
+                closingType: 'SIIGO',
+                summary: {
+                    totalSales,
+                    cashSales: sales_cash,
+                    cardSales: sales_card,
+                    transferSales: sales_transfer,
+                    totalExpenses,
+                    salesCount: products?.length || 0
+                },
+                cashCount: finalCash,
                 cashCounts,
-                expectedCash  // available in dataToPrint
-            } = closingData;
+                difference,
+                cashToDeliver: finalCash,
+                productsSold: products
+            };
 
-            // Construct synthetic summary for reuse
-            const totalSales = (sales_cash || 0) + (sales_card || 0) + (sales_transfer || 0);
-            const totalExpenses = (expenses || []).reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
-            const productsSold = products;
-
-            // Define directory to save receipts
-            const documentsPath = app.getPath('documents');
-            const closingsDir = path.join(documentsPath, 'PanPanocha_Cierres_Siigo');
-            if (!fs.existsSync(closingsDir)) {
-                fs.mkdirSync(closingsDir, { recursive: true });
-            }
-
-            const dateNow = new Date();
-            const dateStr = dateNow.toLocaleDateString('es-CO');
-            const timeStr = dateNow.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const filename = `Cierre_Siigo_${dateNow.toISOString().slice(0, 10)}_${dateNow.getTime()}.pdf`;
-            const filePath = path.join(closingsDir, filename);
-
-            // Create PDF document - 80mm thermal paper
-            const doc = new PDFDocument({
-                size: [226.77, 841.89],
-                margins: { top: 10, bottom: 10, left: 10, right: 10 }
-            });
-
-            const stream = fs.createWriteStream(filePath);
-            doc.pipe(stream);
-
-            // === LOGO ===
-            const logoPath = path.join(__dirname, '..', 'public', 'images', 'logo_v2.png');
-            const alternateLogo = path.join(process.cwd(), 'public', 'images', 'logo_v2.png');
-
-            if (fs.existsSync(logoPath)) {
-                try {
-                    doc.image(logoPath, 88, 15, { width: 50, height: 50 });
-                    doc.y = 75;
-                } catch (err) { }
-            } else if (fs.existsSync(alternateLogo)) {
-                try {
-                    doc.image(alternateLogo, 88, 15, { width: 50, height: 50 });
-                    doc.y = 75;
-                } catch (err) { }
-            }
-
-            // === HEADER ===
-            doc.font('Courier-Bold');
-            doc.fontSize(11).text('PANPANOCHA', { align: 'center' });
-            doc.fontSize(9).text('CIERRE: SIIGO', { align: 'center' });
-
-            doc.moveDown(0.3);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === SHIFT INFO ===
-            doc.fontSize(8).font('Courier');
-            doc.text(`Sede: ${branch?.name || 'Principal'}`);
-            doc.text(`Cajero: ${user?.full_name || 'Staff'}`);
-            doc.text(`Fecha: ${dateStr}`);
-            doc.text(`Hora: ${timeStr}`);
-            doc.text(`Turno: ${shift?.turn_type || 'Único'}`);
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.2);
-            doc.fontSize(9).font('Courier-Bold').text('RESUMEN DE VENTAS', { align: 'center' });
-            doc.moveDown(0.2);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === SALES SUMMARY ===
-            doc.fontSize(8).font('Courier');
-
-            const salesCount = productsSold?.length || 0;
-
-            doc.text(`Ventas (#${salesCount}):`, { continued: true });
-            doc.text(`$${totalSales.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.text(`  Efectivo:`, { continued: true });
-            doc.text(`$${(sales_cash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`  Tarjeta:`, { continued: true });
-            doc.text(`$${(sales_card || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`  Transferencia:`, { continued: true });
-            doc.text(`$${(sales_transfer || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.text(`Gastos de Caja:`, { continued: true });
-            doc.text(`-$${totalExpenses.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.2);
-            doc.fontSize(9).font('Courier-Bold').text('ARQUEO DE CAJA', { align: 'center' });
-            doc.moveDown(0.2);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === INVENTARIO DE EFECTIVO (Denomination Breakdown) ===
-            if (cashCounts) {
-                // Helper to safely get count
-                const getCount = (denom: number) => {
-                    return (cashCounts[denom] || cashCounts[String(denom)] || 0);
-                };
-
-                // MONEDAS
-                const coins = [1000, 500, 200, 100, 50];
-                doc.fontSize(8).font('Courier-Bold').text('MONEDAS', { align: 'left' });
-                doc.font('Courier');
-                coins.forEach(denom => {
-                    const count = getCount(denom);
-                    if (count > 0) {
-                        const total = denom * count;
-                        doc.text(`  ${denom.toLocaleString('es-CO')} X ${count} = $${total.toLocaleString('es-CO')}`, { align: 'right' });
-                    }
-                });
-
-                doc.moveDown(0.2);
-
-                // BILLETES
-                const bills = [2000, 5000, 10000, 20000, 50000, 100000];
-                doc.font('Courier-Bold').text('BILLETES', { align: 'left' });
-                doc.font('Courier');
-                bills.forEach(denom => {
-                    const count = getCount(denom);
-                    if (count > 0) {
-                        const total = denom * count;
-                        doc.text(`  ${denom.toLocaleString('es-CO')} X ${count} = $${total.toLocaleString('es-CO')}`, { align: 'right' });
-                    }
-                });
-
-                doc.moveDown(0.3);
-                doc.font('Courier-Bold');
-                doc.text(`Efectivo contado:`, { continued: true });
-                doc.text(`$${(finalCash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-                doc.moveDown(0.3);
-                doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-                doc.moveDown(0.3);
-            }
-
-            // === CASH COUNT SUMMARY ===
-            doc.fontSize(8).font('Courier');
-
-            // Expected Logic: Base + CashSales - Expenses
-            // Note: In Siigo modal, 'expectedCash' is passed, or calculated as 'totalCash - totalExpenses + totalTips' if tips included?
-            // Standard standard logic: base + sales_cash - expenses. 
-            // We will use the standard formula here to be consistent with layout text
-            const calcExpected = (base_cash || 0) + (sales_cash || 0) - totalExpenses;
-
-            doc.text(`Base Inicial:`, { continued: true });
-            doc.text(`$${(base_cash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`+ Ventas Efectivo:`, { continued: true });
-            doc.text(`$${(sales_cash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`- Gastos:`, { continued: true });
-            doc.text(`$${totalExpenses.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.font('Courier-Bold');
-            doc.text(`ESPERADO:`, { continued: true });
-            doc.text(`$${calcExpected.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`CONTADO:`, { continued: true });
-            doc.text(`$${(finalCash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            const diffLabel = (difference || 0) > 0 ? 'SOBRANTE' : (difference || 0) < 0 ? 'FALTANTE' : 'CUADRE PERFECTO';
-            doc.fontSize(9);
-            doc.text(`${diffLabel}:`, { continued: true });
-            doc.text(`$${Math.abs(difference || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // === CASH TO DELIVER ===
-            // Effectively what they have in hand (finalCash) or expected? usually finalCash if short, or expected + Surplus if over? 
-            // Standard code uses 'cashToDeliver' passed from frontend.
-            // We will assume finalCash is what is delivered (Counted Money).
-
-            doc.fontSize(10).font('Courier-Bold');
-            doc.text('A ENTREGAR:', { continued: true });
-            doc.text(`$${(finalCash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.5);
-
-            // === SIGNATURE LINE ===
-            doc.moveDown(1);
-            doc.fontSize(8).font('Courier');
-            doc.text('_________________________', { align: 'center' });
-            doc.text('Firma Cajero', { align: 'center' });
-
-            doc.moveDown(1);
-            doc.text('_________________________', { align: 'center' });
-            doc.text('Firma Encargado', { align: 'center' });
-
-            doc.moveDown(0.5);
-            doc.fontSize(7);
-            doc.text('www.panpanocha.com', { align: 'center' });
-
-            // Finalize Main PDF
-            doc.end();
-
-            await new Promise<void>((resolve, reject) => {
-                stream.on('finish', () => {
-                    console.log('[Printer] Siigo closing PDF stream finished writing.');
-                    resolve();
-                });
-                stream.on('error', (err) => {
-                    console.error('[Printer] Error writing Siigo closing PDF stream:', err);
-                    reject(err);
-                });
-            });
-
-            console.log('[Printer] Siigo Closing PDF saved to:', filePath);
-
-            // Open separate products PDF if products exist?
-            // The frontend calls 'print-order-details' separately for products if needed.
-            // So we only print the receipt here.
-
-            console.log('[Printer] Opening Siigo closing PDF...');
-            setTimeout(() => {
-                shell.openPath(filePath);
-            }, 500);
-
-            return { success: true, message: 'PDF Generated', filePath };
+            await PrinterService.getInstance().printClosing(mappedData);
+            return { success: true, message: 'Print Job Sent' };
 
         } catch (error) {
-            console.error('[Printer] Error generating Siigo closing PDF:', error);
-            dialog.showErrorBox('Error de Impresión', `No se pudo generar el PDF de cierre siigo.\nError: ${error instanceof Error ? error.message : String(error)}`);
-            return { success: false, error: 'Failed to generate PDF' };
+            console.error('[Printer] Error generating Siigo closing:', error);
+            // dialog.showErrorBox('Error de Impresión', String(error));
+            return { success: false, error: 'Failed to print' };
         }
     });
 
     // Print Order Details IPC (Standalone)
     ipcMain.handle('print-order-details', async (e, { items }) => {
-        console.log('[Printer] Generating Order Details PDF...');
+        console.log('[Printer] Generating Order Details via ESC/POS...');
         if (!items || items.length === 0) return { success: false, error: 'No items' };
 
         try {
-            const PDFDocument = require('pdfkit');
-            // Define directory
-            const documentsPath = app.getPath('documents');
-            const dir = path.join(documentsPath, 'PanPanocha_Detalles');
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-            const dateNow = new Date();
-            const filename = `Detalle_${dateNow.getTime()}.pdf`;
-            const filePath = path.join(dir, filename);
-
-            const doc = new PDFDocument({
-                size: [226.77, 841.89],
-                margins: { top: 10, bottom: 10, left: 10, right: 10 }
-            });
-
-            const stream = fs.createWriteStream(filePath);
-            doc.pipe(stream);
-
-            // Simple Header
-            doc.font('Courier-Bold');
-            doc.fontSize(10).text('PANPANOCHA', { align: 'center' });
-            doc.fontSize(9).text('DETALLE DE PRODUCTOS', { align: 'center' });
-            doc.fontSize(7).font('Courier').text(dateNow.toLocaleString('es-CO'), { align: 'center' });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.3);
-
-            // Items
-            doc.fontSize(8).font('Courier');
-            items.forEach((item: any) => {
-                const name = item.name || 'Producto';
-                const qty = item.quantity || 1;
-                const price = item.price || 0;
-                const total = qty * price;
-
-                doc.text(`${name}`);
-                doc.text(`${qty} x $${price.toLocaleString('es-CO')} = $${total.toLocaleString('es-CO')}`, { align: 'right' });
-                doc.moveDown(0.1);
-            });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-
-            const grandTotal = items.reduce((acc: number, i: any) => acc + (i.quantity * i.price), 0);
-            doc.font('Courier-Bold').fontSize(9);
-            doc.text(`TOTAL: $${grandTotal.toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.end();
-
-            await new Promise<void>((resolve, reject) => {
-                stream.on('finish', resolve);
-                stream.on('error', reject);
-            });
-
-            shell.openPath(filePath);
-            return { success: true, filePath };
-
+            await PrinterService.getInstance().printOrderDetails({ items });
+            return { success: true, message: 'Print Job Sent' };
         } catch (error) {
-            console.error('[Printer] Error details PDF:', error);
+            console.error('[Printer] Order details print failed:', error);
             return { success: false, error: String(error) };
         }
     });
@@ -1210,121 +602,12 @@ function registerBottomHandlers() {
     });
 
     ipcMain.handle('print-combined-closing', async (e, data: any) => {
-        console.log('[Printer] Generating Combined Closing PDF...');
+        console.log('[Printer] Generating Combined Closing via ESC/POS...');
         try {
-            const PDFDocument = require('pdfkit');
-            // Define directory
-            const documentsPath = app.getPath('documents');
-            const dir = path.join(documentsPath, 'PanPanocha_Cierres');
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-            const dateNow = new Date();
-            const filename = `CierreTotal_${dateNow.getTime()}.pdf`;
-            const filePath = path.join(dir, filename);
-
-            const doc = new PDFDocument({
-                size: [226.77, 841.89], // 80mm roll width approx
-                margins: { top: 10, bottom: 10, left: 10, right: 10 }
-            });
-
-            const stream = fs.createWriteStream(filePath);
-            doc.pipe(stream);
-
-            // --- HEADER ---
-            // Logo placeholder (circle) if we could, but text is fine
-            doc.font('Courier-Bold');
-            doc.fontSize(10).text('PANPANOCHA', { align: 'center' });
-            doc.fontSize(9).text('CIERRE TOTAL DE TURNO', { align: 'center' });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.2);
-
-            // Info block
-            doc.fontSize(8).font('Courier');
-            doc.text(`Fecha: ${dateNow.toLocaleDateString('es-CO')}`);
-            doc.text(`Hora: ${dateNow.toLocaleTimeString('es-CO')}`);
-            doc.text(`Turno: ${data.shift?.name || 'General'}`);
-            doc.text(`Responsable: ${data.user?.full_name || 'N/A'}`);
-
-            doc.moveDown(0.2);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-            doc.moveDown(0.2);
-
-            // --- CASH SUMMARY ---
-            doc.fontSize(9).font('Courier-Bold').text('RESUMEN CONSOLIDADO', { align: 'center' });
-            doc.moveDown(0.2);
-
-            doc.fontSize(8).font('Courier');
-
-            // Base
-            doc.text(`Base Inicial Total:`, { continued: true });
-            doc.text(`$${(data.summary.totalBase || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            // Sales Cash
-            doc.text(`+ Ventas Efectivo:`, { continued: true });
-            doc.text(`$${(data.summary.totalCashSales || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            // Expenses (Operational)
-            doc.text(`- Gastos Operativos:`, { continued: true });
-            doc.text(`$${(data.summary.totalExpenses || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            // Tips Delivered (Explicit subtraction as requested)
-            if (data.summary.tipsDelivered > 0) {
-                doc.text(`- Propinas Entregadas:`, { continued: true });
-                doc.text(`$${(data.summary.tipsDelivered || 0).toLocaleString('es-CO')}`, { align: 'right' });
-            }
-
-            doc.moveDown(0.2);
-            doc.font('Courier-Bold');
-            doc.text(`= EFECTIVO ESPERADO:`, { continued: true });
-            doc.text(`$${(data.summary.expectedCash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            doc.text(`EFECTIVO REAL (Arqueo):`, { continued: true });
-            doc.text(`$${(data.summary.realCash || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.3);
-            const diff = data.summary.difference;
-            const diffLabel = diff > 0 ? 'SOBRANTE' : diff < 0 ? 'FALTANTE' : 'CUADRE';
-            doc.text(`${diffLabel}:`, { continued: true });
-            doc.text(`$${Math.abs(diff || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(0.5);
-            doc.fontSize(10).text(`A ENTREGAR: $${(data.summary.cashToDeliver || 0).toLocaleString('es-CO')}`, { align: 'center' });
-
-            doc.moveDown(0.5);
-            doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-
-            // --- OTHER MEANS ---
-            doc.moveDown(0.2);
-            doc.fontSize(9).text('OTROS MEDIOS', { align: 'center' });
-            doc.fontSize(8).font('Courier');
-
-            doc.text(`Ventas Tarjeta:`, { continued: true });
-            doc.text(`$${(data.summary.totalCard || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.text(`Ventas Transferencia:`, { continued: true });
-            doc.text(`$${(data.summary.totalTransfer || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-            doc.moveDown(1);
-            doc.fontSize(7).text('www.panpanocha.com', { align: 'center' });
-
-            doc.end();
-
-            await new Promise<void>((resolve, reject) => {
-                stream.on('finish', resolve);
-                stream.on('error', reject);
-            });
-
-            console.log('[Printer] Combined Closing PDF saved to:', filePath);
-            setTimeout(() => {
-                shell.openPath(filePath);
-            }, 500);
-
-            return { success: true, filePath };
+            await PrinterService.getInstance().printCombinedClosing(data);
+            return { success: true, message: 'Print Job Sent' };
         } catch (error: any) {
-            console.error('[Printer] Error generating combined PDF:', error);
+            console.error('[Printer] Error combined closing:', error);
             return { success: false, error: error.message };
         }
     });

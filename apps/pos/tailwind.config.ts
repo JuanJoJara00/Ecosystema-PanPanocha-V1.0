@@ -13,9 +13,9 @@ const config: Config = {
             colors: {
                 ...sharedConfig.theme?.extend?.colors,
                 brand: {
-                    primary: '#F6B323',
-                    secondary: '#4A3728',
-                    accent: '#F9F1E0',
+                    primary: 'var(--color-primary)',
+                    secondary: 'var(--color-secondary)',
+                    accent: 'var(--color-accent)',
                 }
             }
         },

@@ -54,8 +54,13 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS stock INTEGER DEFAULT 0;
 -- 2. Create Function for Deduction
 CREATE OR REPLACE FUNCTION deduct_inventory_on_sale()
 RETURNS TRIGGER AS $$
+DECLARE
+  delta INTEGER;
 BEGIN
   IF (TG_OP = 'INSERT') THEN
+    -- Lock row to prevent race conditions
+    PERFORM 1 FROM products WHERE id = NEW.product_id FOR UPDATE;
+    
     UPDATE products
     SET stock = stock - NEW.quantity
     WHERE id = NEW.product_id AND stock >= NEW.quantity;
@@ -66,26 +71,59 @@ BEGIN
     RETURN NEW;
 
   ELSIF (TG_OP = 'DELETE') THEN
-    -- Restore stock on deletion (Refund/Cancellation)
+    -- Restore stock
     UPDATE products
     SET stock = stock + OLD.quantity
     WHERE id = OLD.product_id;
     RETURN OLD;
 
   ELSIF (TG_OP = 'UPDATE') THEN
-    -- Handle quantity changes
-    -- 1. Restore OLD quantity
-    UPDATE products
-    SET stock = stock + OLD.quantity
-    WHERE id = OLD.product_id;
+    delta := NEW.quantity - OLD.quantity;
+    
+    IF NEW.product_id = OLD.product_id THEN
+      IF delta = 0 THEN
+        RETURN NEW;
+      END IF;
 
-    -- 2. Deduct NEW quantity
-    UPDATE products
-    SET stock = stock - NEW.quantity
-    WHERE id = NEW.product_id AND stock >= NEW.quantity;
+      -- Single Atomic Update
+      -- Lock row
+      PERFORM 1 FROM products WHERE id = NEW.product_id FOR UPDATE;
+      
+      IF delta > 0 THEN
+        -- Increasing quantity used, need to deduct more stock
+        UPDATE products
+        SET stock = stock - delta
+        WHERE id = NEW.product_id AND stock >= delta;
+        
+        IF NOT FOUND THEN
+          RAISE EXCEPTION 'Insufficient stock for product % update', NEW.product_id;
+        END IF;
+      ELSE
+        -- Decreasing quantity used (delta is negative), restore stock
+        -- Subtracting a negative number adds stock: stock - (-abs(delta)) = stock + abs(delta)
+        UPDATE products
+        SET stock = stock - delta
+        WHERE id = NEW.product_id;
+      END IF;
 
-    IF NOT FOUND THEN
-       RAISE EXCEPTION 'Insufficient stock for product % update', NEW.product_id;
+    ELSE
+      -- Product Changed: Handle both old and new products
+      -- 1. Restore OLD stock (Always valid)
+      UPDATE products
+      SET stock = stock + OLD.quantity
+      WHERE id = OLD.product_id;
+      
+      -- 2. Deduct NEW stock (Check availability)
+      -- Lock new product row
+      PERFORM 1 FROM products WHERE id = NEW.product_id FOR UPDATE;
+      
+      UPDATE products
+      SET stock = stock - NEW.quantity
+      WHERE id = NEW.product_id AND stock >= NEW.quantity;
+      
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Insufficient stock for new product %', NEW.product_id;
+      END IF;
     END IF;
     
     RETURN NEW;

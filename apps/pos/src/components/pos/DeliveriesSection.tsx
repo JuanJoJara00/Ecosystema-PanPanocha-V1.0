@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Check, X, MapPin, Trash2 } from 'lucide-react';
 import { usePosStore } from '../../store';
 // import { supabase } from '../../api/client'; // Removed direct cloud dependency
-import { SyncService } from '../../services/sync';
+
 import { formatCurrency } from '@panpanocha/shared';
 import { Card, Badge, Skeleton } from '@panpanocha/ui';
 import { toast } from '../../hooks/useToast';
@@ -77,8 +77,16 @@ export default function DeliveriesSection() {
                     ...d,
                     order_type: 'rappi' as const,
                     customer_name: 'Pedido Rappi',
+                    phone: 'Rappi',
+                    address: 'Rappi',
+                    customer_phone: 'Rappi',
                     customer_address: 'Rappi',
-                    delivery_fee: 0
+                    product_details: '[]',
+                    delivery_fee: 0,
+                    delivery_cost: 0,
+                    delivery_person: 'Rappi',
+                    organization_id: usePosStore.getState().organizationId,
+                    notes: undefined
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -114,10 +122,7 @@ export default function DeliveriesSection() {
                 await window.electron.updateDeliveryStatus(deliveryId, 'cancelled');
             }
 
-            // 2. Trigger Background Sync
-            if (navigator.onLine) {
-                SyncService.push().catch(e => console.warn('Background sync failed:', e));
-            }
+            // 2. PowerSync handles background sync automatically
 
             // Update local DB for Rappi
             if (isRappi) {
@@ -126,7 +131,7 @@ export default function DeliveriesSection() {
 
             const sourceType = isRappi ? 'rappi' : 'delivery';
             await window.electron.removeReservation(sourceType, deliveryId);
-            await usePosStore.getState().reloadProducts();
+            usePosStore.getState().triggerProductsRefresh();
 
             toast.success(`✅ Pedido cancelado - Stock restaurado`);
             setSelectedDelivery(null);
@@ -191,7 +196,7 @@ export default function DeliveriesSection() {
                 }
 
                 // 2. Trigger Sync
-                if (navigator.onLine) SyncService.push();
+                // 2. PowerSync Syncs Automatically
                 // 3. Confirm Reservations
                 const sourceType = isRappi ? 'rappi' : 'delivery';
                 await window.electron.markReservationConfirmed(sourceType, deliveryId);
@@ -221,16 +226,17 @@ export default function DeliveriesSection() {
                 shift_id: currentShift?.id,
                 created_by: currentUser?.id || 'system',
                 created_by_system: isRappi ? 'pos-rappi' : 'pos-delivery',
-                sale_channel: isRappi ? 'rappi' : 'delivery',
+                sale_channel: (isRappi ? 'rappi' : 'delivery') as any,
                 total_amount: totalAmount,
-                payment_method: 'transfer',
-                status: 'completed',
+                payment_method: 'transfer' as const,
+                status: 'completed' as const,
                 notes: isRappi
                     ? `Rappi #${delivery.rappi_order_id || deliveryId.slice(0, 8)}`
                     : `Domicilio #${deliveryId.slice(0, 8)} - ${delivery.customer_name}`,
                 diners: 1,
                 created_at: new Date().toISOString(),
                 synced: false,
+                organization_id: usePosStore.getState().organizationId,
             };
 
             const saleItems = products.map((item: any) => ({
@@ -245,13 +251,7 @@ export default function DeliveriesSection() {
 
             await window.electron.saveSale(saleData, saleItems);
 
-            if (navigator.onLine) {
-                try {
-                    await SyncService.push();
-                } catch (syncErr) {
-                    console.warn('[Delivery Complete] Push warning:', syncErr);
-                }
-            }
+            console.log('[Delivery Complete] Saved locally.');
 
             // 4. Confirm Reservations
             const sourceType = isRappi ? 'rappi' : 'delivery';
@@ -264,13 +264,15 @@ export default function DeliveriesSection() {
                         id: crypto.randomUUID(),
                         branch_id: currentBranchId,
                         shift_id: currentShift.id,
-                        user_id: currentUser?.id,
+                        user_id: currentUser?.id || '',
                         amount: delivery.delivery_fee,
                         category: 'Domicilios',
                         description: isRappi
                             ? `Rappi - Orden ${delivery.rappi_order_id || deliveryId.slice(0, 8)}`
                             : `Pago domiciliario - ${delivery.assigned_driver || 'N/A'}`,
                         created_at: new Date().toISOString(),
+                        synced: false,
+                        organization_id: usePosStore.getState().organizationId
                     };
 
                     try {
@@ -502,6 +504,8 @@ export default function DeliveriesSection() {
                                 <button
                                     onClick={() => setSelectedDelivery(null)}
                                     className="text-gray-400 hover:text-gray-900 transition-colors"
+                                    aria-label="Cerrar detalles"
+                                    title="Cerrar detalles"
                                 >
                                     <X size={24} />
                                 </button>

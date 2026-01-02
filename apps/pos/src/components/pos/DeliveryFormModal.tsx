@@ -71,15 +71,20 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
 
             const dataToSave = {
                 id: deliveryId, // Use explicit ID
+                organization_id: usePosStore.getState().organizationId,
                 branch_id: currentBranchId,
                 customer_name: 'Domicilio Externo',
-                customer_phone: assignedDriver,
+                phone: assignedDriver, // Mapped to phone in Delivery type? Or customer_phone? Check types.
+                address: 'Empresa de Domicilios', // Mapped to address
+                customer_phone: assignedDriver, // Keep for compatibility if needed
                 customer_address: 'Empresa de Domicilios',
                 product_details: JSON.stringify(productList),
                 delivery_fee: deliveryFee,
+                delivery_cost: deliveryFee, // Alias
                 assigned_driver: assignedDriver,
-                status: 'pending',
-                notes: notes || null
+                delivery_person: assignedDriver, // Alias
+                status: 'pending' as const,
+                notes: notes || undefined,
             };
 
             const { branches } = usePosStore.getState();
@@ -104,15 +109,11 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
             }));
             await window.electron.addReservations(reservationItems, 'delivery', deliveryId);
 
-            // 3. Trigger background sync
-            if (navigator.onLine) {
-                import('../../services/sync').then(({ SyncService }) => {
-                    SyncService.push().catch(err => console.error('[Delivery] Background sync failed:', err));
-                });
-            }
+            // 3. Sync handled by PowerSync automatically
+            console.log('[Delivery] Saved locally, PowerSync handles replication.');
 
             // 4. Update UI
-            await usePosStore.getState().reloadProducts();
+            usePosStore.getState().triggerProductsRefresh();
 
 
             showAlert('success', 'Domicilio Registrado', 'Domicilio registrado exitosamente');
@@ -135,6 +136,8 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                        aria-label="Cerrar"
+                        title="Cerrar"
                     >
                         <X size={24} />
                     </button>

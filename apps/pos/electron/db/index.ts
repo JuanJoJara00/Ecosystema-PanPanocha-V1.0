@@ -20,10 +20,41 @@ class POSConnector implements PowerSyncBackendConnector {
     }
 
     async fetchCredentials() {
-        return {
-            endpoint: process.env.POWERSYNC_URL || 'https://placeholder.powersync.co',
-            token: this.authToken || 'mock-jwt-token'
-        };
+        const portalUrl = process.env.VITE_PORTAL_API_URL || 'http://localhost:3000';
+        console.log('[PowerSync] Fetching credentials from:', portalUrl);
+
+        if (!this.authToken) {
+            console.warn('[PowerSync] No auth token available during fetchCredentials.');
+            return { endpoint: '', token: '' };
+        }
+
+        try {
+            const response = await fetch(`${portalUrl}/api/powersync/token`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error(`[PowerSync] Token fetch failed (${response.status}):`, errText);
+                throw new Error(`Failed to fetch credentials: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('[PowerSync] Credentials fetched successfully. Endpoint:', data.endpoint);
+
+            return {
+                endpoint: data.endpoint,
+                token: data.token
+            };
+        } catch (error) {
+            console.error('[PowerSync] Credential Fetch Error:', error);
+            // Return empty to prevent crash, but sync will fail
+            return { endpoint: '', token: '' };
+        }
     }
 
     async uploadData(batch: any) {

@@ -1,5 +1,8 @@
 import React from 'react';
 
+/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 const ASSETS = [
     '/images/brand-assets/asset-1.png',
     '/images/brand-assets/asset-2.png',
@@ -57,12 +60,10 @@ export function BrandBackground({
                     return (
                         <div
                             key={i}
-                            className="absolute flex items-center justify-center transform"
+                            className="absolute flex items-center justify-center transform w-[5%] h-[5%]"
                             style={{
                                 top: `${top}%`,
                                 left: `${left}%`,
-                                width: '5%',
-                                height: '5%',
                             }}
                         >
                             <div className={`${size} p-4 flex items-center justify-center`}>
