@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Check, X, MapPin, Trash2 } from 'lucide-react';
 import { usePosStore, assertOrganizationId } from '../../store';
 // import { supabase } from '../../api/client'; // Removed direct cloud dependency
@@ -30,13 +30,7 @@ export default function DeliveriesSection() {
     const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
     const [processing, setProcessing] = useState(false);
 
-    useEffect(() => {
-        loadTodaysDeliveries();
-        const interval = setInterval(loadTodaysDeliveries, 60000);
-        return () => clearInterval(interval);
-    }, [currentBranchId, refreshDeliveriesTrigger, currentShift?.start_time, sidebarDateFilter]);
-
-    const loadTodaysDeliveries = async () => {
+    const loadTodaysDeliveries = useCallback(async () => {
         try {
             setLoading(true);
 
@@ -123,7 +117,13 @@ export default function DeliveriesSection() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentBranchId, currentShift?.start_time, sidebarDateFilter]);
+
+    useEffect(() => {
+        loadTodaysDeliveries();
+        const interval = setInterval(loadTodaysDeliveries, 60000);
+        return () => clearInterval(interval);
+    }, [loadTodaysDeliveries, refreshDeliveriesTrigger]);
 
     const handleViewDetail = (delivery: Delivery) => {
         setSelectedDelivery(delivery);
@@ -148,10 +148,7 @@ export default function DeliveriesSection() {
 
             // 2. PowerSync handles background sync automatically
 
-            // Update local DB for Rappi
-            if (isRappi) {
-                await window.electron.updateRappiStatus(deliveryId, 'cancelled');
-            }
+
 
             const sourceType = isRappi ? 'rappi' : 'delivery';
             await window.electron.removeReservation(sourceType, deliveryId);
