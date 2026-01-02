@@ -387,11 +387,16 @@ function registerBottomHandlers() {
             const payload = PrintTicketSchema.parse(rawPayload);
 
             // 2. Data Enrichment
-            if (!payload.branch && payload.sale.branch_id) {
-                payload.branch = await branchController.get(String(payload.sale.branch_id));
-            }
-            if (!payload.user && payload.sale.created_by) {
-                payload.user = await userController.get(String(payload.sale.created_by));
+            try {
+                if (!payload.branch && payload.sale.branch_id) {
+                    payload.branch = await branchController.get(String(payload.sale.branch_id));
+                }
+                if (!payload.user && payload.sale.created_by) {
+                    payload.user = await userController.get(String(payload.sale.created_by));
+                }
+            } catch (enrichError) {
+                console.warn('[Main] Data enrichment failed (proceeding with available data):', enrichError);
+                // Continue with available data - branch and user are optional
             }
 
             // 3. Determine Target
@@ -426,23 +431,23 @@ function registerBottomHandlers() {
     const ClosingDataSchema = z.object({
         shift: z.object({
             id: z.string(),
-            initial_cash: z.number(),
+            initial_cash: z.number().nonnegative(),
             turn_type: z.string().optional()
         }).passthrough(),
         branch: z.any().optional(),
         user: z.any().optional(),
         summary: z.object({
-            totalSales: z.number(),
-            cashSales: z.number(),
-            cardSales: z.number(),
-            transferSales: z.number(),
-            totalExpenses: z.number(),
+            totalSales: z.number().nonnegative(),
+            cashSales: z.number().nonnegative(),
+            cardSales: z.number().nonnegative(),
+            transferSales: z.number().nonnegative(),
+            totalExpenses: z.number().nonnegative(),
             salesCount: z.number()
         }).passthrough(),
-        cashCount: z.number(),
+        cashCount: z.number().nonnegative(),
         cashCounts: z.record(z.number()).optional(),
         difference: z.number(),
-        cashToDeliver: z.number(),
+        cashToDeliver: z.number().nonnegative(),
         closingType: z.string().optional(),
         productsSold: z.array(z.any()).optional()
     });
@@ -451,11 +456,11 @@ function registerBottomHandlers() {
         shift: z.any(),
         branch: z.any().optional(),
         user: z.any().optional(),
-        sales_cash: z.number().default(0),
-        sales_card: z.number().default(0),
-        sales_transfer: z.number().default(0),
+        sales_cash: z.number().nonnegative().default(0),
+        sales_card: z.number().nonnegative().default(0),
+        sales_transfer: z.number().nonnegative().default(0),
         expenses: z.array(z.object({ amount: z.number() })).default([]),
-        finalCash: z.number(),
+        finalCash: z.number().nonnegative(),
         difference: z.number(),
         products: z.array(z.any()).optional(),
         cashCounts: z.record(z.number()).optional()

@@ -4,7 +4,7 @@
  * Run with: npx ts-node --project scripts/tsconfig.json scripts/check_db.ts
  * 
  * Must be run from the repository root directory.
- * Requires: pnpm add -D @types/node dotenv @supabase/supabase-js (at workspace root)
+ * Requires: pnpm add -D @types/node @supabase/supabase-js (at workspace root)
  */
 import { createClient } from '@supabase/supabase-js';
 import * as path from 'path';
@@ -93,7 +93,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-    console.log('Missing env vars:', { supabaseUrl, hasKey: !!supabaseKey });
+    console.log('Missing env vars:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey
+    });
     console.log('Ensure you run this script from the repository root:');
     console.log('  npx ts-node --project scripts/tsconfig.json scripts/check_db.ts');
     process.exit(1);
@@ -114,7 +117,10 @@ async function check(): Promise<void> {
         console.error('Error fetching branches:', errBranches);
     } else {
         const branchList = branches as DbBranch[] | null;
-        console.log(`Branches found: ${branchList?.length ?? 0}`, branchList);
+        console.log(`Branches found: ${branchList?.length ?? 0}`);
+        if (branchList && branchList.length > 0) {
+            console.log('Sample Branch:', branchList[0]);
+        }
     }
 
     // Check Items
@@ -130,18 +136,18 @@ async function check(): Promise<void> {
 
         if (itemList && itemList.length > 0) {
             console.log('Sample Item:', itemList[0]);
+        }
 
-            // Check Branch Inventory join
-            const { data: joinData, error: errJoin } = await supabase
-                .from('branch_inventory')
-                .select('*');
+        // Check Branch Inventory
+        const { data: joinData, error: errJoin } = await supabase
+            .from('branch_inventory')
+            .select('*');
 
-            if (errJoin) {
-                console.error('Error fetching branch_inventory:', errJoin);
-            } else {
-                const joinList = joinData as DbBranchInventory[] | null;
-                console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
-            }
+        if (errJoin) {
+            console.error('Error fetching branch_inventory:', errJoin);
+        } else {
+            const joinList = joinData as DbBranchInventory[] | null;
+            console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
         }
     }
 }

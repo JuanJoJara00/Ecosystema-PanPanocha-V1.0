@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Check, X, MapPin, Trash2 } from 'lucide-react';
-import { usePosStore } from '../../store';
+import { usePosStore, assertOrganizationId, getOrganizationIdSafe } from '../../store';
 // import { supabase } from '../../api/client'; // Removed direct cloud dependency
 
 import { formatCurrency } from '@panpanocha/shared';
@@ -24,7 +24,7 @@ interface Delivery {
 }
 
 export default function DeliveriesSection() {
-    const { currentBranchId, refreshDeliveriesTrigger, currentShift, currentUser, sidebarDateFilter, organizationId } = usePosStore();
+    const { currentBranchId, refreshDeliveriesTrigger, currentShift, currentUser, sidebarDateFilter } = usePosStore();
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -39,6 +39,10 @@ export default function DeliveriesSection() {
     const loadTodaysDeliveries = async () => {
         try {
             setLoading(true);
+
+            // Strict Tenant Check
+            assertOrganizationId();
+            const orgId = getOrganizationIdSafe();
 
             let queryStartTime = new Date();
             queryStartTime.setHours(0, 0, 0, 0);
@@ -106,7 +110,7 @@ export default function DeliveriesSection() {
                     delivery_fee: d.total_amount || d.total_value || 0,
                     delivery_cost: 0,
                     delivery_person: 'Rappi',
-                    organization_id: organizationId,
+                    organization_id: orgId,
                     notes: d.notes
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -170,6 +174,10 @@ export default function DeliveriesSection() {
         try {
             const delivery = deliveries.find(d => d.id === deliveryId);
             if (!delivery) throw new Error('Delivery not found');
+
+            // Strict Tenant Check
+            assertOrganizationId();
+            const orgId = getOrganizationIdSafe();
 
             // Require authenticated user for sale creation
             if (!currentUser?.id) {
@@ -264,7 +272,7 @@ export default function DeliveriesSection() {
                 diners: 1,
                 created_at: new Date().toISOString(),
                 synced: false,
-                organization_id: organizationId,
+                organization_id: orgId,
             };
 
             const saleItems = products.map((item: any) => ({
@@ -306,7 +314,7 @@ export default function DeliveriesSection() {
                             : `Pago domiciliario - ${delivery.assigned_driver || 'N/A'}`,
                         created_at: new Date().toISOString(),
                         synced: false,
-                        organization_id: organizationId
+                        organization_id: orgId
                     };
 
                     try {
