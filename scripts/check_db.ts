@@ -1,26 +1,51 @@
+/// <reference types="node" />
 /**
  * Database check script for Supabase connection verification.
- * Run with: npx ts-node scripts/check_db.ts
+ * Run with: npx ts-node --project scripts/tsconfig.json scripts/check_db.ts
+ * 
+ * Must be run from the repository root directory.
+ * Requires: pnpm add -D @types/node dotenv @supabase/supabase-js (at workspace root)
  */
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
 
-// Load env from apps/portal/.env.local
-dotenv.config({ path: path.resolve(__dirname, '../apps/portal/.env.local') });
+/**
+ * Find project root by looking for package.json
+ */
+function findProjectRoot(startPath: string): string {
+    let current = startPath;
+    while (current !== path.parse(current).root) {
+        if (fs.existsSync(path.join(current, 'package.json'))) {
+            return current;
+        }
+        current = path.dirname(current);
+    }
+    return startPath;
+}
 
-// Type definitions for Supabase tables
-interface Branch {
+const projectRoot = findProjectRoot(__dirname);
+dotenv.config({ path: path.join(projectRoot, 'apps/portal/.env.local') });
+
+/**
+ * Types for Supabase tables (DB-specific).
+ * These match the actual database schema, not the application types.
+ * TODO: Consider generating Supabase types with `npx supabase gen types typescript`
+ */
+interface DbBranch {
     id: string;
     organization_id: string;
     name: string;
     city?: string;
     address?: string;
     phone?: string;
+    is_active?: boolean;
     created_at?: string;
+    updated_at?: string;
 }
 
-interface InventoryItem {
+interface DbInventoryItem {
     id: string;
     organization_id: string;
     name: string;
@@ -31,7 +56,7 @@ interface InventoryItem {
     created_at?: string;
 }
 
-interface BranchInventory {
+interface DbBranchInventory {
     id?: string;
     branch_id: string;
     item_id: string;
@@ -44,13 +69,16 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
     console.log('Missing env vars:', { supabaseUrl, hasKey: !!supabaseKey });
+    console.log('Ensure you run this script from the repository root:');
+    console.log('  npx ts-node --project scripts/tsconfig.json scripts/check_db.ts');
     process.exit(1);
 }
 
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function check(): Promise<void> {
     console.log('Checking Supabase connection...');
+    console.log(`Using project root: ${projectRoot}`);
 
     // Check Branches
     const { data: branches, error: errBranches } = await supabase
@@ -60,7 +88,7 @@ async function check(): Promise<void> {
     if (errBranches) {
         console.error('Error fetching branches:', errBranches);
     } else {
-        const branchList = branches as Branch[] | null;
+        const branchList = branches as DbBranch[] | null;
         console.log(`Branches found: ${branchList?.length ?? 0}`, branchList);
     }
 
@@ -72,7 +100,7 @@ async function check(): Promise<void> {
     if (errItems) {
         console.error('Error fetching inventory_items:', errItems);
     } else {
-        const itemList = items as InventoryItem[] | null;
+        const itemList = items as DbInventoryItem[] | null;
         console.log(`Inventory Items found: ${itemList?.length ?? 0}`);
 
         if (itemList && itemList.length > 0) {
@@ -86,7 +114,7 @@ async function check(): Promise<void> {
             if (errJoin) {
                 console.error('Error fetching branch_inventory:', errJoin);
             } else {
-                const joinList = joinData as BranchInventory[] | null;
+                const joinList = joinData as DbBranchInventory[] | null;
                 console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
             }
         }

@@ -280,15 +280,18 @@ export default function DeliveriesSection() {
 
             // 5. Register Delivery Fee Expense (if applicable)
             if (delivery.delivery_fee && delivery.delivery_fee > 0) {
-                if (currentShift) {
+                if (!currentUser?.id) {
+                    console.warn('[Expense] Cannot create expense: No authenticated user');
+                    toast.warning('⚠️ No se pudo registrar el gasto: Usuario no autenticado.');
+                } else if (!currentShift) {
+                    console.warn('Cannot register expense: No active shift');
+                    toast.warning('⚠️ No hay turno activo, el gasto no quedó asociado a caja.');
+                } else {
                     const expenseData = {
                         id: crypto.randomUUID(),
                         branch_id: currentBranchId,
                         shift_id: currentShift.id,
-                        user_id: currentUser?.id || (() => {
-                            console.warn('[Expense] No currentUser, using system');
-                            return 'system';
-                        })(),
+                        user_id: currentUser.id,
                         amount: delivery.delivery_fee,
                         category: 'Domicilios',
                         description: isRappi
@@ -305,9 +308,6 @@ export default function DeliveriesSection() {
                         console.error('Local Expense registration error:', expenseErr);
                         toast.error(`⚠️ Advertencia: No se pudo registrar el gasto localmente.`);
                     }
-                } else {
-                    console.warn('Cannot register expense: No active shift');
-                    toast.warning('⚠️ No hay turno activo, el gasto no quedó asociado a caja.');
                 }
             }
 

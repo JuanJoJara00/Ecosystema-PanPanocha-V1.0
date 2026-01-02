@@ -34,10 +34,26 @@ ipcMain.handle('auth-set-token', (event, token: string) => {
 });
 
 // IPC handler to update printer organization config dynamically
-ipcMain.handle('printer-set-organization', (event, config: { name: string; nit: string; website?: string }) => {
-    console.log('[Printer] Updating organization config:', config.name);
-    PrinterService.getInstance().setOrganizationConfig(config);
-    return true;
+const OrganizationConfigSchema = z.object({
+    name: z.string().min(1, 'Organization name is required'),
+    nit: z.string().min(1, 'NIT is required'),
+    website: z.string().optional()
+});
+
+ipcMain.handle('printer-set-organization', (event, config) => {
+    console.log('[Printer] Updating organization config...');
+    try {
+        const validated = OrganizationConfigSchema.parse(config);
+        PrinterService.getInstance().setOrganizationConfig(validated);
+        return { success: true };
+    } catch (error) {
+        console.error('[Printer] Invalid organization config:', error);
+        return {
+            success: false,
+            error: error instanceof z.ZodError ? 'Validation Failed' : String(error),
+            details: error instanceof z.ZodError ? error.errors : undefined
+        };
+    }
 });
 
 // Initialize DB
@@ -457,10 +473,11 @@ function registerBottomHandlers() {
             totalCashSales: z.number().default(0),
             totalExpenses: z.number().default(0),
             tipsDelivered: z.number().default(0),
-            expectedCash: z.number().default(0),
-            realCash: z.number().default(0),
-            difference: z.number().default(0),
-            cashToDeliver: z.number().default(0),
+            // Critical fields: required to catch upstream data issues
+            expectedCash: z.number({ required_error: 'expectedCash is required' }),
+            realCash: z.number({ required_error: 'realCash is required' }),
+            difference: z.number({ required_error: 'difference is required' }),
+            cashToDeliver: z.number({ required_error: 'cashToDeliver is required' }),
             totalCard: z.number().default(0),
             totalTransfer: z.number().default(0)
         }).passthrough()
