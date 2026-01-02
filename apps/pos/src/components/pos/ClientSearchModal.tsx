@@ -11,6 +11,18 @@ interface Props {
     onSkip?: () => void; // Optional skip handler
 }
 
+/**
+ * Render a modal that allows searching for existing clients, selecting one, or registering a new client.
+ *
+ * The modal provides a search input (requires at least 3 characters), a results list, and a form to create a new client
+ * with document ID, full name, phone, and optional email. Creating a client persists it locally and immediately
+ * selects it via the provided callback.
+ *
+ * @param onClose - Called when the modal should be closed (e.g., close button).
+ * @param onSelectClient - Called with the chosen or newly created `Client`.
+ * @param onSkip - Optional. Called when the user chooses a "Cliente General" fallback.
+ * @returns The JSX element for the client search / creation modal.
+ */
 export function ClientSearchModal({ onClose, onSelectClient, onSkip }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [isCreating, setIsCreating] = useState(false);

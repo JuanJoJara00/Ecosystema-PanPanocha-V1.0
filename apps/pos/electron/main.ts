@@ -240,6 +240,16 @@ app.on('activate', async () => {
     }
 });
 
+/**
+ * Registers IPC handlers for low-level application services used by the renderer.
+ *
+ * This sets up channels for machine identification, product stock updates, security (encrypt/decrypt),
+ * reservation lifecycle operations, printing (tickets, kitchen, closings, order details, combined closings),
+ * CRUD and sync operations for controllers (users, products, sales, shifts, expenses, deliveries, tables, orders, etc.),
+ * and development utilities (reset/generate mock data, generate employees).
+ *
+ * Handlers delegate to controllers, the PrinterService, SecurityManager, and the database layer as appropriate.
+ */
 function registerBottomHandlers() {
     ipcMain.handle('get-machine-id', async () => {
         try {

@@ -21,6 +21,18 @@ interface DeliveryFormModalProps {
     cartItems: CartItem[];
 }
 
+/**
+ * Render a modal UI for registering a delivery and persisting it locally.
+ *
+ * The modal displays a products summary, delivery details form (driver name, ID, fee), notes,
+ * and totals. Submitting the form validates required fields, saves the delivery and reservations
+ * to local storage, triggers UI refreshes (products and deliveries), clears the cart, and closes
+ * the modal; it also shows contextual alerts for success or failure.
+ *
+ * @param onClose - Callback invoked to close the modal.
+ * @param cartItems - Items included in the delivery to be displayed and saved.
+ * @returns The DeliveryFormModal React element.
+ */
 export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormModalProps) {
     const { currentBranchId, showAlert } = usePosStore();
     const [loading, setLoading] = useState(false);

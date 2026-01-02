@@ -36,6 +36,11 @@ const defaultMeta: BrandingMeta = {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+/**
+ * Supplies theme state (colors and branding) and updater functions to its React subtree and synchronizes the current colors as CSS variables on :root.
+ *
+ * @returns A React provider element that exposes `colors`, `meta`, `setTheme`, and `resetTheme` to descendant components.
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const [colors, setColors] = useState<ThemeColors>(defaultColors);
     const [meta, setMeta] = useState<BrandingMeta>(defaultMeta);
@@ -67,6 +72,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     );
 }
 
+/**
+ * Access the current theme and branding context for the component tree.
+ *
+ * @returns The theme context containing `colors`, `meta`, `setTheme`, and `resetTheme`.
+ * @throws Error if called outside of a `ThemeProvider`.
+ */
 export function useTheme() {
     const context = useContext(ThemeContext);
     if (context === undefined) {

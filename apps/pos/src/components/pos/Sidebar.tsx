@@ -17,6 +17,14 @@ import { BrandBackground } from './BrandBackground';
 
 import { useTheme } from '../../providers/ThemeContext';
 
+/**
+ * Render a right-side sliding sidebar panel with a header, date filter menu, and scrollable content area.
+ *
+ * @param isOpen - Controls whether the sidebar is visible.
+ * @param onClose - Callback invoked to close the sidebar (triggered by overlay click, close button, or Escape key).
+ * @param children - Elements rendered inside the sidebar's scrollable content region.
+ * @returns The sidebar React element when `isOpen` is true, otherwise `null`.
+ */
 export default function Sidebar({ isOpen, onClose, children }: SidebarProps) {
     const { sidebarDateFilter, setSidebarDateFilter } = usePosStore();
     const { meta } = useTheme();

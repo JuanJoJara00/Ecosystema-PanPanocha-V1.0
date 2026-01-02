@@ -13,6 +13,16 @@ const ASSETS = [
     '/images/brand-assets/asset-7.png',
 ];
 
+/**
+ * Renders a rotated, oversized decorative mosaic of brand assets arranged in a staggered 20x20 grid.
+ *
+ * Renders 400 tiles with deterministic per-tile jitter, rotation, scale, and opacity to form a subtle background pattern.
+ *
+ * @param opacity - Overall opacity applied to the entire background container (default 0.15).
+ * @param className - Additional Tailwind/HTML classes applied to the outermost container.
+ * @param size - Tailwind size classes applied to each asset wrapper (controls individual tile visual size).
+ * @returns A React element containing the decorative tiled brand background.
+ */
 export function BrandBackground({
     opacity = 0.15,
     className = '',

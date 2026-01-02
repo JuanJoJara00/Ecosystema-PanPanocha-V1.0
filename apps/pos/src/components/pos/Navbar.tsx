@@ -14,6 +14,16 @@ interface NavbarProps {
     onOpenUserModal: () => void;
 }
 
+/**
+ * Top navigation bar displaying branding, search, synchronization controls, menu, and user profile actions.
+ *
+ * @param searchTerm - Current value of the search input.
+ * @param setSearchTerm - Callback invoked with the new search term when the input changes.
+ * @param onOpenSidebar - Callback invoked with a sidebar section identifier to open the corresponding sidebar.
+ * @param onOpenDashboard - Callback triggered when the branding area is clicked to open the dashboard.
+ * @param onOpenUserModal - Callback triggered to open the user profile modal.
+ * @returns The Navbar JSX element.
+ */
 export function Navbar({ searchTerm, setSearchTerm, onOpenSidebar, onOpenDashboard, onOpenUserModal }: NavbarProps) {
     const { currentUser, currentShift, branches, isLoading, sync } = usePosStore();
     const { meta } = useTheme();

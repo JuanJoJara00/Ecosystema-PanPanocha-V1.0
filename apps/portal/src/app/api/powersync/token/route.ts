@@ -4,6 +4,11 @@ import { SignJWT, importPKCS8 } from 'jose';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Responds to CORS preflight requests for this route.
+ *
+ * @returns A JSON response with permissive CORS headers allowing any origin, the GET/POST/OPTIONS methods, and the Content-Type and Authorization headers.
+ */
 export async function OPTIONS() {
     return NextResponse.json({}, {
         headers: {
@@ -14,6 +19,12 @@ export async function OPTIONS() {
     });
 }
 
+/**
+ * Issues a PowerSync EdDSA-signed JWT for a Supabase-authenticated user and returns the token and PowerSync endpoint.
+ *
+ * @param request - Incoming HTTP request; must include an `Authorization` header with a Supabase access token (`Bearer <token>`).
+ * @returns A NextResponse with JSON `{ token, endpoint }` on success. Returns a JSON error response with status 401 for missing or invalid authorization, or 500 for configuration or internal errors.
+ */
 export async function GET(request: Request) {
     try {
         const authHeader = request.headers.get('Authorization');

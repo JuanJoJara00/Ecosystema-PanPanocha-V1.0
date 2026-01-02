@@ -23,6 +23,13 @@ interface Delivery {
     rappi_order_id?: string;
 }
 
+/**
+ * Renders the Deliveries section: a deliveries list with summary cards, detail modal and actions to confirm delivery or cancel orders.
+ *
+ * Shows loading skeletons while fetching, filters deliveries by date/shift, refreshes automatically, and performs local offline-first updates (status changes, sale and expense creation, reservation handling) while relying on PowerSync for background synchronization. Provides user feedback via toasts.
+ *
+ * @returns The React element for the Deliveries section UI.
+ */
 export default function DeliveriesSection() {
     const { currentBranchId, refreshDeliveriesTrigger, currentShift, currentUser, sidebarDateFilter } = usePosStore();
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);

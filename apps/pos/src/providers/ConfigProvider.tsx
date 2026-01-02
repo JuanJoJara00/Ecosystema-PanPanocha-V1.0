@@ -7,7 +7,14 @@ interface ConfigProviderProps {
     children: ReactNode;
 }
 
-// Inner component to handle logic that requires useTheme
+/**
+ * Runs theme initialization side effects (for example, applying organization-provided theme settings) and renders its children.
+ *
+ * The component uses the theme context to apply a theme when available; current logic is a placeholder for loading settings from an organization store or API.
+ *
+ * @param children - React nodes to render inside the consumer
+ * @returns The same children wrapped in a fragment
+ */
 function ConfigConsumer({ children }: { children: ReactNode }) {
     const { setTheme } = useTheme();
 
@@ -31,6 +38,12 @@ function ConfigConsumer({ children }: { children: ReactNode }) {
     return <>{children}</>;
 }
 
+/**
+ * Provides app-wide configuration and theming context to its children.
+ *
+ * @param children - React nodes to render inside the configuration provider
+ * @returns The given children wrapped with the configuration and theme providers
+ */
 export function ConfigProvider({ children }: ConfigProviderProps) {
     return (
         <ThemeProvider>
