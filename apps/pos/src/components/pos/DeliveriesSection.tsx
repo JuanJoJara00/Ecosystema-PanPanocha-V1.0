@@ -72,21 +72,43 @@ export default function DeliveriesSection() {
             });
 
             const allDeliveries: Delivery[] = [
-                ...standardDeliveries.map(d => ({ ...d, order_type: 'domicilio' as const })),
+                ...standardDeliveries.map(d => {
+                    const anyD = d as any;
+                    return {
+                        ...d,
+                        order_type: 'domicilio' as const,
+                        // Fix status mismatch ("assigned" vs "dispatched") by casting or remapping
+                        status: (d.status === 'assigned' ? 'dispatched' : d.status) as any,
+                        customer_phone: d.phone,
+                        customer_address: d.address,
+                        product_details: anyD.product_details ?? '[]',
+                        delivery_fee: anyD.delivery_fee ?? 0
+                    };
+                }),
                 ...(Array.isArray(rappiRes) ? rappiRes : []).map(d => ({
                     ...d,
                     order_type: 'rappi' as const,
-                    customer_name: 'Pedido Rappi',
+                    // Map Rappi statuses to generic Delivery statuses
+                    status: (
+                        d.status === 'ready' || d.status === 'picked_up' ? 'pending' :
+                            d.status === 'dispatched' ? 'dispatched' :
+                                d.status === 'delivered' ? 'delivered' :
+                                    d.status === 'cancelled' ? 'cancelled' :
+                                        'pending'
+                    ) as any,
+                    customer_name: d.customer_name || d.client_name || 'Pedido Rappi',
+                    // Note: Rappi doesn't provide phone/address in basic integration, keep fallback or null
                     phone: 'Rappi',
                     address: 'Rappi',
                     customer_phone: 'Rappi',
                     customer_address: 'Rappi',
-                    product_details: '[]',
-                    delivery_fee: 0,
+
+                    product_details: d.product_details || '[]',
+                    delivery_fee: d.total_amount || d.total_value || 0,
                     delivery_cost: 0,
                     delivery_person: 'Rappi',
                     organization_id: usePosStore.getState().organizationId,
-                    notes: undefined
+                    notes: d.notes
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -264,7 +286,10 @@ export default function DeliveriesSection() {
                         id: crypto.randomUUID(),
                         branch_id: currentBranchId,
                         shift_id: currentShift.id,
-                        user_id: currentUser?.id || '',
+                        user_id: currentUser?.id || (() => {
+                            console.warn('[Expense] No currentUser, using system');
+                            return 'system';
+                        })(),
                         amount: delivery.delivery_fee,
                         category: 'Domicilios',
                         description: isRappi

@@ -58,7 +58,7 @@ export function Navbar({ searchTerm, setSearchTerm, onOpenSidebar, onOpenDashboa
 
                 {/* Sync Status - Moved Here */}
                 <SyncStatus />
-                <SyncStatus />
+
                 <Button
                     variant="ghost"
                     onClick={() => sync()}

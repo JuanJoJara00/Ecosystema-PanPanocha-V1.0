@@ -9,7 +9,7 @@ ADD COLUMN IF NOT EXISTS branch_id uuid REFERENCES branches(id);
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM profiles WHERE branch_id IS NULL) THEN
-        UPDATE profiles SET branch_id = (SELECT id FROM branches LIMIT 1) WHERE branch_id IS NULL;
+        UPDATE profiles SET branch_id = (SELECT id FROM branches ORDER BY created_at ASC LIMIT 1) WHERE branch_id IS NULL;
     END IF;
 END $$;
 
@@ -84,12 +84,23 @@ CREATE TABLE IF NOT EXISTS sale_items (
 );
 
 ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
--- Sale Items rely on parent Sale for RLS? No, they don't have branch_id.
--- So we must JOIN sales.
+-- Optimization: Denormalize branch_id to sale_items for RLS performance
+ALTER TABLE sale_items ADD COLUMN IF NOT EXISTS branch_id UUID REFERENCES branches(id);
+
+-- Backfill branch_id from sales
+UPDATE sale_items 
+SET branch_id = sales.branch_id 
+FROM sales 
+WHERE sale_items.sale_id = sales.id 
+AND sale_items.branch_id IS NULL;
+
+-- Enforce branch_id (Optional but recommended if data is clean)
+-- ALTER TABLE sale_items ALTER COLUMN branch_id SET NOT NULL; 
+
 DROP POLICY IF EXISTS "Branch Isolation" ON sale_items;
 CREATE POLICY "Branch Isolation" ON sale_items
-    USING (sale_id IN (SELECT id FROM sales WHERE branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid())))
-    WITH CHECK (sale_id IN (SELECT id FROM sales WHERE branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid())));
+    USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
+    WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
 
 
 -- --- SHIFTS (or cash_closings) ---

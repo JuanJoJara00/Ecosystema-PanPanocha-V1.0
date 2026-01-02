@@ -72,6 +72,8 @@ BEGIN
 
   ELSIF (TG_OP = 'DELETE') THEN
     -- Restore stock
+    PERFORM 1 FROM products WHERE id = OLD.product_id FOR UPDATE;
+
     UPDATE products
     SET stock = stock + OLD.quantity
     WHERE id = OLD.product_id;

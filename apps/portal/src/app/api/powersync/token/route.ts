@@ -21,7 +21,11 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Missing Authorization Header' }, { status: 401 });
         }
 
-        const token = authHeader.replace('Bearer ', '');
+        const parts = authHeader.split(' ');
+        if (parts.length !== 2 || parts[0] !== 'Bearer') {
+            return NextResponse.json({ error: 'Invalid Authorization Header Format' }, { status: 401 });
+        }
+        const token = parts[1];
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -51,11 +55,7 @@ export async function GET(request: Request) {
         const privateKey = await importPKCS8(privateKeyPEM, 'EdDSA');
 
         // PowerSync JWT
-        const psToken = await new SignJWT({
-            parameters: {
-                user_id: user.id
-            }
-        })
+        const psToken = await new SignJWT({})
             .setProtectedHeader({ alg: 'EdDSA' })
             .setIssuedAt()
             .setIssuer('supabase-powersync')
@@ -74,7 +74,7 @@ export async function GET(request: Request) {
         });
 
     } catch (e) {
-        console.error("PowerSync Token Error:", e);
-        return NextResponse.json({ error: String(e) }, { status: 500 });
+        console.error("[PowerSync] Token Generation Error:", e);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

@@ -4,7 +4,6 @@ if (typeof window !== 'undefined' && !window.electron) {
 
     // Stateful Mock Data
     let mockShift: any = null;
-    let mockUser: any = null;
     let mockSales: any[] = [];
     const mockMachineId = "mock-machine-id-browser";
 
@@ -41,14 +40,12 @@ if (typeof window !== 'undefined' && !window.electron) {
                         { id: 'user-2', full_name: 'Maria Cajera', role: 'staff', pin: '0000' }
                     ];
                 }
-                case 'devHardReset':
-                    return await window.electron.devHardReset();
                 default:
                     console.warn(`[Mock] Unhandled invoke channel: ${channel}`);
                     return null;
             }
         },
-        on: (channel: string, func: (...args: any[]) => void) => {
+        on: (channel: string, _func: (...args: any[]) => void) => {
             console.log(`[Mock] Listening on ${channel}`);
             return () => { };
         },

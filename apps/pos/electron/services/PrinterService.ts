@@ -2,8 +2,15 @@
 import { ThermalPrinter, PrinterTypes, CharacterSet } from 'node-thermal-printer';
 import { app } from 'electron';
 
+import { ClosingData, OrderDetailsData, CombinedClosingData } from './PrinterService.types';
+
 export class PrinterService {
     private static instance: PrinterService;
+    private organizationConfig?: {
+        name: string;
+        nit: string;
+        website?: string;
+    };
 
     // Configurable printer targets - in production this should come from config/store
     private printers: Record<string, string> = {
@@ -20,6 +27,24 @@ export class PrinterService {
         return PrinterService.instance;
     }
 
+    public setOrganizationConfig(config: { name: string; nit: string; website?: string }) {
+        this.organizationConfig = config;
+    }
+
+    /**
+     * Creates a configured thermal printer instance for the given target.
+     */
+    private createPrinter(target: 'receipt' | 'kitchen' = 'receipt'): ThermalPrinter {
+        const printerName = this.printers[target];
+        return new ThermalPrinter({
+            type: PrinterTypes.EPSON,
+            interface: `printer:${printerName}`,
+            characterSet: CharacterSet.PC852_LATIN2,
+            removeSpecialCharacters: false,
+            options: { timeout: 5000 }
+        });
+    }
+
     /**
      * Prints a standardized ticket to the specified target.
      * @param data The sale or order data
@@ -27,30 +52,16 @@ export class PrinterService {
      */
     public async printTicket(data: any, target: 'receipt' | 'kitchen' = 'receipt'): Promise<void> {
         console.log(`[Printer] Starting print job for ${target}`);
-
-        // In a real scenario, you might want to check if printer exists or is connected
-        // For now, we instantiate the printer object which prepares the buffer.
-        // Interface: 'printer:Name' uses the OS printer driver (CUPS/Windows Spooler)
-
-        const printerName = this.printers[target];
-        // Fallback or dynamic configuration could happen here
-
-        const printer = new ThermalPrinter({
-            type: PrinterTypes.EPSON,
-            interface: `printer:${printerName}`,
-            characterSet: CharacterSet.PC852_LATIN2,
-            removeSpecialCharacters: false,
-            options: { timeout: 5000 }
-        });
+        const printer = this.createPrinter(target);
 
         // --- Header ---
         printer.alignCenter();
         printer.bold(true);
         printer.setTextSize(1, 1);
-        printer.println("PAN PANOCHA");
+        printer.println(this.organizationConfig?.name || "PAN PANOCHA");
         printer.bold(false);
         printer.setTextNormal();
-        printer.println("Nit: 900.123.456-7");
+        printer.println(`Nit: ${this.organizationConfig?.nit || "900.123.456-7"}`);
         printer.newLine();
 
         // --- Metadata ---
@@ -110,21 +121,17 @@ export class PrinterService {
             printer.setTextNormal();
             printer.alignCenter();
             printer.println("Gracias por su compra!");
-            printer.println("www.panpanocha.com");
+            printer.println(this.organizationConfig?.website || "www.panpanocha.com");
         }
 
         printer.cut();
 
         // --- Execution ---
         try {
-            // execute() sends the accumulated buffer to the printer interface
             await printer.execute();
             console.log('[Printer] Print success');
         } catch (error) {
             console.error('[Printer] Print failed:', error);
-            // In dev environment without real printer, this will likely fail if driver not found.
-            // We rethrow so UI knows, OR we swallow if we want to simulate success in Dev?
-            // Let's rethrow to be honest about hardware state, but maybe log it clearly.
             throw new Error(`Error de Impresión (${target}): ${error instanceof Error ? error.message : String(error)}`);
         }
     }
@@ -133,19 +140,9 @@ export class PrinterService {
      * Prints a closing receipt (Cierre de Caja).
      * @param data The closing data including shift, summary, cash counts, etc.
      */
-    public async printClosing(data: any): Promise<void> {
+    public async printClosing(data: ClosingData): Promise<void> {
         console.log('[Printer] Starting closing print job');
-
-        // Use the 'receipt' printer for closings
-        const printerName = this.printers['receipt'];
-
-        const printer = new ThermalPrinter({
-            type: PrinterTypes.EPSON,
-            interface: `printer:${printerName}`,
-            characterSet: CharacterSet.PC852_LATIN2,
-            removeSpecialCharacters: false,
-            options: { timeout: 5000 }
-        });
+        const printer = this.createPrinter('receipt');
 
         const {
             shift,
@@ -168,7 +165,7 @@ export class PrinterService {
         printer.alignCenter();
         printer.bold(true);
         printer.setTextSize(1, 1);
-        printer.println("PANPANOCHA");
+        printer.println(this.organizationConfig?.name || "PANPANOCHA");
         printer.setTextNormal();
         printer.println("CIERRE DE CAJA");
         printer.println(`Tipo: ${closingType ? closingType.toUpperCase() : 'PARCIAL'}`);
@@ -278,7 +275,7 @@ export class PrinterService {
             { text: `$${(cashCount || 0).toLocaleString('es-CO')}`, align: "RIGHT", width: 0.4 }
         ]);
 
-        const diffLabel = difference > 0 ? 'SOBRANTE' : difference < 0 ? 'FALTANTE' : 'CUADRE';
+        const diffLabel = (difference || 0) > 0 ? 'SOBRANTE' : (difference || 0) < 0 ? 'FALTANTE' : 'CUADRE';
         printer.bold(true);
         printer.tableCustom([
             { text: diffLabel, align: "LEFT", width: 0.6 },
@@ -305,9 +302,12 @@ export class PrinterService {
 
         // --- Products Receipt (Optional) ---
         if (productsSold && productsSold.length > 0) {
+            printer.newLine();
+            printer.newLine();
             printer.alignCenter();
             printer.bold(true);
             printer.println("REPORTE DE PRODUCTOS");
+            printer.println("(ANEXO AL CIERRE)");
             printer.setTextNormal();
             printer.alignLeft();
             printer.drawLine();
@@ -334,16 +334,9 @@ export class PrinterService {
     /**
      * Prints a detailed list of products (Order Details).
      */
-    public async printOrderDetails(data: { items: any[], user?: any }): Promise<void> {
+    public async printOrderDetails(data: OrderDetailsData): Promise<void> {
         console.log('[Printer] Starting order details print job');
-        const printerName = this.printers['receipt'];
-        const printer = new ThermalPrinter({
-            type: PrinterTypes.EPSON,
-            interface: `printer:${printerName}`,
-            characterSet: CharacterSet.PC852_LATIN2,
-            removeSpecialCharacters: false,
-            options: { timeout: 5000 }
-        });
+        const printer = this.createPrinter('receipt');
 
         const { items, user } = data;
         const dateNow = new Date();
@@ -352,7 +345,7 @@ export class PrinterService {
         // Header
         printer.alignCenter();
         printer.bold(true);
-        printer.println("PANPANOCHA");
+        printer.println(this.organizationConfig?.name || "PANPANOCHA");
         printer.setTextNormal();
         printer.println("DETALLE DE PRODUCTOS");
         printer.println(dateStr);
@@ -398,16 +391,9 @@ export class PrinterService {
     /**
      * Prints a combined closing receipt (Cierre Total).
      */
-    public async printCombinedClosing(data: any): Promise<void> {
+    public async printCombinedClosing(data: CombinedClosingData): Promise<void> {
         console.log('[Printer] Starting combined closing print job');
-        const printerName = this.printers['receipt'];
-        const printer = new ThermalPrinter({
-            type: PrinterTypes.EPSON,
-            interface: `printer:${printerName}`,
-            characterSet: CharacterSet.PC852_LATIN2,
-            removeSpecialCharacters: false,
-            options: { timeout: 5000 }
-        });
+        const printer = this.createPrinter('receipt');
 
         const { shift, user, summary } = data;
         const dateNow = new Date();
@@ -415,7 +401,7 @@ export class PrinterService {
         // Header
         printer.alignCenter();
         printer.bold(true);
-        printer.println("PANPANOCHA");
+        printer.println(this.organizationConfig?.name || "PANPANOCHA");
         printer.setTextNormal();
         printer.println("CIERRE TOTAL DE TURNO");
         printer.newLine();
@@ -449,7 +435,7 @@ export class PrinterService {
             { text: `$${(summary.totalExpenses || 0).toLocaleString('es-CO')}`, align: "RIGHT", width: 0.4 }
         ]);
 
-        if (summary.tipsDelivered > 0) {
+        if ((summary.tipsDelivered || 0) > 0) {
             printer.tableCustom([
                 { text: `- Propinas Entregadas:`, align: "LEFT", width: 0.6 },
                 { text: `$${(summary.tipsDelivered || 0).toLocaleString('es-CO')}`, align: "RIGHT", width: 0.4 }
@@ -468,7 +454,7 @@ export class PrinterService {
         ]);
 
         const diff = summary.difference;
-        const diffLabel = diff > 0 ? 'SOBRANTE' : diff < 0 ? 'FALTANTE' : 'CUADRE';
+        const diffLabel = (diff || 0) > 0 ? 'SOBRANTE' : (diff || 0) < 0 ? 'FALTANTE' : 'CUADRE';
         printer.tableCustom([
             { text: `${diffLabel}:`, align: "LEFT", width: 0.6 },
             { text: `$${Math.abs(diff || 0).toLocaleString('es-CO')}`, align: "RIGHT", width: 0.4 }

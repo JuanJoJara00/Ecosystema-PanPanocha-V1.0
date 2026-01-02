@@ -20,13 +20,16 @@ class POSConnector implements PowerSyncBackendConnector {
     }
 
     async fetchCredentials() {
-        const portalUrl = process.env.VITE_PORTAL_API_URL || 'http://localhost:3000';
+        const portalUrl = process.env.PORTAL_API_URL || process.env.VITE_PORTAL_API_URL || 'http://localhost:3000';
         console.log('[PowerSync] Fetching credentials from:', portalUrl);
 
         if (!this.authToken) {
-            console.warn('[PowerSync] No auth token available during fetchCredentials.');
-            return { endpoint: '', token: '' };
+            console.error('[PowerSync] No auth token available during fetchCredentials.');
+            throw new Error('No auth token available for PowerSync');
         }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
         try {
             const response = await fetch(`${portalUrl}/api/powersync/token`, {
@@ -34,13 +37,16 @@ class POSConnector implements PowerSyncBackendConnector {
                 headers: {
                     'Authorization': `Bearer ${this.authToken}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errText = await response.text();
-                console.error(`[PowerSync] Token fetch failed (${response.status}):`, errText);
-                throw new Error(`Failed to fetch credentials: ${response.status} ${response.statusText}`);
+                // console.error handled in catch if re-thrown, but logging here is good too
+                throw new Error(`Failed to fetch credentials: ${response.status} ${response.statusText} - ${errText}`);
             }
 
             const data = await response.json();
@@ -50,10 +56,12 @@ class POSConnector implements PowerSyncBackendConnector {
                 endpoint: data.endpoint,
                 token: data.token
             };
-        } catch (error) {
+        } catch (error: any) {
+            clearTimeout(timeoutId);
             console.error('[PowerSync] Credential Fetch Error:', error);
-            // Return empty to prevent crash, but sync will fail
-            return { endpoint: '', token: '' };
+
+            // Re-throw so PowerSync knows it failed and can retry/backoff
+            throw error;
         }
     }
 

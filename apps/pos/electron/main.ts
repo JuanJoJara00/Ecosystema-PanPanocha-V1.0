@@ -447,8 +447,15 @@ function registerBottomHandlers() {
         console.log('[Printer] Generating Order Details via ESC/POS...');
         if (!items || items.length === 0) return { success: false, error: 'No items' };
 
+        // Validation: Check for required fields
+        const validItems = items.filter((i: any) => i && i.name && typeof i.quantity === 'number' && typeof i.price === 'number');
+        if (validItems.length !== items.length) {
+            console.warn('[Printer] Some items were invalid and filtered out.');
+            if (validItems.length === 0) return { success: false, error: 'All items were invalid (missing name, quantity, or price)' };
+        }
+
         try {
-            await PrinterService.getInstance().printOrderDetails({ items });
+            await PrinterService.getInstance().printOrderDetails({ items: validItems });
             return { success: true, message: 'Print Job Sent' };
         } catch (error) {
             console.error('[Printer] Order details print failed:', error);

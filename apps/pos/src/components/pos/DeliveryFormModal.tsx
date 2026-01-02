@@ -74,15 +74,15 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                 organization_id: usePosStore.getState().organizationId,
                 branch_id: currentBranchId,
                 customer_name: 'Domicilio Externo',
-                phone: assignedDriver, // Mapped to phone in Delivery type? Or customer_phone? Check types.
+                phone: '', // No driver phone collected in this form
                 address: 'Empresa de Domicilios', // Mapped to address
-                customer_phone: assignedDriver, // Keep for compatibility if needed
+                customer_phone: '', // No customer phone collected in this form
                 customer_address: 'Empresa de Domicilios',
                 product_details: JSON.stringify(productList),
                 delivery_fee: deliveryFee,
-                delivery_cost: deliveryFee, // Alias
+                delivery_cost: deliveryFee, // Alias: delivery_cost used in some legacy views
                 assigned_driver: assignedDriver,
-                delivery_person: assignedDriver, // Alias
+                delivery_person: assignedDriver, // Alias: delivery_person used in some legacy views
                 status: 'pending' as const,
                 notes: notes || undefined,
             };

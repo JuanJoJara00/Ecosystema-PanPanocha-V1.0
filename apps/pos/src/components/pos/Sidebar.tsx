@@ -7,9 +7,7 @@ export type SidebarSection = 'history' | 'deliveries' | 'user' | 'expenses' | 'c
 
 interface SidebarProps {
     isOpen: boolean;
-    activeSection: SidebarSection;
     onClose: () => void;
-    onSectionChange: (section: SidebarSection) => void;
     children: React.ReactNode;
 }
 
