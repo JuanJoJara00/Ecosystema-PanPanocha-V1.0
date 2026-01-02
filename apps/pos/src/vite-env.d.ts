@@ -22,7 +22,7 @@ declare global {
             on: (channel: string, func: (...args: any[]) => void) => () => void;
 
             // Printing
-            printTicket: (data: { sale: Sale; items: SaleItem[]; client?: Client; paymentData?: { received: number; change: number }; diners?: number }) => Promise<void>;
+            printTicket: (data: { sale?: Sale; items: SaleItem[] | any[]; client?: Client; paymentData?: { received: number; change: number }; diners?: number; target?: 'receipt' | 'kitchen'; metadata?: any }) => Promise<void>;
             printClosing: (closingData: any) => Promise<{ success: boolean; message?: string; filePath?: string }>;
             printSiigoClosing: (closingData: any) => Promise<{ success: boolean; message?: string; filePath?: string }>;
             printCombinedClosing: (data: { date: string; shifts: string[]; summary: any }) => Promise<{ success: boolean; filePath?: string }>;
@@ -155,6 +155,7 @@ declare global {
 
             // DEV ONLY
             devResetAndGenerateMockData: () => Promise<{ success: boolean }>;
+            setAuthToken: (token: string) => Promise<boolean>;
         }
     }
 }

@@ -1,51 +1,17 @@
 
-import { Worker } from 'worker_threads';
-import path from 'path';
+import { ThermalPrinter, PrinterTypes, CharacterSet } from 'node-thermal-printer';
 import { app } from 'electron';
 
 export class PrinterService {
-    private worker: Worker;
     private static instance: PrinterService;
 
-    private constructor() {
-        // Resolve worker path dynamically based on prod (asar) vs dev environment
-        // In Dev: We point to the TS file (using ts-node/vite approach) or the compiled JS if build process handles it.
-        // For Electron with Vite, usually we need to point to the built asset.
+    // Configurable printer targets - in production this should come from config/store
+    private printers: Record<string, string> = {
+        'receipt': 'EPSON TM-T20III', // Example System Driver Name
+        'kitchen': 'EPSON TM-U220'
+    };
 
-        let workerPath = '';
-
-        if (app.isPackaged) {
-            // In production, resources are unpacked or bundled.
-            // Assuming we configure vite/electron-builder to output worker to dist-electron/workers/
-            workerPath = path.join(app.getAppPath(), 'dist-electron', 'workers', 'pdf.worker.js');
-            // OR using resourcesPath if we use extraResources
-            // workerPath = path.join(process.resourcesPath, 'workers', 'pdf.worker.js');
-        } else {
-            // In Dev, we can try to point to the source if running with ts-node, 
-            // BUT electron workers usually need to be JS. 
-            // We'll rely on the build process having transpiled it, or use ts-node register for worker.
-            // For 'vite-plugin-electron', it usually builds to dist-electron.
-            workerPath = path.join(__dirname, '../dist-electron/workers/pdf.worker.js');
-
-            // Fallback for direct TS execution (requires worker loader or similar)
-            if (!require('fs').existsSync(workerPath)) {
-                // Try assuming it's in the same src dir but we need a way to run it.
-                // Simplest for now: Assume user will run a build command or we rely on main.js being in dist-electron.
-                // If main.ts is in electron/main.ts, __dirname in dev usually points to electron/
-                // Let's assume we will build the worker to dist-electron/pdf.worker.js
-                workerPath = path.join(__dirname, '../../dist-electron/pdf.worker.js');
-            }
-        }
-
-        console.log('[PrinterService] Initializing worker at:', workerPath);
-
-        this.worker = new Worker(workerPath);
-
-        this.worker.on('error', (err) => console.error('[PrinterService] Worker Error:', err));
-        this.worker.on('exit', (code) => {
-            if (code !== 0) console.error(`[PrinterService] Worker stopped with exit code ${code}`);
-        });
-    }
+    private constructor() { }
 
     public static getInstance(): PrinterService {
         if (!PrinterService.instance) {
@@ -54,40 +20,112 @@ export class PrinterService {
         return PrinterService.instance;
     }
 
-    public async printTicket(ticketData: any): Promise<string> {
-        return new Promise((resolve, reject) => {
-            // Temp path for PDF
-            const filename = `Ticket_${Date.now()}.pdf`;
-            const outputPath = path.join(app.getPath('temp'), filename);
+    /**
+     * Prints a standardized ticket to the specified target.
+     * @param data The sale or order data
+     * @param target 'receipt' (Customer Receipt) | 'kitchen' (Kitchen Order)
+     */
+    public async printTicket(data: any, target: 'receipt' | 'kitchen' = 'receipt'): Promise<void> {
+        console.log(`[Printer] Starting print job for ${target}`);
 
-            // Logo path resolution
-            const logoPath = app.isPackaged
-                ? path.join(process.resourcesPath, 'public', 'images', 'logo_v2.png')
-                : path.join(__dirname, '../../public/images/logo_v2.png');
+        // In a real scenario, you might want to check if printer exists or is connected
+        // For now, we instantiate the printer object which prepares the buffer.
+        // Interface: 'printer:Name' uses the OS printer driver (CUPS/Windows Spooler)
 
-            const listener = (message: any) => {
-                if (message.path === outputPath) {
-                    // this.worker.off('message', listener); // This removes ALL listeners if not careful, better to verify ID?
-                    // Since we don't have task IDs in this simple implementation, we assume serial or unique paths.
-                    // A better way is to use a correlation ID.
-                    if (message.status === 'SUCCESS') resolve(message.path);
-                    else reject(new Error(message.error));
+        const printerName = this.printers[target];
+        // Fallback or dynamic configuration could happen here
 
-                    // Clean up this listener? 
-                    // In a real generic implementation we'd map correlation IDs to resolvers.
-                    // For now, we leave it or we'd need to implementing a proper dispatcher.
-                }
-            };
-
-            this.worker.on('message', listener);
-
-            // Send task to worker
-            this.worker.postMessage({
-                type: 'GENERATE_TICKET',
-                payload: ticketData,
-                outputInfo: { path: outputPath },
-                assets: { logoPath }
-            });
+        const printer = new ThermalPrinter({
+            type: PrinterTypes.EPSON,
+            interface: `printer:${printerName}`,
+            characterSet: CharacterSet.PC852_LATIN2,
+            removeSpecialCharacters: false,
+            options: { timeout: 5000 }
         });
+
+        // --- Header ---
+        printer.alignCenter();
+        printer.bold(true);
+        printer.setTextSize(1, 1);
+        printer.println("PAN PANOCHA");
+        printer.bold(false);
+        printer.setTextNormal();
+        printer.println("Nit: 900.123.456-7");
+        printer.newLine();
+
+        // --- Metadata ---
+        printer.alignLeft();
+        printer.println(`Fecha: ${new Date().toLocaleString('es-CO')}`);
+        if (data.shift_id) printer.println(`Turno: ${data.shift_id}`);
+        if (data.user?.full_name) printer.println(`Cajero: ${data.user.full_name}`);
+        if (data.branch?.name) printer.println(`Sede: ${data.branch.name}`);
+        printer.drawLine();
+
+        // --- Items ---
+        const isKitchen = target === 'kitchen';
+
+        if (isKitchen) {
+            printer.setTextSize(1, 1);
+            printer.bold(true);
+            printer.println("*** COCINA ***");
+            printer.newLine();
+        }
+
+        // Handle items array
+        const items = data.items || [];
+
+        items.forEach((item: any) => {
+            const qty = item.quantity || 1;
+            const name = (item.product_name || item.name || 'Item').substring(0, isKitchen ? 40 : 20);
+
+            if (isKitchen) {
+                // Kitchen format: Quantity x Name (Big)
+                printer.setTextSize(1, 1); // Double width/height
+                printer.println(`${qty} x ${name}`);
+                printer.setTextNormal(); // Reset for notes/padding
+                if (item.notes) printer.println(`   * ${item.notes}`);
+                printer.newLine();
+            } else {
+                // Receipt format: Quantity Name Price
+                const price = item.total_price || (item.unit_price * qty) || 0;
+                // Simple table formatting manually since tableCustom implies specific column widths
+                // Left aligned name, Right aligned price
+                printer.tableCustom([
+                    { text: `${qty} ${name}`, align: "LEFT", width: 0.65 },
+                    { text: `$${price.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.35 }
+                ]);
+            }
+        });
+
+        // --- Footer ---
+        if (!isKitchen) {
+            printer.newLine();
+            printer.drawLine();
+            printer.bold(true);
+            printer.setTextSize(1, 1);
+            const total = data.total_amount || 0;
+            printer.println(`TOTAL: $${total.toLocaleString('es-CO')}`);
+
+            printer.newLine();
+            printer.setTextNormal();
+            printer.alignCenter();
+            printer.println("Gracias por su compra!");
+            printer.println("www.panpanocha.com");
+        }
+
+        printer.cut();
+
+        // --- Execution ---
+        try {
+            // execute() sends the accumulated buffer to the printer interface
+            await printer.execute();
+            console.log('[Printer] Print success');
+        } catch (error) {
+            console.error('[Printer] Print failed:', error);
+            // In dev environment without real printer, this will likely fail if driver not found.
+            // We rethrow so UI knows, OR we swallow if we want to simulate success in Dev?
+            // Let's rethrow to be honest about hardware state, but maybe log it clearly.
+            throw new Error(`Error de Impresión (${target}): ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 }

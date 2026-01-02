@@ -186,18 +186,37 @@ export async function POST(request: Request) {
         }
 
         // 5. Process Sales
-        const cleanSales = sales.map((s: any) => ({
-            ...s,
-            branch_id: branchId
-        }));
+        const cleanSales: any[] = [];
+        const allSaleItems: any[] = [];
+
+        for (const s of sales) {
+            const { items, ...saleData } = s;
+            cleanSales.push({ ...saleData, branch_id: branchId });
+
+            if (Array.isArray(items)) {
+                items.forEach(item => {
+                    allSaleItems.push({ ...item, organization_id: s.organization_id || undefined }); // Ensure org_id if present
+                });
+            }
+        }
 
         if (cleanSales.length > 0) {
             const { error } = await supabase.from('sales').upsert(cleanSales);
             if (error) {
                 results.sales.failed = cleanSales.length;
                 results.sales.errors.push(error);
-                console.error("Sync Sales Error:", error);
+                console.error("Sync Sales Error (Header):", error);
             } else {
+                // Upsert Items only if Header succeeded
+                if (allSaleItems.length > 0) {
+                    const { error: itemsError } = await supabase.from('sale_items').upsert(allSaleItems);
+                    if (itemsError) {
+                        console.error("Sync Sales Error (Items):", itemsError);
+                        // Don't mark sales as failed if just items failed, but log it. 
+                        // Ideally we'd rollback but Supabase HTTP API doesn't do transactions easily here without RPC.
+                        results.sales.errors.push(itemsError);
+                    }
+                }
                 results.sales.success = cleanSales.length;
             }
         }

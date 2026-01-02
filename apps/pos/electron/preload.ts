@@ -10,6 +10,12 @@ contextBridge.exposeInMainWorld('electron', {
     },
 
     printTicket: (saleData: any) => ipcRenderer.invoke('print-ticket', saleData),
+    printKitchen: (data: any) => ipcRenderer.invoke('print-kitchen', data),
+
+    // Auth & Sync
+    setAuthToken: (token: string) => ipcRenderer.invoke('auth-set-token', token),
+
+    // --- Legacy Database Methods (Keep for now) ---
     printClosing: (closingData: any) => ipcRenderer.invoke('print-closing', closingData),
     printSiigoClosing: (closingData: any) => ipcRenderer.invoke('print-siigo-closing', closingData),
     printOrderDetails: (closingData: any) => ipcRenderer.invoke('print-order-details', closingData),

@@ -48,6 +48,7 @@ export function ProvisioningScreen() {
             }
 
             const data = await res.json();
+            console.log('PROVISIONING_SESSION_ID:', data.session_id);
             setSessionId(data.session_id);
             setQrUrl(data.qr_url);
             setStatus('polling');
