@@ -18,13 +18,21 @@ export const useSmartPrinter = () => {
         // We define "Bar Items" as drinks. Everything else goes to Kitchen for now.
         const barKeywords = ['bebida', 'gaseosa', 'licor', 'cerveza', 'jugo'];
 
-        const isBarItem = (item: CartItem) => {
-            const cat = (item.product.category || '').toLowerCase();
+        // Map to Printer Structure (Flat Format)
+        const printableItems = items.map(i => ({
+            ...i,
+            product_name: i.product?.name || i.product_name || 'Item',
+            notes: i.note || i.notes || ''
+        }));
+
+        const isBarItem = (item: any) => {
+            // Handle both CartItem (nested product) and already flattened items if any
+            const cat = (item.product?.category || item.category || '').toLowerCase();
             return barKeywords.some(k => cat.includes(k));
         };
 
-        const kitchenItems = items.filter(i => !isBarItem(i));
-        const barItems = items.filter(i => isBarItem(i));
+        const kitchenItems = printableItems.filter(i => !isBarItem(i));
+        const barItems = printableItems.filter(i => isBarItem(i));
 
         const printPromises: Promise<any>[] = [];
 

@@ -12,24 +12,26 @@ const ApproveSchema = z.object({
 
 export async function POST(request: Request) {
     try {
-        // 1. Auth Check (Manager only) - BYPASSED FOR DEV VERIFICATION
-        // const supabaseServer = await createServerClient();
-        // const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
+        // 1. Auth Check (Manager only)
+        // CRITICAL: Enforce auth in production. Optional in dev for easier testing if needed.
+        if (process.env.NODE_ENV === 'production') {
+            const supabaseServer = await createServerClient();
+            const { data: { user }, error: authError } = await supabaseServer.auth.getUser();
 
-        // if (authError || !user) {
-        //     // return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        //     console.warn("Auth bypassed for Dev Verification");
-        // }
+            if (authError || !user) {
+                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            }
+        } else {
+            console.warn("[API] Auth check bypassed for Development environment.");
+        }
 
         // 2. Validate Body
         const body = await request.json();
-        // Relax schema validation for dev
-        // const parseResult = ApproveSchema.safeParse(body);
-        let { session_id, branch_id, device_name } = body;
-        // if (!parseResult.success) {
-        //     return NextResponse.json({ error: 'Invalid payload', details: parseResult.error }, { status: 400 });
-        // }
-        // const { session_id, branch_id, device_name } = parseResult.data;
+        const parseResult = ApproveSchema.safeParse(body);
+        if (!parseResult.success) {
+            return NextResponse.json({ error: 'Invalid payload', details: parseResult.error }, { status: 400 });
+        }
+        let { session_id, branch_id, device_name } = parseResult.data;
 
         // 3. Admin Client (To write to devices/sessions and bypass RLS if needed, though Manager might have access)
         // We use Service Role Key if we need to sign tokens or do admin stuff? 
@@ -52,48 +54,14 @@ export async function POST(request: Request) {
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
         // 4. Get Session & Branch Details
-        let branch;
-        if (branch_id === 'FORCE_CREATE') {
-            // Create a Dev Branch
-            const { data: newBranch, error: createBranchError } = await supabaseAdmin
-                .from('branches')
-                .insert({
-                    name: 'Sede Principal Dev',
-                    city: 'Bogotá Dev',
-                    address: 'Calle Dev 123',
-                    phone: '3000000000',
-                    organization_id: 'org-dev-1' // Need a value? Or generates one? Let's hope trigger handles it or we pass it
-                })
-                .select()
-                .single();
+        const { data: branch, error: branchError } = await supabaseAdmin
+            .from('branches')
+            .select('organization_id')
+            .eq('id', branch_id)
+            .single();
 
-            if (createBranchError) {
-                // If it failed (maybe org constraint), try fetching any branch
-                const { data: anyBranch } = await supabaseAdmin.from('branches').select().limit(1).single();
-                branch = anyBranch;
-                if (branch) branch_id = branch.id;
-            } else {
-                branch = newBranch;
-                branch_id = newBranch.id;
-            }
-        } else {
-            const { data, error } = await supabaseAdmin
-                .from('branches')
-                .select('organization_id')
-                .eq('id', branch_id)
-                .single();
-            branch = data;
-        }
-
-        if (!branch) {
-            // Fallback: Create one if absolutely nothing exists
-            const { data: panicBranch } = await supabaseAdmin.from('branches').insert({ name: 'Fallback Branch', organization_id: 'org-fallback' }).select().single();
-            branch = panicBranch;
-            branch_id = panicBranch?.id;
-        }
-
-        if (!branch) {
-            return NextResponse.json({ error: 'Branch not found and could not create' }, { status: 404 });
+        if (branchError || !branch) {
+            return NextResponse.json({ error: 'Branch not found' }, { status: 404 });
         }
 
         // 5. Create Device Record

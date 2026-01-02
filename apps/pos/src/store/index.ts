@@ -899,7 +899,9 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                 product_id: item.product.id,
                 quantity: item.quantity,
                 unit_price: item.product.price,
-                total_price: item.product.price * item.quantity
+                total_price: item.product.price * item.quantity,
+                product_name: item.product.name, // Printer Requirement
+                notes: item.note                 // Printer Requirement
             }));
 
             console.log('[Checkout] Saving sale to database...', { sale, itemsCount: items.length });

@@ -2,8 +2,9 @@ import { app } from 'electron';
 import path from 'path';
 import { Worker } from 'worker_threads';
 import { PowerSyncDatabase, PowerSyncBackendConnector } from '@powersync/node';
-import { AppSchema, schema } from './schema';
+import { AppSchema, schema, sales } from './schema'; // Added sales
 import { PosDatabase } from './types';
+import { eq } from 'drizzle-orm'; // Added eq helper
 
 // 1. Connector Logic
 class POSConnector implements PowerSyncBackendConnector {
@@ -95,7 +96,10 @@ class POSConnector implements PowerSyncBackendConnector {
         // This satisfies "Use PowerSync Native" (hooking into uploadData) but keeps "Graph Sync" capability.
 
         const db = dbInstance;
-        if (!db) return;
+        if (!db) {
+            console.error('[PowerSync] Cannot flush outbox: Singleton DB not ready.');
+            throw new Error('Database not initialized for sync'); // Critical: Throw so PowerSync retries
+        }
 
         // ... Copy logic ...
         const pendingSales = await db.query.sales.findMany({
@@ -111,12 +115,18 @@ class POSConnector implements PowerSyncBackendConnector {
         if (pendingSales.length > 0) {
             console.log('[PowerSync] Pushing', pendingSales.length, 'sales via Custom Graph API');
             // TODO: Make actual fetch call here using net module or fetch
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/pos/sync`, {
+            const apiUrl = process.env.API_URL || process.env.POWERSYNC_API_URL || 'http://localhost:3000';
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            };
+
+            if (this.authToken) {
+                headers['Authorization'] = `Bearer ${this.authToken}`;
+            }
+
+            const response = await fetch(`${apiUrl}/api/pos/sync`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': this.authToken || ''
-                },
+                headers,
                 body: JSON.stringify({
                     branch_id: this.branchId,
                     sales: pendingSales
@@ -126,9 +136,9 @@ class POSConnector implements PowerSyncBackendConnector {
             if (!response.ok) throw new Error('Sync Failed');
 
             // Mark synced locally - PowerSync will see this as "local update" but that's fine.
+            // Mark synced locally - PowerSync will see this as "local update" but that's fine.
             await db.transaction(async (tx) => {
-                const { sales } = await import('./schema');
-                const { eq } = await import('drizzle-orm');
+                // Optimized: Static imports used
                 for (const s of pendingSales) {
                     await tx.update(sales).set({ synced: true }).where(eq(sales.id, s.id));
                 }

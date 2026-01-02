@@ -85,7 +85,10 @@ if (typeof window !== 'undefined' && !window.electron) {
         },
         getPendingSales: async () => [],
         getAllSales: async () => mockSales,
-        getSalesByShift: async (_shiftId: string) => mockSales,
+        getSalesByShift: async (_shiftId: string) => {
+            if (!_shiftId) return [];
+            return mockSales.filter(s => s.shift_id === _shiftId);
+        },
         importSalesBatch: async (sales: any[]) => { console.log("[Mock] Import Sales Batch", sales.length); },
         getProductTrends: async (_days: number) => [],
         getProductTrendsByRange: async (_start: string, _end: string) => [],
@@ -121,16 +124,19 @@ if (typeof window !== 'undefined' && !window.electron) {
             mockShift = null;
         },
         getShift: async () => mockShift,
-        getShiftSummary: async (_shiftId: string) => ({
-            totalSales: mockSales.reduce((sum, s) => sum + (s.total || 0), 0),
-            cashSales: mockSales.filter(s => s.payment_method === 'cash').reduce((sum, s) => sum + (s.total || 0), 0),
-            cardSales: mockSales.filter(s => s.payment_method === 'card').reduce((sum, s) => sum + (s.total || 0), 0),
-            transferSales: 0,
-            totalTips: 0,
-            totalExpenses: 0,
-            productsSold: [],
-            salesCount: mockSales.length
-        }),
+        getShiftSummary: async (_shiftId: string) => {
+            const shiftSales = mockSales.filter(s => s.shift_id === _shiftId);
+            return {
+                totalSales: shiftSales.reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                cashSales: shiftSales.filter(s => s.payment_method === 'cash').reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                cardSales: shiftSales.filter(s => s.payment_method === 'card').reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                transferSales: shiftSales.filter(s => s.payment_method === 'transfer').reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                totalTips: 0,
+                totalExpenses: 0,
+                productsSold: [],
+                salesCount: shiftSales.length
+            };
+        },
         getPendingShifts: async () => [],
         markShiftSynced: async (id: string) => { console.log("[Mock] Mark Shift Synced", id); },
         updateShift: async (id: string, data: any) => {

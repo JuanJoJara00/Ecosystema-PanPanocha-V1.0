@@ -17,7 +17,15 @@ export function DeviceApprovalForm({ session, branches }: Props) {
     const [deviceName, setDeviceName] = useState(session.device_name || '');
     const [selectedBranch, setSelectedBranch] = useState(branches[0]?.id || '');
     const [error, setError] = useState<string | null>(null);
-    const [status, setStatus] = useState<'pending' | 'success' | 'rejected' | 'approved'>(session.status === 'waiting' ? 'pending' : session.status as any);
+    // Helper to map DB status to UI status
+    const mapStatus = (s: string): 'pending' | 'success' | 'rejected' | 'approved' => {
+        if (s === 'waiting') return 'pending';
+        if (s === 'approved' || s === 'success') return 'approved'; // Map both to approved/success UI state
+        if (s === 'rejected') return 'rejected';
+        return 'pending'; // Default fallback
+    };
+
+    const [status, setStatus] = useState<ReturnType<typeof mapStatus>>(mapStatus(session.status));
 
     if (status !== 'pending') {
         const isApproved = status === 'approved' || status === 'success';

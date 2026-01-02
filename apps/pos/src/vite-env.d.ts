@@ -153,9 +153,11 @@ declare global {
             cleanupExpiredReservations: (olderThanMinutes?: number) => Promise<{ removed: number; items: any[] }>;
             clearConfirmedReservations: () => Promise<number>;
 
+            // Authentication
+            setAuthToken: (token: string) => Promise<boolean>;
+
             // DEV ONLY
             devResetAndGenerateMockData: () => Promise<{ success: boolean }>;
-            setAuthToken: (token: string) => Promise<boolean>;
         }
     }
 }
