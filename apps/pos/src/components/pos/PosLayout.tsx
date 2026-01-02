@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { usePosStore } from '../../store';
 import { MASTER_PIN } from '../../constants';
 import { Navbar } from './Navbar';
@@ -313,17 +313,10 @@ export function PosLayout() {
             {/* Sidebar */}
             <Sidebar
                 isOpen={sidebarOpen}
-                activeSection={sidebarSection || 'history'}
                 onClose={closeSidebar}
-                onSectionChange={(section) => {
-                    const store = usePosStore.getState();
-                    store.sidebarSection = section;
-                    usePosStore.setState({ sidebarSection: section });
-                }}
             >
                 <SidebarNavigation
                     activeSection={sidebarSection || 'history'}
-                    onSectionChange={(section) => usePosStore.setState({ sidebarSection: section })}
                 />
 
                 {/* Sidebar Content Sections */}

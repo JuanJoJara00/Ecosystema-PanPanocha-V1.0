@@ -1,45 +1,179 @@
+/// <reference types="node" />
+/**
+ * Database check script for Supabase connection verification.
+ * Run with: npx ts-node --project scripts/tsconfig.json scripts/check_db.ts
+ * 
+ * Must be run from the repository root directory.
+ * Requires: pnpm add -D @types/node @supabase/supabase-js (at workspace root)
+ */
+import { createClient } from '@supabase/supabase-js';
+import * as path from 'path';
+import * as fs from 'fs';
 
-import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
-import * as path from 'path'
-
-// Load env from apps/portal/.env.local
-dotenv.config({ path: path.resolve(__dirname, '../apps/portal/.env.local') })
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseKey) {
-    console.log('Missing env vars:', { supabaseUrl, hasKey: !!supabaseKey })
-    process.exit(1)
+/**
+ * Find project root by looking for package.json
+ */
+function findProjectRoot(startPath: string): string {
+    let current = startPath;
+    while (current !== path.parse(current).root) {
+        if (fs.existsSync(path.join(current, 'package.json'))) {
+            return current;
+        }
+        current = path.dirname(current);
+    }
+    return startPath;
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey)
+const projectRoot = findProjectRoot(__dirname);
+const envPath = path.join(projectRoot, 'apps/portal/.env.local');
 
-async function check() {
-    console.log('Checking Supabase connection...')
+// Manual .env parsing to avoid dotenv dependency
+if (fs.existsSync(envPath)) {
+    try {
+        const envContent = fs.readFileSync(envPath, 'utf-8');
+        envContent.split('\n').forEach(line => {
+            // Match KEY=VALUE, where VALUE can contain = (e.g. base64)
+            // But exclude comments starting with #
+            const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?$/);
+            if (match) {
+                const key = match[1];
+                let value = match[2] ? match[2].trim() : '';
+
+                // Remove inline comments if present (e.g. KEY=val # comment)
+                // Be careful not to strip # inside quotes
+                if (value.includes('#')) {
+                    // Simple heuristic: if # is after whitespace/quote closure?
+                    // For simplicity in this script, just assume simple env files.
+                    // Or just split by ' #' if needed. relying on simpler valid parsing for now.
+                }
+
+                // Strip surrounding quotes
+                if (value.length > 1 &&
+                    ((value.startsWith('"') && value.endsWith('"')) ||
+                        (value.startsWith("'") && value.endsWith("'")))) {
+                    value = value.slice(1, -1);
+                }
+
+                if (!process.env[key]) {
+                    process.env[key] = value;
+                }
+            }
+        });
+        console.log(`Loaded env from: ${envPath}`);
+    } catch (e: unknown) {
+        console.error(`Failed to load env file from: ${envPath}`);
+        if (e instanceof Error) console.error('Error:', e.message);
+        process.exit(1);
+    }
+} else {
+    console.error(`Error: Environment file not found at ${envPath}`);
+    console.error('Please ensure apps/portal/.env.local exists with Supabase credentials.');
+    process.exit(1);
+}
+
+/**
+ * Types for Supabase tables (DB-specific).
+ * These match the actual database schema, not the application types.
+ * TODO: Consider generating Supabase types with `npx supabase gen types typescript`
+ */
+interface DbBranch {
+    id: string;
+    organization_id: string;
+    nit?: string;
+    name: string;
+    city?: string;
+    address?: string;
+    phone?: string;
+    is_active?: boolean;
+    created_at?: string;
+    updated_at?: string;
+    deleted_at?: string;
+}
+
+interface DbInventoryItem {
+    id: string;
+    organization_id: string;
+    name: string;
+    sku?: string;
+    category?: string;
+    unit?: string;
+    cost_price?: number;
+    created_at?: string;
+}
+
+interface DbBranchInventory {
+    id?: string;
+    branch_id: string;
+    item_id: string;
+    quantity: number;
+    last_updated?: string;
+}
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.log('Missing env vars:', {
+        hasUrl: !!supabaseUrl,
+        hasKey: !!supabaseKey
+    });
+    console.log('Ensure you run this script from the repository root:');
+    console.log('  npx ts-node --project scripts/tsconfig.json scripts/check_db.ts');
+    process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+async function check(): Promise<void> {
+    console.log('Checking Supabase connection...');
+    console.log(`Using project root: ${projectRoot}`);
 
     // Check Branches
-    const { data: branches, error: errBranches } = await supabase.from('branches').select('*')
-    if (errBranches) console.error('Error fetching branches:', errBranches)
-    else console.log(`Branches found: ${branches.length}`, branches)
+    const { data: branches, error: errBranches } = await supabase
+        .from('branches')
+        .select('*');
+
+    if (errBranches) {
+        console.error('Error fetching branches:', errBranches);
+    } else {
+        const branchList = branches as DbBranch[] | null;
+        console.log(`Branches found: ${branchList?.length ?? 0}`);
+        if (branchList && branchList.length > 0) {
+            console.log('Sample Branch:', branchList[0]);
+        }
+    }
 
     // Check Items
-    const { data: items, error: errItems } = await supabase.from('inventory_items').select('*')
-    if (errItems) console.error('Error fetching inventory_items:', errItems)
-    else console.log(`Inventory Items found: ${items.length}`)
+    const { data: items, error: errItems } = await supabase
+        .from('inventory_items')
+        .select('*');
 
-    if (items && items.length > 0) {
-        console.log('Sample Item:', items[0])
+    if (errItems) {
+        console.error('Error fetching inventory_items:', errItems);
+    } else {
+        const itemList = items as DbInventoryItem[] | null;
+        console.log(`Inventory Items found: ${itemList?.length ?? 0}`);
 
-        // Check Branch Inventory join
-        const { data: joinData, error: errJoin } = await supabase
-            .from('branch_inventory')
-            .select('*')
+        if (itemList && itemList.length > 0) {
+            console.log('Sample Item:', itemList[0]);
+        }
 
-        if (errJoin) console.error('Error fetching branch_inventory:', errJoin)
-        else console.log(`Branch Inventory records found: ${joinData.length}`)
+    }
+
+    // Check Branch Inventory
+    const { data: joinData, error: errJoin } = await supabase
+        .from('branch_inventory')
+        .select('*');
+
+    if (errJoin) {
+        console.error('Error fetching branch_inventory:', errJoin);
+    } else {
+        const joinList = joinData as DbBranchInventory[] | null;
+        console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
     }
 }
 
-check()
+check().catch((err: unknown) => {
+    console.error('Unexpected error:', err);
+    process.exit(1);
+});

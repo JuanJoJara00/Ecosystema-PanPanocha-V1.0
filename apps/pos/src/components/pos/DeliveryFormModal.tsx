@@ -69,17 +69,30 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
             // Generate explicit ID for reservation tracking
             const deliveryId = crypto.randomUUID();
 
+            // Validate organizationId before proceeding
+            const organizationId = usePosStore.getState().organizationId;
+            if (!organizationId || organizationId.trim() === '') {
+                showAlert('error', 'Error de Configuración', 'El ID de la organización no está configurado. Por favor, reinicie la aplicación o contacte soporte.');
+                setLoading(false);
+                return;
+            }
+
             const dataToSave = {
                 id: deliveryId, // Use explicit ID
+                organization_id: organizationId,
                 branch_id: currentBranchId,
                 customer_name: 'Domicilio Externo',
-                customer_phone: assignedDriver,
+                phone: '', // No driver phone collected in this form
+                address: 'Empresa de Domicilios', // Mapped to address
+                customer_phone: '', // No customer phone collected in this form
                 customer_address: 'Empresa de Domicilios',
                 product_details: JSON.stringify(productList),
                 delivery_fee: deliveryFee,
+                delivery_cost: deliveryFee, // Alias: delivery_cost used in some legacy views
                 assigned_driver: assignedDriver,
-                status: 'pending',
-                notes: notes || null
+                delivery_person: assignedDriver, // Alias: delivery_person used in some legacy views
+                status: 'pending' as const,
+                notes: notes || undefined,
             };
 
             const { branches } = usePosStore.getState();
@@ -104,15 +117,11 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
             }));
             await window.electron.addReservations(reservationItems, 'delivery', deliveryId);
 
-            // 3. Trigger background sync
-            if (navigator.onLine) {
-                import('../../services/sync').then(({ SyncService }) => {
-                    SyncService.push().catch(err => console.error('[Delivery] Background sync failed:', err));
-                });
-            }
+            // 3. Sync handled by PowerSync automatically
+            console.log('[Delivery] Saved locally, PowerSync handles replication.');
 
             // 4. Update UI
-            await usePosStore.getState().reloadProducts();
+            usePosStore.getState().triggerProductsRefresh();
 
 
             showAlert('success', 'Domicilio Registrado', 'Domicilio registrado exitosamente');
@@ -135,6 +144,8 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                        aria-label="Cerrar"
+                        title="Cerrar"
                     >
                         <X size={24} />
                     </button>

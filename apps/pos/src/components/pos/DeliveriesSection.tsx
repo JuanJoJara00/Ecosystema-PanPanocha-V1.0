@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { User, Check, X, MapPin, Trash2 } from 'lucide-react';
-import { usePosStore } from '../../store';
+import { usePosStore, assertOrganizationId } from '../../store';
 // import { supabase } from '../../api/client'; // Removed direct cloud dependency
-import { SyncService } from '../../services/sync';
+
 import { formatCurrency } from '@panpanocha/shared';
 import { Card, Badge, Skeleton } from '@panpanocha/ui';
 import { toast } from '../../hooks/useToast';
@@ -30,15 +30,12 @@ export default function DeliveriesSection() {
     const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
     const [processing, setProcessing] = useState(false);
 
-    useEffect(() => {
-        loadTodaysDeliveries();
-        const interval = setInterval(loadTodaysDeliveries, 60000);
-        return () => clearInterval(interval);
-    }, [currentBranchId, refreshDeliveriesTrigger, currentShift?.start_time, sidebarDateFilter]);
-
-    const loadTodaysDeliveries = async () => {
+    const loadTodaysDeliveries = useCallback(async () => {
         try {
             setLoading(true);
+
+            // Strict Tenant Check
+            const orgId = assertOrganizationId();
 
             let queryStartTime = new Date();
             queryStartTime.setHours(0, 0, 0, 0);
@@ -72,13 +69,42 @@ export default function DeliveriesSection() {
             });
 
             const allDeliveries: Delivery[] = [
-                ...standardDeliveries.map(d => ({ ...d, order_type: 'domicilio' as const })),
+                ...standardDeliveries.map(d => {
+                    return {
+                        ...d,
+                        order_type: 'domicilio' as const,
+                        // Status is now correctly typed as 'dispatched' in canonical type
+                        status: d.status as Delivery['status'],
+                        customer_phone: d.phone,
+                        customer_address: d.address,
+                        product_details: (d as { product_details?: string }).product_details ?? '[]',
+                        delivery_fee: (d as { delivery_fee?: number }).delivery_fee ?? 0
+                    };
+                }),
                 ...(Array.isArray(rappiRes) ? rappiRes : []).map(d => ({
                     ...d,
                     order_type: 'rappi' as const,
-                    customer_name: 'Pedido Rappi',
+                    // Map Rappi statuses to generic Delivery statuses
+                    status: (
+                        d.status === 'ready' || d.status === 'picked_up' ? 'pending' :
+                            d.status === 'dispatched' ? 'dispatched' :
+                                d.status === 'delivered' ? 'delivered' :
+                                    d.status === 'cancelled' ? 'cancelled' :
+                                        'pending'
+                    ) as Delivery['status'],
+                    customer_name: d.customer_name || d.client_name || 'Pedido Rappi',
+                    // Note: Rappi doesn't provide phone/address in basic integration, keep fallback or null
+                    phone: 'Rappi',
+                    address: 'Rappi',
+                    customer_phone: 'Rappi',
                     customer_address: 'Rappi',
-                    delivery_fee: 0
+
+                    product_details: d.product_details || '[]',
+                    delivery_fee: d.total_amount || d.total_value || 0,
+                    delivery_cost: 0,
+                    delivery_person: 'Rappi',
+                    organization_id: orgId,
+                    notes: d.notes
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -91,7 +117,13 @@ export default function DeliveriesSection() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentBranchId, currentShift?.start_time, sidebarDateFilter]);
+
+    useEffect(() => {
+        loadTodaysDeliveries();
+        const interval = setInterval(loadTodaysDeliveries, 60000);
+        return () => clearInterval(interval);
+    }, [loadTodaysDeliveries, refreshDeliveriesTrigger]);
 
     const handleViewDetail = (delivery: Delivery) => {
         setSelectedDelivery(delivery);
@@ -114,19 +146,11 @@ export default function DeliveriesSection() {
                 await window.electron.updateDeliveryStatus(deliveryId, 'cancelled');
             }
 
-            // 2. Trigger Background Sync
-            if (navigator.onLine) {
-                SyncService.push().catch(e => console.warn('Background sync failed:', e));
-            }
-
-            // Update local DB for Rappi
-            if (isRappi) {
-                await window.electron.updateRappiStatus(deliveryId, 'cancelled');
-            }
+            // 2. PowerSync handles background sync automatically
 
             const sourceType = isRappi ? 'rappi' : 'delivery';
             await window.electron.removeReservation(sourceType, deliveryId);
-            await usePosStore.getState().reloadProducts();
+            usePosStore.getState().triggerProductsRefresh();
 
             toast.success(`✅ Pedido cancelado - Stock restaurado`);
             setSelectedDelivery(null);
@@ -144,6 +168,16 @@ export default function DeliveriesSection() {
         try {
             const delivery = deliveries.find(d => d.id === deliveryId);
             if (!delivery) throw new Error('Delivery not found');
+
+            // Strict Tenant Check
+            const orgId = assertOrganizationId();
+
+            // Require authenticated user for sale creation
+            if (!currentUser?.id) {
+                toast.error('❌ No se puede completar: Usuario no autenticado');
+                setProcessing(false);
+                return;
+            }
 
             if (delivery.status === 'delivered') {
                 toast.success('Este pedido ya fue entregado previamente.');
@@ -191,7 +225,7 @@ export default function DeliveriesSection() {
                 }
 
                 // 2. Trigger Sync
-                if (navigator.onLine) SyncService.push();
+                // 2. PowerSync Syncs Automatically
                 // 3. Confirm Reservations
                 const sourceType = isRappi ? 'rappi' : 'delivery';
                 await window.electron.markReservationConfirmed(sourceType, deliveryId);
@@ -219,18 +253,19 @@ export default function DeliveriesSection() {
                 id: saleId,
                 branch_id: currentBranchId,
                 shift_id: currentShift?.id,
-                created_by: currentUser?.id || 'system',
+                created_by: currentUser.id,
                 created_by_system: isRappi ? 'pos-rappi' : 'pos-delivery',
-                sale_channel: isRappi ? 'rappi' : 'delivery',
+                sale_channel: isRappi ? 'rappi' as const : 'delivery' as const,
                 total_amount: totalAmount,
-                payment_method: 'transfer',
-                status: 'completed',
+                payment_method: 'transfer' as const,
+                status: 'completed' as const,
                 notes: isRappi
                     ? `Rappi #${delivery.rappi_order_id || deliveryId.slice(0, 8)}`
                     : `Domicilio #${deliveryId.slice(0, 8)} - ${delivery.customer_name}`,
                 diners: 1,
                 created_at: new Date().toISOString(),
                 synced: false,
+                organization_id: orgId,
             };
 
             const saleItems = products.map((item: any) => ({
@@ -245,32 +280,32 @@ export default function DeliveriesSection() {
 
             await window.electron.saveSale(saleData, saleItems);
 
-            if (navigator.onLine) {
-                try {
-                    await SyncService.push();
-                } catch (syncErr) {
-                    console.warn('[Delivery Complete] Push warning:', syncErr);
-                }
-            }
-
             // 4. Confirm Reservations
             const sourceType = isRappi ? 'rappi' : 'delivery';
             await window.electron.markReservationConfirmed(sourceType, deliveryId);
 
             // 5. Register Delivery Fee Expense (if applicable)
             if (delivery.delivery_fee && delivery.delivery_fee > 0) {
-                if (currentShift) {
+                if (!currentUser?.id) {
+                    console.warn('[Expense] Cannot create expense: No authenticated user');
+                    toast.warning('⚠️ No se pudo registrar el gasto: Usuario no autenticado.');
+                } else if (!currentShift) {
+                    console.warn('Cannot register expense: No active shift');
+                    toast.warning('⚠️ No hay turno activo, el gasto no quedó asociado a caja.');
+                } else {
                     const expenseData = {
                         id: crypto.randomUUID(),
                         branch_id: currentBranchId,
                         shift_id: currentShift.id,
-                        user_id: currentUser?.id,
+                        user_id: currentUser.id,
                         amount: delivery.delivery_fee,
                         category: 'Domicilios',
                         description: isRappi
                             ? `Rappi - Orden ${delivery.rappi_order_id || deliveryId.slice(0, 8)}`
                             : `Pago domiciliario - ${delivery.assigned_driver || 'N/A'}`,
                         created_at: new Date().toISOString(),
+                        synced: false,
+                        organization_id: orgId
                     };
 
                     try {
@@ -279,9 +314,6 @@ export default function DeliveriesSection() {
                         console.error('Local Expense registration error:', expenseErr);
                         toast.error(`⚠️ Advertencia: No se pudo registrar el gasto localmente.`);
                     }
-                } else {
-                    console.warn('Cannot register expense: No active shift');
-                    toast.warning('⚠️ No hay turno activo, el gasto no quedó asociado a caja.');
                 }
             }
 
@@ -502,6 +534,8 @@ export default function DeliveriesSection() {
                                 <button
                                     onClick={() => setSelectedDelivery(null)}
                                     className="text-gray-400 hover:text-gray-900 transition-colors"
+                                    aria-label="Cerrar detalles"
+                                    title="Cerrar detalles"
                                 >
                                     <X size={24} />
                                 </button>

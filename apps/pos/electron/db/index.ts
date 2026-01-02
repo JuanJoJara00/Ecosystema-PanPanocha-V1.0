@@ -20,10 +20,49 @@ class POSConnector implements PowerSyncBackendConnector {
     }
 
     async fetchCredentials() {
-        return {
-            endpoint: process.env.POWERSYNC_URL || 'https://placeholder.powersync.co',
-            token: this.authToken || 'mock-jwt-token'
-        };
+        const portalUrl = process.env.PORTAL_API_URL || process.env.VITE_PORTAL_API_URL || 'http://localhost:3000';
+        console.log('[PowerSync] Fetching credentials from:', portalUrl);
+
+        if (!this.authToken) {
+            console.error('[PowerSync] No auth token available during fetchCredentials.');
+            throw new Error('No auth token available for PowerSync');
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+        try {
+            const response = await fetch(`${portalUrl}/api/powersync/token`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errText = await response.text();
+                // console.error handled in catch if re-thrown, but logging here is good too
+                throw new Error(`Failed to fetch credentials: ${response.status} ${response.statusText} - ${errText}`);
+            }
+
+            const data = await response.json();
+            console.log('[PowerSync] Credentials fetched successfully. Endpoint:', data.endpoint);
+
+            return {
+                endpoint: data.endpoint,
+                token: data.token
+            };
+        } catch (error: any) {
+            clearTimeout(timeoutId);
+            console.error('[PowerSync] Credential Fetch Error:', error);
+
+            // Re-throw so PowerSync knows it failed and can retry/backoff
+            throw error;
+        }
     }
 
     async uploadData(batch: any) {
