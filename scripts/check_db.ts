@@ -32,10 +32,28 @@ if (fs.existsSync(envPath)) {
     try {
         const envContent = fs.readFileSync(envPath, 'utf-8');
         envContent.split('\n').forEach(line => {
-            const match = line.match(/^([^= #]+)=(.*)$/);
+            // Match KEY=VALUE, where VALUE can contain = (e.g. base64)
+            // But exclude comments starting with #
+            const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?$/);
             if (match) {
-                const key = match[1].trim();
-                const value = match[2].trim().replace(/^['"](.*)['"]$/, '$1');
+                const key = match[1];
+                let value = match[2] ? match[2].trim() : '';
+
+                // Remove inline comments if present (e.g. KEY=val # comment)
+                // Be careful not to strip # inside quotes
+                if (value.includes('#')) {
+                    // Simple heuristic: if # is after whitespace/quote closure?
+                    // For simplicity in this script, just assume simple env files.
+                    // Or just split by ' #' if needed. relying on simpler valid parsing for now.
+                }
+
+                // Strip surrounding quotes
+                if (value.length > 1 &&
+                    ((value.startsWith('"') && value.endsWith('"')) ||
+                        (value.startsWith("'") && value.endsWith("'")))) {
+                    value = value.slice(1, -1);
+                }
+
                 if (!process.env[key]) {
                     process.env[key] = value;
                 }

@@ -285,8 +285,6 @@ export default function DeliveriesSection() {
 
             await window.electron.saveSale(saleData, saleItems);
 
-            console.log('[Delivery Complete] Saved locally.');
-
             // 4. Confirm Reservations
             const sourceType = isRappi ? 'rappi' : 'delivery';
             await window.electron.markReservationConfirmed(sourceType, deliveryId);
