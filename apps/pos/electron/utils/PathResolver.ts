@@ -43,8 +43,9 @@ export class PathResolver {
         if (this.isDev) {
             // Assuming Vite puts workers in dist-electron/workers or similar
             // Code is compiled to dist-electron usually.
-            // If we are running from dist-electron/main.js
-            return path.join(__dirname, 'workers/pdf.worker.js');
+            // If we are running from dist-electron/utils/PathResolver.js
+            // We need to go up to dist-electron/workers/pdf.worker.js
+            return path.join(__dirname, '..', 'workers', 'pdf.worker.js');
         }
         return path.join(app.getAppPath(), 'dist-electron', 'workers', 'pdf.worker.js');
     }

@@ -31,6 +31,9 @@ export class PrinterService {
         this.initWorker();
     }
 
+    private workerRestartAttempts = 0;
+    private readonly MAX_RESTART_ATTEMPTS = 3;
+
     private initWorker() {
         try {
             const workerPath = PathResolver.worker;
@@ -39,9 +42,16 @@ export class PrinterService {
 
             this.worker.on('error', (err) => {
                 console.error('[PrinterService] 💥 Worker CRITICAL Error:', err);
-                // Simple restart strategy
-                setTimeout(() => this.initWorker(), 1000);
+                if (this.workerRestartAttempts < this.MAX_RESTART_ATTEMPTS) {
+                    this.workerRestartAttempts++;
+                    const delay = 1000 * this.workerRestartAttempts; // Exponential-ish backoff
+                    console.log(`[PrinterService] Restarting worker in ${delay}ms (attempt ${this.workerRestartAttempts}/${this.MAX_RESTART_ATTEMPTS})`);
+                    setTimeout(() => this.initWorker(), delay);
+                } else {
+                    console.error('[PrinterService] Max restart attempts reached, worker disabled');
+                }
             });
+            this.workerRestartAttempts = 0; // Reset on successful init
             console.log('[PrinterService] Worker initialized successfully');
         } catch (error) {
             console.error('[PrinterService] Failed to initialize worker:', error);
@@ -71,10 +81,17 @@ export class PrinterService {
                 if (!this.worker) return reject(new Error('Worker not initialized'));
             }
 
+            const WORKER_RESPONSE_TIMEOUT_MS = 10000; // 10s timeout
+            const timeout = setTimeout(() => {
+                this.worker?.off('message', listener);
+                reject(new Error('Worker response timeout'));
+            }, WORKER_RESPONSE_TIMEOUT_MS);
+
             const listener = (message: any) => {
                 // WHY: Verify the message matches the expected output path 
                 // to avoid race conditions if multiple prints happen fast.
                 if (message.path === task.outputInfo.path) {
+                    clearTimeout(timeout);
                     this.worker?.off('message', listener); // Cleanup listener to prevent memory leaks
 
                     if (message.status === 'SUCCESS') resolve(message.path);
@@ -218,7 +235,11 @@ export class PrinterService {
             type: 'GENERATE_CLOSING',
             payload: data,
             outputInfo: { path: outputPath },
-            assets: { logoPath }
+            assets: {
+                logoPath,
+                companyName: this.organizationConfig?.name,
+                nit: this.organizationConfig?.nit
+            }
         });
     }
 
@@ -281,7 +302,7 @@ export class PrinterService {
         try {
             await printer.execute();
         } catch (error) {
-            throw error;
+            throw new Error(`Error printing order details: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -319,13 +340,73 @@ export class PrinterService {
         printer.setTextNormal();
         printer.println("CIERRE TOTAL DE TURNO");
         printer.newLine();
-        // ... (Simplified re-implementation for brevity/safety - assumed identical to previous)
+        // Print Metadata
+        printer.alignLeft();
+        printer.println(`Fecha: ${dateNow.toLocaleString('es-CO')}`);
+        if (user?.full_name) printer.println(`Responsable: ${user.full_name}`);
+        if (shift?.id) printer.println(`Turno ID: ${shift.id.slice(0, 8)}...`);
+        printer.drawLine();
 
+        // Print Summary Table
+        printer.tableCustom([
+            { text: "Base:", align: "LEFT", width: 0.5 },
+            { text: `$${summary.totalBase.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+        printer.tableCustom([
+            { text: "Ventas Efectivo:", align: "LEFT", width: 0.5 },
+            { text: `$${summary.totalCashSales.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+        printer.tableCustom([
+            { text: "Ventas Tarjeta:", align: "LEFT", width: 0.5 },
+            { text: `$${summary.totalCard.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+        printer.tableCustom([
+            { text: "Ventas Transf:", align: "LEFT", width: 0.5 },
+            { text: `$${summary.totalTransfer.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+        printer.tableCustom([
+            { text: "Gastos:", align: "LEFT", width: 0.5 },
+            { text: `-$${summary.totalExpenses.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+
+        printer.drawLine();
+
+        // Cash Analysis
+        printer.bold(true);
+        printer.println("ANALISIS DE EFECTIVO");
+        printer.bold(false);
+        printer.tableCustom([
+            { text: "Esperado:", align: "LEFT", width: 0.5 },
+            { text: `$${summary.expectedCash.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+        printer.tableCustom([
+            { text: "Real (Contado):", align: "LEFT", width: 0.5 },
+            { text: `$${summary.realCash.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+
+        // Difference Highlight
+        const diff = summary.difference;
+        const diffLabel = diff === 0 ? "Cuadrado" : (diff > 0 ? "Sobrante" : "Faltante");
+        printer.bold(true);
+        printer.tableCustom([
+            { text: `Dif. (${diffLabel}):`, align: "LEFT", width: 0.5 },
+            { text: `$${diff.toLocaleString('es-CO')}`, align: "RIGHT", width: 0.5 }
+        ]);
+
+        printer.newLine();
+        printer.setTextSize(1, 1);
+        printer.println(`A ENTREGAR: $${summary.cashToDeliver.toLocaleString('es-CO')}`);
+        printer.setTextNormal();
+        printer.bold(false);
+
+        printer.println("_".repeat(20));
         printer.cut();
+
         try {
             await printer.execute();
+            console.log('[Printer] Combined closing print success');
         } catch (error) {
-            throw error;
+            throw new Error(`Error printing combined closing: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }

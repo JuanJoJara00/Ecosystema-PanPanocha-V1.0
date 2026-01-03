@@ -13,12 +13,12 @@ const config: Config = {
             colors: {
                 ...sharedConfig.theme?.extend?.colors,
                 brand: {
-                    primary: 'var(--color-primary)',
-                    secondary: 'var(--color-secondary)',
-                    accent: 'var(--color-accent)',
+                    primary: 'var(--brand-primary)',
+                    secondary: 'var(--brand-secondary)',
+                    accent: 'var(--brand-accent)',
                 },
                 primary: {
-                    foreground: 'var(--primary-foreground)'
+                    foreground: 'var(--brand-primary-foreground)'
                 }
             }
         },

@@ -9,13 +9,25 @@ ADD COLUMN IF NOT EXISTS branch_id uuid REFERENCES branches(id);
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM profiles WHERE branch_id IS NULL) THEN
-        UPDATE profiles SET branch_id = (SELECT id FROM branches ORDER BY created_at ASC LIMIT 1) WHERE branch_id IS NULL;
+        RAISE NOTICE 'Profiles with NULL branch_id exist. Manual assignment required for tenant isolation.';
+        -- Log affected users for admin review
+        -- UPDATE profiles SET branch_id = ... WHERE branch_id IS NULL AND <specific_condition>;
     END IF;
 END $$;
 
 -- 2. Define RLS Helper Policy (Standard Isolation)
 -- We'll use a standard pattern for all tables:
 -- "Users can only view/modify data belonging to their assigned branch"
+
+-- 2.1 Helper function for DRY Policies
+CREATE OR REPLACE FUNCTION get_user_branch_id()
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+    SELECT branch_id FROM profiles WHERE id = auth.uid()
+$$;
 
 -- 3. Apply to Tables
 
@@ -50,8 +62,8 @@ CREATE POLICY "Admin Write" ON inventory_items
 ALTER TABLE branch_inventory ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Branch Isolation" ON branch_inventory;
 CREATE POLICY "Branch Isolation" ON branch_inventory
-    USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
-    WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
+    USING (branch_id = get_user_branch_id())
+    WITH CHECK (branch_id = get_user_branch_id());
 
 
 -- --- SALES (Create if missing, matching PowerSync Schema) ---
@@ -80,8 +92,8 @@ CREATE TABLE IF NOT EXISTS sales (
 ALTER TABLE sales ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Branch Isolation" ON sales;
 CREATE POLICY "Branch Isolation" ON sales
-    USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
-    WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
+    USING (branch_id = get_user_branch_id())
+    WITH CHECK (branch_id = get_user_branch_id());
 
 
 -- --- SALE ITEMS ---
@@ -113,8 +125,8 @@ AND sale_items.branch_id IS NULL;
 
 DROP POLICY IF EXISTS "Branch Isolation" ON sale_items;
 CREATE POLICY "Branch Isolation" ON sale_items
-    USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
-    WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
+    USING (branch_id = get_user_branch_id())
+    WITH CHECK (branch_id = get_user_branch_id());
 
 
 -- --- SHIFTS (or cash_closings) ---
@@ -143,13 +155,21 @@ CREATE TABLE IF NOT EXISTS shifts (
 ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Branch Isolation" ON shifts;
 CREATE POLICY "Branch Isolation" ON shifts
-    USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
-    WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
+    USING (branch_id = get_user_branch_id())
+    WITH CHECK (branch_id = get_user_branch_id());
 
 -- Add FK constraint from sales.shift_id to shifts (after shifts table exists)
-ALTER TABLE sales
-    ADD CONSTRAINT IF NOT EXISTS sales_shift_id_fkey
-    FOREIGN KEY (shift_id) REFERENCES shifts(id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'sales_shift_id_fkey' 
+        AND table_name = 'sales'
+    ) THEN
+        ALTER TABLE sales ADD CONSTRAINT sales_shift_id_fkey 
+            FOREIGN KEY (shift_id) REFERENCES shifts(id);
+    END IF;
+END $$;
 
 -- Index for efficient queries filtering by shift_id
 CREATE INDEX IF NOT EXISTS idx_sales_shift_id ON sales(shift_id);
@@ -174,8 +194,8 @@ CREATE TABLE IF NOT EXISTS expenses (
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Branch Isolation" ON expenses;
 CREATE POLICY "Branch Isolation" ON expenses
-    USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
-    WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
+    USING (branch_id = get_user_branch_id())
+    WITH CHECK (branch_id = get_user_branch_id());
 
 
 -- --- DELIVERIES ---
@@ -197,8 +217,8 @@ CREATE TABLE IF NOT EXISTS deliveries (
 ALTER TABLE deliveries ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Branch Isolation" ON deliveries;
 CREATE POLICY "Branch Isolation" ON deliveries
-    USING (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()))
-    WITH CHECK (branch_id IN (SELECT branch_id FROM profiles WHERE id = auth.uid()));
+    USING (branch_id = get_user_branch_id())
+    WITH CHECK (branch_id = get_user_branch_id());
 
 
 -- ============================================================================

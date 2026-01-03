@@ -1,11 +1,11 @@
 import { parentPort } from 'worker_threads';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
-import path from 'path';
+
 
 // Define types to match the messages sent from PrinterService
 type WorkerTask =
-    | { type: 'GENERATE_CLOSING'; payload: any; outputInfo: { path: string }; assets: { logoPath: string } };
+    | { type: 'GENERATE_CLOSING'; payload: any; outputInfo: { path: string }; assets: { logoPath: string; companyName?: string; nit?: string } };
 
 if (!parentPort) {
     throw new Error('This file must be run as a worker thread');
@@ -24,7 +24,7 @@ parentPort.on('message', async (task: WorkerTask) => {
     }
 });
 
-async function generateClosingPDF(data: any, outputPath: string, assets: { logoPath: string }) {
+async function generateClosingPDF(data: any, outputPath: string, assets: { logoPath: string; companyName?: string; nit?: string }) {
     return new Promise<void>((resolve, reject) => {
         try {
             const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -37,8 +37,8 @@ async function generateClosingPDF(data: any, outputPath: string, assets: { logoP
                 doc.image(assets.logoPath, 50, 45, { width: 50 });
             }
 
-            doc.fontSize(20).text('PAN PANOCHA', 110, 50);
-            doc.fontSize(10).text('Nit: 900.123.456-7', 110, 75);
+            doc.fontSize(20).text(assets.companyName || 'PAN PANOCHA', 110, 50);
+            doc.fontSize(10).text(`Nit: ${assets.nit || '900.123.456-7'}`, 110, 75);
             doc.moveDown();
 
             doc.fontSize(16).text('CIERRE DE CAJA', { align: 'center' });

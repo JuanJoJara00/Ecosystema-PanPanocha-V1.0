@@ -1,12 +1,18 @@
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { ThemeProvider, useTheme } from './ThemeContext';
+import { ThemeProvider } from './ThemeContext';
 // import { useOrganizationStore } from '../store/organization'; // Hypothetical store
 
 interface ConfigProviderProps {
     children: ReactNode;
 }
 
+/**
+ * TODO: Load organization theme from Organization Store or API.
+ * Responsibility: Call setTheme() from useTheme with fetched settings.
+ * Ticket: [Refactor-00X]
+ * Note: Remove eslint-disable-next-line react-hooks/exhaustive-deps when implementing.
+ */
 // Inner component to handle logic that requires useTheme
 function ConfigConsumer({ children }: { children: ReactNode }) {
     // const { setTheme } = useTheme();

@@ -35,8 +35,15 @@ export default function DeliveriesSection() {
         try {
             setLoading(true);
 
-            // Strict Tenant Check
-            const orgId = assertOrganizationId();
+            // Strict Tenant Check - gracefully handle missing org during init
+            let orgId: string;
+            try {
+                orgId = assertOrganizationId();
+            } catch {
+                console.warn('[Deliveries] Organization not yet provisioned, skipping load');
+                setLoading(false);
+                return;
+            }
 
             let queryStartTime = new Date();
             queryStartTime.setHours(0, 0, 0, 0);
@@ -76,8 +83,8 @@ export default function DeliveriesSection() {
                         order_type: 'domicilio' as const,
                         // Status is now correctly typed as 'dispatched' in canonical type
                         status: d.status as Delivery['status'],
-                        customer_phone: d.phone,
-                        customer_address: d.address,
+                        customer_phone: d.phone || '',
+                        customer_address: d.address || '',
                         product_details: (d as { product_details?: string }).product_details ?? '[]',
                         delivery_fee: (d as { delivery_fee?: number }).delivery_fee ?? 0,
                         organization_id: orgId
@@ -102,7 +109,7 @@ export default function DeliveriesSection() {
                     customer_address: 'Rappi',
 
                     product_details: d.product_details || '[]',
-                    delivery_fee: d.total_amount || d.total_value || 0,
+                    delivery_fee: (d as any).delivery_fee || 0,
                     delivery_cost: 0,
                     delivery_person: 'Rappi',
                     organization_id: orgId,

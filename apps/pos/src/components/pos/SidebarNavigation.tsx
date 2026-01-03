@@ -14,7 +14,7 @@ const sections = [
 ];
 
 export default function SidebarNavigation({ activeSection }: SidebarNavigationProps) {
-    const setSidebarSection = (section: SidebarSection) => usePosStore.setState({ sidebarSection: section });
+    const setSidebarSection = usePosStore(state => state.openSidebar);
     return (
         <div className="border-b border-gray-200 bg-gray-50">
             <nav className="flex overflow-x-auto">

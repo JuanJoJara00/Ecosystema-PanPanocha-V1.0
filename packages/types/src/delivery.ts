@@ -7,8 +7,14 @@ export interface Delivery extends TenantEntity {
     customer_name: string;
 
     // Contact Info (Canonical + Legacy support if needed, but per request we use canonical)
-    phone?: string; // Kept for backward compat if UI uses it explicitly
-    address?: string; // Kept for backward compat
+    /**
+     * @deprecated Use `customer_phone` instead.
+     */
+    phone?: string;
+    /**
+     * @deprecated Use `customer_address` instead.
+     */
+    address?: string;
 
     // DB Schema Fields
     customer_phone?: string;

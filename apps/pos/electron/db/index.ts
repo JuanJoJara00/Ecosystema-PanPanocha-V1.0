@@ -170,7 +170,7 @@ class POSConnector implements PowerSyncBackendConnector {
         if (pendingSales.length > 0) {
             console.log('[PowerSync] Pushing', pendingSales.length, 'sales via Custom Graph API');
             // TODO: Make actual fetch call here using net module or fetch
-            const apiUrl = process.env.API_URL || process.env.POWERSYNC_API_URL || 'http://localhost:3000';
+            const apiUrl = process.env.PORTAL_API_URL || process.env.VITE_PORTAL_API_URL || 'http://localhost:3000';
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json'
             };
@@ -179,18 +179,31 @@ class POSConnector implements PowerSyncBackendConnector {
                 headers['Authorization'] = `Bearer ${this.authToken}`;
             }
 
-            const response = await fetch(`${apiUrl}/api/pos/sync`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    branch_id: this.branchId,
-                    sales: pendingSales
-                })
-            });
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s for sync
 
-            if (!response.ok) throw new Error('Sync Failed');
+            try {
+                const response = await fetch(`${apiUrl}/api/pos/sync`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        branch_id: this.branchId,
+                        sales: pendingSales
+                    }),
+                    signal: controller.signal
+                });
 
-            // Mark synced locally - PowerSync will see this as "local update" but that's fine.
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Sync failed: ${response.status} ${response.statusText} - ${errText}`);
+                }
+            } catch (error) {
+                clearTimeout(timeoutId);
+                throw error;
+            }
+
             // Mark synced locally - PowerSync will see this as "local update" but that's fine.
             await db.transaction(async (tx) => {
                 // Optimized: Static imports used

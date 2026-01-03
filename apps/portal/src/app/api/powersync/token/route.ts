@@ -4,6 +4,7 @@ import { SignJWT, importPKCS8 } from 'jose';
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { createHash } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,12 +38,21 @@ export async function GET(request: Request) {
         const corsHeaders = getCorsHeaders(request);
 
         // Rate Limiting
+        // Rate Limiting
         const authHeader = request.headers.get('Authorization');
         const tokenPart = authHeader?.split(' ')[1];
-        const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
 
-        // Prefer token (user-specific) if available, otherwise fallback to IP
-        const identifier = tokenPart || ip;
+        let identifier: string;
+
+        if (tokenPart) {
+            // Hash the token to avoid storing raw secrets in Redis/Logs
+            identifier = `token:${createHash('sha256').update(tokenPart).digest('hex')}`;
+        } else {
+            // Robust IP extraction
+            const forwardedFor = request.headers.get("x-forwarded-for");
+            const ipRaw = forwardedFor ? forwardedFor.split(',')[0] : "unknown";
+            identifier = `ip:${ipRaw.trim().toLowerCase()}`;
+        }
 
         const { success, limit, reset, remaining } = await ratelimit.limit(identifier);
 
@@ -77,7 +87,13 @@ export async function GET(request: Request) {
         }
 
         // Verify Supabase Token
-        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false,
+            }
+        });
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
@@ -115,6 +131,9 @@ export async function GET(request: Request) {
 
     } catch (e) {
         console.error("[PowerSync] Token Generation Error:", e);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: "Internal Server Error" }, {
+            status: 500,
+            headers: getCorsHeaders(request)
+        });
     }
 }

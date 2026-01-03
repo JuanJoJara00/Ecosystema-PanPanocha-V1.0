@@ -68,8 +68,9 @@ export async function POST(request: Request) {
             .single();
 
         if (error) {
-            console.error('Failed to create session:', error);
-            return NextResponse.json({ error: 'Database Error', details: error }, { status: 500 });
+            const errorId = crypto.randomUUID();
+            console.error(`[Provision] Database Error (${errorId}):`, error);
+            return NextResponse.json({ error: 'Database Error', errorId }, { status: 500 });
         }
 
         const qrUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/link?session=${data.id}`;
@@ -85,7 +86,16 @@ export async function POST(request: Request) {
         });
 
     } catch (e: any) {
-        console.error('Session API Error:', e);
-        return NextResponse.json({ error: 'Internal Server Error', details: e.message, stack: e.stack }, { status: 500 });
+        const errorId = crypto.randomUUID();
+        console.error(`[Provision] Session API Error (${errorId}):`, e);
+
+        const response: any = { error: 'Internal Server Error', errorId };
+
+        if (process.env.NODE_ENV !== 'production') {
+            response.details = e.message;
+            response.stack = e.stack;
+        }
+
+        return NextResponse.json(response, { status: 500 });
     }
 }

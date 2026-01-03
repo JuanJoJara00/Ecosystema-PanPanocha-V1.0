@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Calendar, ChevronDown, X } from 'lucide-react';
 import { Button } from '@panpanocha/ui';
 import { usePosStore } from '../../store';
+import { BrandBackground } from './BrandBackground';
+import { useTheme } from '../../providers/ThemeContext';
 
 export type SidebarSection = 'history' | 'deliveries' | 'user' | 'expenses' | 'close-shift';
 
@@ -10,10 +12,6 @@ interface SidebarProps {
     onClose: () => void;
     children: React.ReactNode;
 }
-
-import { BrandBackground } from './BrandBackground';
-
-import { useTheme } from '../../providers/ThemeContext';
 
 export default function Sidebar({ isOpen, onClose, children }: SidebarProps) {
     const { sidebarDateFilter, setSidebarDateFilter } = usePosStore();

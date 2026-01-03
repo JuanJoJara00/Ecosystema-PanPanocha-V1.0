@@ -53,6 +53,7 @@ export interface OrderDetailsData {
 export interface CombinedClosingData {
     shift?: {
         name?: string;
+        id?: string;
     };
     user?: {
         full_name?: string;

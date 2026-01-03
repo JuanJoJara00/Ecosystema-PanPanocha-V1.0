@@ -33,13 +33,13 @@ export function Navbar({ searchTerm, setSearchTerm, onOpenSidebar, onOpenDashboa
                     {meta.logoUrl && (
                         <img
                             src={meta.logoUrl}
-                            alt={meta.companyName}
+                            alt={meta.companyName || 'Logo'}
                             className="w-full h-full object-contain filter drop-shadow-md"
                         />
                     )}
                 </div>
                 <div className="flex flex-col leading-none">
-                    <span className="font-bold text-xl tracking-wide font-display text-brand-primary group-hover:text-white transition-colors">{meta.companyName}</span>
+                    <span className="font-bold text-xl tracking-wide font-display text-brand-primary group-hover:text-white transition-colors">{meta.companyName || 'Pan Panocha'}</span>
                     <span className="text-[10px] text-brand-accent/90 tracking-wider font-semibold">{currentBranchName.toUpperCase()}</span>
                 </div>
             </div>

@@ -84,8 +84,11 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                 return;
             }
 
-            // Canonical address mapping for external service context
-            // Fixed address used since these are external driver pickups, not direct customer deliveries
+            // Canonical user info for external delivery services
+            // We map the driver's phone to customer contact fields because:
+            // 1. The driver is the physical entity picking up the order
+            // 2. We need a valid contact point for this transaction
+            // 3. The actual end-customer might be anonymous or managed by the platform
             const EXTERNAL_SERVICE_ADDRESS = 'Empresa de Domicilios';
 
             const dataToSave = {
@@ -93,9 +96,9 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                 organization_id: organizationId,
                 branch_id: currentBranchId,
                 customer_name: 'Domicilio Externo',
-                phone: driverPhone, // Mapped to driver phone
+                phone: driverPhone, // Driver contact
                 address: EXTERNAL_SERVICE_ADDRESS,
-                customer_phone: driverPhone, // Mapping driver phone as contact point for this external delivery
+                customer_phone: driverPhone, // Driver contact
                 customer_address: EXTERNAL_SERVICE_ADDRESS,
                 product_details: JSON.stringify(productList),
                 delivery_fee: deliveryFee,
@@ -187,7 +190,7 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                             <Package size={18} className="text-blue-500" />
                             Productos del Pedido
                         </h4>
-                        <div className="bg-gray-50 rounded-xl p-4 space-y-2 max-h-64overflow-y-auto border-2 border-gray-100">
+                        <div className="bg-gray-50 rounded-xl p-4 space-y-2 max-h-64 overflow-y-auto border-2 border-gray-100">
                             {cartItems.map((item) => (
                                 <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100">
                                     <div className="flex-1">

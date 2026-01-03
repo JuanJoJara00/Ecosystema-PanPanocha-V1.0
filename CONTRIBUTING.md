@@ -15,7 +15,9 @@ pnpm gen:types
 ```
 
 This command runs:
-`npx supabase gen types typescript --project-id dafdejwjgieiuazxmzba > apps/portal/src/types/supabase.ts`
+`npx supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > apps/portal/src/types/supabase.ts`
+
+> **Note**: Ensure `SUPABASE_PROJECT_ID` is set in your environment or `.env` file.
 
 ### Workflow for Schema Changes
 

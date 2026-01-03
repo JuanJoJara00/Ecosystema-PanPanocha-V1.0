@@ -501,15 +501,7 @@ function registerBottomHandlers() {
     ipcMain.handle('print-siigo-closing', async (e, closingData) => {
         console.log('[Printer] Generating Siigo Closing via ESC/POS...');
 
-        // Defensive validation: check closingData is an object
-        if (!closingData || typeof closingData !== 'object') {
-            return { success: false, error: 'Invalid closing data: expected an object' };
-        }
 
-        // Validate required fields exist
-        if (!closingData.shift) {
-            return { success: false, error: 'Invalid closing data: shift is required' };
-        }
 
         try {
             const validated = SiigoClosingSchema.parse(closingData);

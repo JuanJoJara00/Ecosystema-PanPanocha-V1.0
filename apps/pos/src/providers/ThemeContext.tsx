@@ -34,13 +34,36 @@ const defaultMeta: BrandingMeta = {
     companyName: 'PANPANOCHA'
 };
 
+function isValidThemeColors(obj: unknown): obj is ThemeColors {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        typeof (obj as ThemeColors).primary === 'string' &&
+        typeof (obj as ThemeColors).secondary === 'string' &&
+        typeof (obj as ThemeColors).accent === 'string' &&
+        typeof (obj as ThemeColors).background === 'string' &&
+        typeof (obj as ThemeColors).text === 'string'
+    );
+}
+
+function isValidBrandingMeta(obj: unknown): obj is BrandingMeta {
+    return (
+        typeof obj === 'object' &&
+        obj !== null &&
+        typeof (obj as BrandingMeta).logoUrl === 'string' &&
+        typeof (obj as BrandingMeta).companyName === 'string'
+    );
+}
+
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const [colors, setColors] = useState<ThemeColors>(() => {
         try {
             const stored = localStorage.getItem('theme-colors');
-            return stored ? JSON.parse(stored) : defaultColors;
+            if (!stored) return defaultColors;
+            const parsed = JSON.parse(stored);
+            return isValidThemeColors(parsed) ? parsed : defaultColors;
         } catch (e) {
             return defaultColors;
         }
@@ -49,7 +72,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const [meta, setMeta] = useState<BrandingMeta>(() => {
         try {
             const stored = localStorage.getItem('theme-meta');
-            return stored ? JSON.parse(stored) : defaultMeta;
+            if (!stored) return defaultMeta;
+            const parsed = JSON.parse(stored);
+            return isValidBrandingMeta(parsed) ? parsed : defaultMeta;
         } catch (e) {
             return defaultMeta;
         }
@@ -58,11 +83,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const root = document.documentElement;
         // Inject variables into :root
-        root.style.setProperty('--color-primary', colors.primary);
-        root.style.setProperty('--color-secondary', colors.secondary);
-        root.style.setProperty('--color-accent', colors.accent);
-        root.style.setProperty('--color-background', colors.background);
-        root.style.setProperty('--color-text', colors.text);
+        root.style.setProperty('--brand-primary', colors.primary);
+        root.style.setProperty('--brand-secondary', colors.secondary);
+        root.style.setProperty('--brand-accent', colors.accent);
+        root.style.setProperty('--brand-background', colors.background);
+        root.style.setProperty('--brand-text', colors.text);
         localStorage.setItem('theme-colors', JSON.stringify(colors));
     }, [colors]);
 

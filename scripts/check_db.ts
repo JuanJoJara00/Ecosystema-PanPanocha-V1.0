@@ -9,6 +9,7 @@
 import { createClient } from '@supabase/supabase-js';
 import * as path from 'path';
 import * as fs from 'fs';
+import type { Database } from '../apps/portal/src/types/supabase';
 
 /**
  * Find project root by looking for package.json
@@ -67,12 +68,6 @@ if (fs.existsSync(envPath)) {
     process.exit(1);
 }
 
-/**
- * Types for Supabase tables (Generated).
- * These match the actual database schema.
- */
-import type { Database } from '../apps/portal/src/types/supabase';
-
 type DbBranch = Database['public']['Tables']['branches']['Row'];
 type DbInventoryItem = Database['public']['Tables']['inventory_items']['Row'];
 type DbBranchInventory = Database['public']['Tables']['branch_inventory']['Row'];
@@ -97,51 +92,49 @@ async function check(): Promise<void> {
     console.log('Checking Supabase connection...');
     console.log(`Using project root: ${projectRoot}`);
 
-    // Check Branches
-    const { data: branches, error: errBranches } = await supabase
+    // Check Branches (Optimized connectivity check using count)
+    const { count, error: errBranches, data: branchSample } = await supabase
         .from('branches')
-        .select('*');
+        .select('*', { count: 'exact', head: false })
+        .limit(1);
 
     if (errBranches) {
         console.error('Error fetching branches:', errBranches);
         hasErrors = true;
     } else {
-        const branchList = branches as DbBranch[] | null;
-        console.log(`Branches found: ${branchList?.length ?? 0}`);
-        if (branchList && branchList.length > 0) {
-            console.log('Sample Branch:', branchList[0]);
+        console.log(`Branches found: ${count ?? 0}`);
+        if (branchSample && branchSample.length > 0) {
+            console.log('Sample Branch:', branchSample[0]);
         }
     }
 
-    // Check Items
-    const { data: items, error: errItems } = await supabase
+    // Check Items (Optimized)
+    const { count: itemCount, error: errItems, data: itemSample } = await supabase
         .from('inventory_items')
-        .select('*');
+        .select('*', { count: 'exact', head: false })
+        .limit(1);
 
     if (errItems) {
         console.error('Error fetching inventory_items:', errItems);
         hasErrors = true;
     } else {
-        const itemList = items as DbInventoryItem[] | null;
-        console.log(`Inventory Items found: ${itemList?.length ?? 0}`);
+        console.log(`Inventory Items found: ${itemCount ?? 0}`);
 
-        if (itemList && itemList.length > 0) {
-            console.log('Sample Item:', itemList[0]);
+        if (itemSample && itemSample.length > 0) {
+            console.log('Sample Item:', itemSample[0]);
         }
-
     }
 
-    // Check Branch Inventory
-    const { data: joinData, error: errJoin } = await supabase
+    // Check Branch Inventory (Optimized)
+    const { count: joinCount, error: errJoin } = await supabase
         .from('branch_inventory')
-        .select('*');
+        .select('*', { count: 'exact', head: true });
 
     if (errJoin) {
         console.error('Error fetching branch_inventory:', errJoin);
         hasErrors = true;
     } else {
-        const joinList = joinData as DbBranchInventory[] | null;
-        console.log(`Branch Inventory records found: ${joinList?.length ?? 0}`);
+        console.log(`Branch Inventory records found: ${joinCount ?? 0}`);
     }
 
     if (hasErrors) {

@@ -20,7 +20,7 @@
     "lint": "pnpm --parallel --filter './apps/*' lint",
     "clean": "pnpm --parallel --filter './apps/*' --filter './packages/*' clean",
     "typecheck": "pnpm --parallel --filter './apps/*' --filter './packages/*' typecheck",
-    "gen:types": "npx supabase gen types typescript --project-id dafdejwjgieiuazxmzba > apps/portal/src/types/supabase.ts"
+    "gen:types": "npx ts-node --project scripts/tsconfig.json scripts/gen_types.ts"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",

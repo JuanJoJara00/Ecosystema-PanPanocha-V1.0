@@ -5,17 +5,20 @@
 CREATE OR REPLACE FUNCTION update_inventory_on_purchase()
 RETURNS TRIGGER 
 SECURITY DEFINER
-SET search_path = public, extensions, pg_temp
+SET search_path = public, auth, extensions, pg_temp
 AS $$
 DECLARE
     target_branch_id uuid;
 BEGIN
+    -- Get Branch ID from the parent Purchase Order
     -- Get Branch ID from the parent Purchase Order
     SELECT branch_id INTO target_branch_id 
     FROM purchase_orders 
     WHERE id = NEW.order_id;
 
     -- Validate that Purchase Order exists and has a branch
+    IF NOT FOUND OR target_branch_id IS NULL THEN
+        RAISE EXCEPTION 'Purchase order % not found or has no branch', NEW.order_id;
     END IF;
 
     -- Lock existing row if present to prevent race conditions

@@ -41,6 +41,12 @@ export function ClientSearchModal({ onClose, onSelectClient, onSkip }: Props) {
 
     const handleCreateClient = async (e: React.FormEvent) => {
         e.preventDefault();
+        const orgId = usePosStore.getState().organizationId;
+        if (!orgId) {
+            usePosStore.getState().showAlert('error', 'Error de Configuración', 'No se ha detectado la organización. Por favor, reinicie la sesión.');
+            return;
+        }
+
         const newClient: Client = {
             id: uuidv4(),
             full_name: newClientName,
@@ -51,7 +57,7 @@ export function ClientSearchModal({ onClose, onSelectClient, onSkip }: Props) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             synced: false,
-            organization_id: usePosStore.getState().organizationId // Tenant Context
+            organization_id: orgId // Tenant Context
         };
 
         try {
