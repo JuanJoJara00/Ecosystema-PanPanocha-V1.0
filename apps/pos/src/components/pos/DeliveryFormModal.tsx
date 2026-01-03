@@ -99,6 +99,7 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                 customer_address: EXTERNAL_SERVICE_ADDRESS,
                 product_details: JSON.stringify(productList),
                 delivery_fee: deliveryFee,
+                delivery_cost: deliveryFee, // Alias: delivery_cost used in some legacy views
                 assigned_driver: assignedDriver,
                 status: 'pending' as const,
                 notes: notes || undefined,
