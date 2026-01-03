@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { usePosStore } from './store';
 import { PosLayout } from './components/pos/PosLayout';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { supabase } from './api/client';
 import { ProvisioningScreen } from './components/auth/ProvisioningScreen';
 import { OpenShiftScreen } from './components/pos/OpenShiftScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -12,7 +13,7 @@ import { LoadingSpinner } from './components/Loading';
 
 function App() {
 
-  const { initialize, currentUser, currentShift, isLoading, isProvisioned, refreshProductsTrigger, reloadProducts } = usePosStore();
+  const { initialize, currentUser, currentShift, isLoading, isProvisioned, refreshProductsTrigger, sync } = usePosStore();
 
   // Initial Load
   // Initial Load
@@ -36,6 +37,19 @@ function App() {
     */
   }, [initialize]);
 
+  // Auth Listener for Electron Sync
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.access_token) {
+        console.log('[App] Auth Update:', event);
+        window.electron.setAuthToken(session.access_token).catch(console.error);
+      }
+    });
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
 
 
   // Global Alert Override
@@ -52,19 +66,9 @@ function App() {
   useEffect(() => {
     if (refreshProductsTrigger > 0) {
 
-      reloadProducts();
+      sync(true);
     }
-  }, [refreshProductsTrigger, reloadProducts]);
-
-  // Global Alert Override
-  useEffect(() => {
-    // @ts-ignore
-    if (!window._originalAlert) window._originalAlert = window.alert;
-
-    window.alert = (msg) => {
-      usePosStore.getState().showAlert('info', 'Notificación', String(msg));
-    };
-  }, []);
+  }, [refreshProductsTrigger, sync]);
 
   if (isLoading) {
     return (

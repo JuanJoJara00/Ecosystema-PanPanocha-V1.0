@@ -235,11 +235,13 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                     id: crypto.randomUUID(),
                     table_id: tableId,
                     shift_id: currentShift?.id,
+                    branch_id: currentBranchId,
                     organization_id: get().organizationId,
                     customer_name: 'Cliente General',
                     status: 'pending',
                     total_amount: 0,
-                    diners: diners
+                    diners: diners,
+                    created_by: currentUser?.id
                 };
                 await window.electron.createOrder({ order: newOrder, items: [] });
                 set(state => ({
@@ -647,6 +649,12 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                 organizationId: storedOrgId || activeShift?.organization_id || '' // Fallback to shift if available
             });
 
+            // Restore Session for Electron Sync
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+                window.electron.setAuthToken(session.access_token).catch(console.error);
+            }
+
             // 2. Sync NOW (not background) to get fresh data
             try {
                 // With PowerSync, data might already be coming in.
@@ -694,6 +702,11 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
             if (error) throw error;
 
             if (data.user) {
+                // Pass Token to Electron for Background Sync
+                if (data.session?.access_token) {
+                    window.electron.setAuthToken(data.session.access_token).catch(console.error);
+                }
+
                 const user: User = {
                     id: data.user.id,
                     email: data.user.email || '',
@@ -886,7 +899,9 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                 product_id: item.product.id,
                 quantity: item.quantity,
                 unit_price: item.product.price,
-                total_price: item.product.price * item.quantity
+                total_price: item.product.price * item.quantity,
+                product_name: item.product.name, // Printer Requirement
+                notes: item.note                 // Printer Requirement
             }));
 
             console.log('[Checkout] Saving sale to database...', { sale, itemsCount: items.length });
@@ -1003,3 +1018,28 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         closingSession: state.closingSession
     }),
 }));
+
+/**
+ * Asserts that organizationId is set and non-empty.
+ * Throws an error if organizationId is empty.
+ * @returns The organizationId if valid
+ */
+export function assertOrganizationId(): string {
+    const organizationId = usePosStore.getState().organizationId;
+    if (!organizationId || organizationId.trim() === '') {
+        throw new Error('Organization ID is not set. Please ensure the device is properly provisioned.');
+    }
+    return organizationId;
+}
+
+/**
+ * Gets organizationId or returns null if empty.
+ * Use this when you need to check before showing an error.
+ */
+export function getOrganizationIdSafe(): string | null {
+    const organizationId = usePosStore.getState().organizationId;
+    if (!organizationId || organizationId.trim() === '') {
+        return null;
+    }
+    return organizationId;
+}

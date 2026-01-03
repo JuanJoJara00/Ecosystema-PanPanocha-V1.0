@@ -2,21 +2,20 @@ import { useEffect, useState } from 'react';
 import { Calendar, ChevronDown, X } from 'lucide-react';
 import { Button } from '@panpanocha/ui';
 import { usePosStore } from '../../store';
+import { BrandBackground } from './BrandBackground';
+import { useTheme } from '../../providers/ThemeContext';
 
 export type SidebarSection = 'history' | 'deliveries' | 'user' | 'expenses' | 'close-shift';
 
 interface SidebarProps {
     isOpen: boolean;
-    activeSection: SidebarSection;
     onClose: () => void;
-    onSectionChange: (section: SidebarSection) => void;
     children: React.ReactNode;
 }
 
-import { BrandBackground } from './BrandBackground';
-
 export default function Sidebar({ isOpen, onClose, children }: SidebarProps) {
     const { sidebarDateFilter, setSidebarDateFilter } = usePosStore();
+    const { meta } = useTheme();
     const [showFilterMenu, setShowFilterMenu] = useState(false);
 
     // Close on ESC key
@@ -51,11 +50,15 @@ export default function Sidebar({ isOpen, onClose, children }: SidebarProps) {
                 `}
             >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-[#D4AF37] to-[#C19B2D] p-4 flex items-center justify-between relative z-40 shadow-md">
+                <div className="bg-brand-primary p-4 flex items-center justify-between relative z-40 shadow-md">
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-3">
                             <div className="bg-white/10 p-1.5 rounded-full backdrop-blur-sm border border-white/20">
-                                <img src="/images/logo_v2.png" alt="Logo" className="w-8 h-8 object-contain" />
+                                {meta.logoUrl ? (
+                                    <img src={meta.logoUrl} alt={meta.companyName} className="w-8 h-8 object-contain" />
+                                ) : (
+                                    <div className="w-8 h-8" />
+                                )}
                             </div>
                             <h2 className="text-xl font-bold text-white uppercase tracking-wider drop-shadow-sm">
                                 Menú

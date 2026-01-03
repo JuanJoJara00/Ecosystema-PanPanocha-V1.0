@@ -11,7 +11,13 @@ importers:
       '@powersync/web':
         specifier: ^1.30.0
         version: 1.30.0(@journeyapps/wa-sqlite@1.4.1)(@powersync/common@1.44.0)
+      '@supabase/supabase-js':
+        specifier: ^2.89.0
+        version: 2.89.0
     devDependencies:
+      '@types/node':
+        specifier: ^25.0.3
+        version: 25.0.3
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -33,12 +39,12 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.86.2
         version: 2.89.0
-      '@types/jsonwebtoken':
-        specifier: ^9.0.10
-        version: 9.0.10
-      '@types/papaparse':
-        specifier: ^5.5.1
-        version: 5.5.2
+      '@upstash/ratelimit':
+        specifier: ^2.0.7
+        version: 2.0.7(@upstash/redis@1.36.0)
+      '@upstash/redis':
+        specifier: ^1.36.0
+        version: 1.36.0
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -79,9 +85,15 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.1.18
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       '@types/node':
         specifier: ^20
         version: 20.19.27
+      '@types/papaparse':
+        specifier: ^5.5.2
+        version: 5.5.2
       '@types/react':
         specifier: ^19
         version: 19.2.7
@@ -117,7 +129,7 @@ importers:
         version: link:../../packages/ui
       '@powersync/drizzle-driver':
         specifier: ^0.7.1
-        version: 0.7.1(@powersync/common@1.44.0)(drizzle-orm@0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0))
+        version: 0.7.1(@powersync/common@1.44.0)(drizzle-orm@0.45.1(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.0)(better-sqlite3@12.5.0))
       '@powersync/node':
         specifier: ^0.15.1
         version: 0.15.1(@powersync/common@1.44.0)(better-sqlite3@12.5.0)
@@ -135,7 +147,7 @@ importers:
         version: 2.1.1
       drizzle-orm:
         specifier: ^0.45.1
-        version: 0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)
+        version: 0.45.1(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.0)(better-sqlite3@12.5.0)
       electron-squirrel-startup:
         specifier: ^1.0.1
         version: 1.0.1
@@ -145,6 +157,9 @@ importers:
       node-machine-id:
         specifier: ^1.1.12
         version: 1.1.12
+      node-thermal-printer:
+        specifier: ^4.5.0
+        version: 4.5.0
       pdfkit:
         specifier: ^0.17.2
         version: 0.17.2
@@ -1618,6 +1633,9 @@ packages:
   '@types/node@24.10.4':
     resolution: {integrity: sha512-vnDVpYPMzs4wunl27jHrfmwojOGKya0xyM3sH+UE5iv5uPS6vX7UIoh6m+vQc5LGBq52HBKPIn/zcSZVzeDEZg==}
 
+  '@types/node@25.0.3':
+    resolution: {integrity: sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA==}
+
   '@types/pako@2.0.4':
     resolution: {integrity: sha512-VWDCbrLeVXJM9fihYodcLiIv0ku+AlOa/TQ1SvYOaBuyrSKgEcro95LJyIsJ4vSo6BXIxOKxiJAat04CmST9Fw==}
 
@@ -1816,6 +1834,18 @@ packages:
     resolution: {integrity: sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==}
     cpu: [x64]
     os: [win32]
+
+  '@upstash/core-analytics@0.0.10':
+    resolution: {integrity: sha512-7qJHGxpQgQr9/vmeS1PktEwvNAF7TI4iJDi8Pu2CFZ9YUGHZH4fOP5TfYlZ4aVxfopnELiE4BS4FBjyK7V1/xQ==}
+    engines: {node: '>=16.0.0'}
+
+  '@upstash/ratelimit@2.0.7':
+    resolution: {integrity: sha512-qNQW4uBPKVk8c4wFGj2S/vfKKQxXx1taSJoSGBN36FeiVBBKHQgsjPbKUijZ9Xu5FyVK+pfiXWKIsQGyoje8Fw==}
+    peerDependencies:
+      '@upstash/redis': ^1.34.3
+
+  '@upstash/redis@1.36.0':
+    resolution: {integrity: sha512-9zN2UV9QJGPnXfWU3yZBLVQaqqENDh7g+Y4J2vJuSxBCi9FQ0aUOtaXlzuFhnsiZvCqM+eS27ic+tgmkWUsfOg==}
 
   '@vitejs/plugin-react@5.1.2':
     resolution: {integrity: sha512-EcA07pHJouywpzsoTUqNh5NwGayl2PPVEJKUSinGGSxFGYn+shYbqMGBg6FXDqgXum9Ou/ecb+411ssw8HImJQ==}
@@ -2256,6 +2286,9 @@ packages:
 
   damerau-levenshtein@1.0.8:
     resolution: {integrity: sha512-sdQSFB7+llfUcQHUQO3+B8ERRj0Oa4w9POWMI/puGtuf7gFywGmkaLCElnudfTiKZV+NvHqL0ifzdrI8Ro7ESA==}
+
+  dank-do-while@0.1.2:
+    resolution: {integrity: sha512-pyMrgXfugjvdernLCcXNixYqGijUZzYxrb+hAeED2EBpNbctCCxdA/O6NIQXn6vIjwzY1IMmV29d2Y6vaayrwQ==}
 
   data-view-buffer@1.0.2:
     resolution: {integrity: sha512-EmKO5V3OLXh1rtK2wgXRansaK1/mtVdTUEiEI0W8RkvgT05kfxaH29PliLnpLP73yYO6142Q72QNa8Wx/A5CqQ==}
@@ -3668,6 +3701,9 @@ packages:
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
 
+  node-thermal-printer@4.5.0:
+    resolution: {integrity: sha512-HJVyfq9Lr5+t1rDXlz9AgeNEqK1xsRzK5bP3DGmx60QVe5pmihrD18tyuM9xx4Eq5HqmQKyEqAK09Z4+9gyAcg==}
+
   nopt@6.0.0:
     resolution: {integrity: sha512-ZwLpbTgdhuZUnZzjd7nb1ZV+4DoiC6/sfiVKok72ym/4Tlf+DFdlHYmT2JPmcNNWV6Pi3SDf1kT+A4r9RTuT9g==}
     engines: {node: ^12.13.0 || ^14.15.0 || >=16.0.0}
@@ -3829,6 +3865,10 @@ packages:
 
   png-js@1.0.0:
     resolution: {integrity: sha512-k+YsbhpA9e+EFfKjTCH3VW6aoKlyNYI6NYdTfDL4CIvFnvsuO84ttonmZE7rc+v23SLTH8XX+5w/Ak9v0xGY4g==}
+
+  pngjs@7.0.0:
+    resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
+    engines: {node: '>=14.19.0'}
 
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
@@ -4450,6 +4490,9 @@ packages:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
     engines: {node: '>= 0.4'}
 
+  uncrypto@0.1.3:
+    resolution: {integrity: sha512-Ql87qFHB3s/De2ClA9e0gsnS6zXG27SkTiSJwjCc9MebbfapQfuPzumMIUMi38ezPZVNFcHI9sUIepeQfw8J8Q==}
+
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
@@ -4481,6 +4524,10 @@ packages:
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
     engines: {node: '>= 10.0.0'}
+
+  unorm@1.6.0:
+    resolution: {integrity: sha512-b2/KCUlYZUeA7JFUuRJZPUtr4gZvBh7tavtv4fvk4+KV9pfGiR6CQAQAWl49ZpR3ts2dk4FYkP7EIgDJoiOLDA==}
+    engines: {node: '>= 0.4.0'}
 
   unrs-resolver@1.11.1:
     resolution: {integrity: sha512-bSjt9pjaEBnNiGgc9rUiHGKv5l4/TGzDmYw3RhnkJGtLhbnnA/5qJj7x3dNDCRx/PJxu774LlH8lCOlB4hEfKg==}
@@ -4594,6 +4641,9 @@ packages:
 
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+
+  write-file-queue@0.0.1:
+    resolution: {integrity: sha512-uUInKYzJjhvZ5UJA27tsqbw6s9EEpwe6r4mdpN95t2E4aKzJEJbZg2EvIleTGaja+xtZYx376Jd2WWu5LEQP0w==}
 
   ws@8.18.3:
     resolution: {integrity: sha512-PEIGCY5tSlUt50cqyMXfCzX+oOPqN0vuGqWzbcJ2xvnkzkq46oOpz7dQaTDBdfICb4N14+GARUDw2XV2N4tvzg==}
@@ -5438,10 +5488,10 @@ snapshots:
       async-mutex: 0.5.0
       event-iterator: 2.0.0
 
-  '@powersync/drizzle-driver@0.7.1(@powersync/common@1.44.0)(drizzle-orm@0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0))':
+  '@powersync/drizzle-driver@0.7.1(@powersync/common@1.44.0)(drizzle-orm@0.45.1(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.0)(better-sqlite3@12.5.0))':
     dependencies:
       '@powersync/common': 1.44.0
-      drizzle-orm: 0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0)
+      drizzle-orm: 0.45.1(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.0)(better-sqlite3@12.5.0)
 
   '@powersync/node@0.15.1(@powersync/common@1.44.0)(better-sqlite3@12.5.0)':
     dependencies:
@@ -5705,7 +5755,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.0.4
       '@types/keyv': 3.1.4
-      '@types/node': 24.10.4
+      '@types/node': 25.0.3
       '@types/responselike': 1.0.3
 
   '@types/debug@4.1.12':
@@ -5727,11 +5777,11 @@ snapshots:
   '@types/jsonwebtoken@9.0.10':
     dependencies:
       '@types/ms': 2.1.0
-      '@types/node': 24.10.4
+      '@types/node': 25.0.3
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 24.10.4
+      '@types/node': 25.0.3
 
   '@types/ms@2.1.0': {}
 
@@ -5747,11 +5797,15 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
+  '@types/node@25.0.3':
+    dependencies:
+      undici-types: 7.16.0
+
   '@types/pako@2.0.4': {}
 
   '@types/papaparse@5.5.2':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 25.0.3
 
   '@types/pdfkit@0.17.4':
     dependencies:
@@ -5761,7 +5815,7 @@ snapshots:
 
   '@types/plist@3.0.5':
     dependencies:
-      '@types/node': 24.10.4
+      '@types/node': 25.0.3
       xmlbuilder: 15.1.1
     optional: true
 
@@ -5778,7 +5832,7 @@ snapshots:
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 24.10.4
+      '@types/node': 25.0.3
 
   '@types/trusted-types@2.0.7':
     optional: true
@@ -5792,7 +5846,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 20.19.27
+      '@types/node': 24.10.4
 
   '@types/yauzl@2.10.3':
     dependencies:
@@ -5948,6 +6002,19 @@ snapshots:
 
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
+
+  '@upstash/core-analytics@0.0.10':
+    dependencies:
+      '@upstash/redis': 1.36.0
+
+  '@upstash/ratelimit@2.0.7(@upstash/redis@1.36.0)':
+    dependencies:
+      '@upstash/core-analytics': 0.0.10
+      '@upstash/redis': 1.36.0
+
+  '@upstash/redis@1.36.0':
+    dependencies:
+      uncrypto: 0.1.3
 
   '@vitejs/plugin-react@5.1.2(vite@7.3.0(@types/node@24.10.4)(jiti@2.6.1)(lightningcss@1.30.2))':
     dependencies:
@@ -6484,6 +6551,8 @@ snapshots:
 
   damerau-levenshtein@1.0.8: {}
 
+  dank-do-while@0.1.2: {}
+
   data-view-buffer@1.0.2:
     dependencies:
       call-bound: 1.0.4
@@ -6609,9 +6678,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.5.0):
+  drizzle-orm@0.45.1(@types/better-sqlite3@7.6.13)(@upstash/redis@1.36.0)(better-sqlite3@12.5.0):
     optionalDependencies:
       '@types/better-sqlite3': 7.6.13
+      '@upstash/redis': 1.36.0
       better-sqlite3: 12.5.0
 
   dunder-proto@1.0.1:
@@ -8106,6 +8176,13 @@ snapshots:
 
   node-releases@2.0.27: {}
 
+  node-thermal-printer@4.5.0:
+    dependencies:
+      iconv-lite: 0.6.3
+      pngjs: 7.0.0
+      unorm: 1.6.0
+      write-file-queue: 0.0.1
+
   nopt@6.0.0:
     dependencies:
       abbrev: 1.1.1
@@ -8269,6 +8346,8 @@ snapshots:
       xmlbuilder: 15.1.1
 
   png-js@1.0.0: {}
+
+  pngjs@7.0.0: {}
 
   possible-typed-array-names@1.1.0: {}
 
@@ -9040,6 +9119,8 @@ snapshots:
       has-symbols: 1.1.0
       which-boxed-primitive: 1.1.1
 
+  uncrypto@0.1.3: {}
+
   undici-types@6.21.0: {}
 
   undici-types@7.16.0: {}
@@ -9067,6 +9148,8 @@ snapshots:
   universalify@0.1.2: {}
 
   universalify@2.0.1: {}
+
+  unorm@1.6.0: {}
 
   unrs-resolver@1.11.1:
     dependencies:
@@ -9208,6 +9291,10 @@ snapshots:
       strip-ansi: 7.1.2
 
   wrappy@1.0.2: {}
+
+  write-file-queue@0.0.1:
+    dependencies:
+      dank-do-while: 0.1.2
 
   ws@8.18.3: {}
 

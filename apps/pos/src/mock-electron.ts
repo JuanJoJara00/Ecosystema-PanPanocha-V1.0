@@ -2,15 +2,55 @@
 if (typeof window !== 'undefined' && !window.electron) {
     console.warn("⚠️ Running in Browser Mode - Mocking Electron IPC");
 
+    // Stateful Mock Data
+    let mockShift: any = null;
+    let mockSales: any[] = [];
+    const mockMachineId = "mock-machine-id-browser";
+
     // @ts-ignore
     window.electron = {
-        // Generic IPC
-        invoke: async (channel: string, ...args: any[]) => { console.log(`[Mock] Invoke ${channel}`, args); return null; },
-        on: (channel: string, func: (...args: any[]) => void) => {
+        // Generic IPC - Routing to Mock Methods
+        invoke: async (channel: string, ...args: any[]) => {
+            console.log(`[Mock] Invoke ${channel}`, args);
+            switch (channel) {
+                case 'db:get-categories': {
+                    const products = await window.electron.getProducts();
+                    const categories = Array.from(new Set(products.map((p: any) => p.category))).filter(Boolean);
+                    return categories;
+                }
+                case 'db:get-products': {
+                    const products = await window.electron.getProducts();
+                    // Mock Pagination
+                    return {
+                        data: products,
+                        total: products.length,
+                        page: 1,
+                        pageSize: 50,
+                        totalPages: 1
+                    };
+                }
+                case 'db:get-branches': {
+                    return await window.electron.getBranches();
+                }
+                case 'db:get-users':
+                case 'getUsers': {
+                    // Basic mock users
+                    return [
+                        { id: 'user-1', full_name: 'Juan Panadero', role: 'admin', pin: '1234' },
+                        { id: 'user-2', full_name: 'Maria Cajera', role: 'staff', pin: '0000' }
+                    ];
+                }
+                default:
+                    console.warn(`[Mock] Unhandled invoke channel: ${channel}`);
+                    return null;
+            }
+        },
+        on: (channel: string, _func: (...args: any[]) => void) => {
             console.log(`[Mock] Listening on ${channel}`);
             return () => { };
         },
 
+        // Printing
         printTicket: async (data: any) => { console.log("[Mock] Print Ticket:", data); },
         printClosing: async (data: any) => { console.log("[Mock] Print Closing:", data); return { success: true }; },
         printSiigoClosing: async (data: any) => { console.log("[Mock] Print Siigo Closing:", data); return { success: true }; },
@@ -18,7 +58,7 @@ if (typeof window !== 'undefined' && !window.electron) {
         printOrderDetails: async (order: any) => { console.log("[Mock] Print Order Details:", order); },
 
         // Security
-        getMachineId: async () => "mock-machine-id",
+        getMachineId: async () => mockMachineId,
         encrypt: async (text: string) => `encrypted-${text}`,
         decrypt: async (text: string) => text.replace("encrypted-", ""),
 
@@ -35,16 +75,23 @@ if (typeof window !== 'undefined' && !window.electron) {
         ],
         syncUsers: async (users: any[]) => { console.log("[Mock] Sync Users", users.length); },
 
-        saveSale: async (sale: any, items: any[]) => { console.log("[Mock] Save Sale", sale, items); },
+        // Sales
+        saveSale: async (sale: any, items: any[]) => {
+            console.log("[Mock] Save Sale", sale, items);
+            mockSales.push({ ...sale, items });
+        },
         getPendingSales: async () => [],
-        getAllSales: async () => [],
-        getSalesByShift: async (_shiftId: string) => [],
+        getAllSales: async () => mockSales,
+        getSalesByShift: async (_shiftId: string) => {
+            if (!_shiftId) return [];
+            return mockSales.filter(s => s.shift_id === _shiftId);
+        },
         importSalesBatch: async (sales: any[]) => { console.log("[Mock] Import Sales Batch", sales.length); },
         getProductTrends: async (_days: number) => [],
         getProductTrendsByRange: async (_start: string, _end: string) => [],
         getProductDailyTrends: async (_days: number) => [],
         updateSaleShift: async (saleId: string, shiftId: string) => { console.log("[Mock] Update Sale Shift", saleId, shiftId); },
-        resetSalesData: async () => { console.log("[Mock] Reset Sales Data"); },
+        resetSalesData: async () => { mockSales = []; console.log("[Mock] Reset Sales Data"); },
         markSynced: async (id: string) => { console.log("[Mock] Mark Synced", id); },
         pruneData: async (days: number) => { console.log("[Mock] Prune Data", days); },
 
@@ -63,22 +110,38 @@ if (typeof window !== 'undefined' && !window.electron) {
         syncBranches: async (branches: any[]) => { console.log("[Mock] Sync Branches", branches.length); },
 
         // Shifts
-        openShift: async (shift: any) => { console.log("[Mock] Open Shift", shift); return { ...shift, id: 'mock-shift-id' }; },
-        closeShift: async (_data: any) => { console.log("[Mock] Close Shift", _data); },
-        getShift: async () => null,
-        getShiftSummary: async (_shiftId: string) => ({
-            totalSales: 150000,
-            cashSales: 100000,
-            cardSales: 50000,
-            transferSales: 0,
-            totalTips: 10000,
-            totalExpenses: 5000,
-            productsSold: [],
-            salesCount: 15
-        }),
+        openShift: async (shift: any) => {
+            console.log("[Mock] Open Shift", shift);
+            mockShift = { ...shift, id: 'mock-shift-' + Date.now(), end_time: null };
+            return mockShift;
+        },
+        closeShift: async (_data: any) => {
+            console.log("[Mock] Close Shift", _data);
+            if (mockShift) mockShift.end_time = new Date().toISOString();
+            mockShift = null;
+        },
+        getShift: async () => mockShift,
+        getShiftSummary: async (_shiftId: string) => {
+            const shiftSales = mockSales.filter(s => s.shift_id === _shiftId);
+            return {
+                totalSales: shiftSales.reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                cashSales: shiftSales.filter(s => s.payment_method === 'cash').reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                cardSales: shiftSales.filter(s => s.payment_method === 'card').reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                transferSales: shiftSales.filter(s => s.payment_method === 'transfer').reduce((sum, s) => sum + (s.total_amount || 0), 0),
+                totalTips: 0,
+                totalExpenses: 0,
+                productsSold: [],
+                salesCount: shiftSales.length
+            };
+        },
         getPendingShifts: async () => [],
         markShiftSynced: async (id: string) => { console.log("[Mock] Mark Shift Synced", id); },
-        updateShift: async (id: string, data: any) => { console.log("[Mock] Update Shift", id, data); },
+        updateShift: async (id: string, data: any) => {
+            console.log("[Mock] Update Shift", id, data);
+            if (mockShift && mockShift.id === id) {
+                mockShift = { ...mockShift, ...data };
+            }
+        },
 
         // Stock Updates
         updateProductStock: async (id: string, delta: number) => { console.log("[Mock] Update Stock", id, delta); },
@@ -157,6 +220,8 @@ if (typeof window !== 'undefined' && !window.electron) {
         // DEV ONLY
         devResetAndGenerateMockData: async () => {
             console.log("[Mock] Generating Mock Data Utility...");
+            mockSales = [];
+            mockShift = null;
             return { success: true, count: 300 };
         }
     };

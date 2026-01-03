@@ -2,7 +2,7 @@ import { Trash2, User, Banknote, Star, Printer, Minus, Plus, Pencil, StickyNote,
 import { useState } from 'react';
 import { Button, Badge } from '@panpanocha/ui';
 import { cn } from '@panpanocha/ui/lib/utils';
-import type { Product, CartItem, Sale, SaleItem, Client } from '../../types';
+import type { CartItem, Sale, SaleItem, Client } from '../../types';
 import CheckoutScreen from './CheckoutScreen';
 import { ClientSearchModal } from './ClientSearchModal';
 import { usePosStore } from '../../store';
@@ -24,6 +24,10 @@ interface CartPanelProps {
 
 type OrderType = 'general' | 'register' | 'rappi' | 'domicilio';
 
+import { useSmartPrinter } from '../../hooks/useSmartPrinter';
+
+/* ... imports ... */
+
 export function CartPanel({ cart, onRemove, onClear, onCheckout, total, activeTableName, onTransfer, onClearTable, onOpenRappiModal, onOpenDeliveryModal, onOpenExpenseModal }: CartPanelProps) {
     const [showCheckout, setShowCheckout] = useState(false);
     const [showClientModal, setShowClientModal] = useState(false);
@@ -37,9 +41,19 @@ export function CartPanel({ cart, onRemove, onClear, onCheckout, total, activeTa
     const updateCartItemQuantity = usePosStore(state => state.updateCartItemQuantity);
     const updateCartItemNote = usePosStore(state => state.updateCartItemNote);
 
-    const handlePaymentComplete = (data: { total: number; received: number; change: number; tipAmount?: number; discountAmount?: number }) => {
-        // Pass client data to checkout
+    // Smart Printer Hook
+    const { printKitchenTicket } = useSmartPrinter();
+
+    const handlePaymentComplete = async (data: { total: number; received: number; change: number; tipAmount?: number; discountAmount?: number }) => {
+        // 1. Process Sale (Store)
         onCheckout({ ...data, client: selectedClient });
+
+        // 2. Smart Routing Print (Kitchen/Bar)
+        // Fire and forget, or await? Awaiting ensures it's sent.
+        // Using a temporary ID since the real Sale ID is generated inside the store.
+        const tempId = `ORD-${Date.now().toString().slice(-4)}`;
+        await printKitchenTicket(tempId, cart);
+
         setShowCheckout(false);
         setSelectedClient(null); // Reset client after sale
     };
@@ -203,6 +217,7 @@ export function CartPanel({ cart, onRemove, onClear, onCheckout, total, activeTa
                                     <button
                                         className="h-7 w-full flex items-center justify-center text-pp-brown/60 hover:text-pp-brown hover:bg-[#FFE4C4]/20 transition-colors rounded-t-lg active:scale-90"
                                         onClick={() => updateCartItemQuantity(item.id, 1)}
+                                        title="Aumentar cantidad"
                                     >
                                         <Plus size={14} strokeWidth={3} />
                                     </button>
@@ -214,6 +229,7 @@ export function CartPanel({ cart, onRemove, onClear, onCheckout, total, activeTa
                                     <button
                                         className="h-7 w-full flex items-center justify-center text-pp-brown/60 hover:text-red-500 hover:bg-red-50 transition-colors rounded-b-lg active:scale-90"
                                         onClick={() => updateCartItemQuantity(item.id, -1)}
+                                        title="Disminuir cantidad"
                                     >
                                         <Minus size={14} strokeWidth={3} />
                                     </button>
@@ -265,6 +281,7 @@ export function CartPanel({ cart, onRemove, onClear, onCheckout, total, activeTa
                                 {/* 3. Delete Button (Top Right Absolute) */}
                                 <button
                                     onClick={() => onRemove(item.id)}
+                                    title="Eliminar item"
                                     className="absolute -top-2 -right-2 w-7 h-7 bg-white rounded-full shadow border border-gray-100 flex items-center justify-center text-gray-300 hover:text-red-500 hover:border-red-100 hover:bg-red-50 transition-all z-10 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
                                 >
                                     <Trash2 size={14} />
@@ -327,6 +344,7 @@ export function CartPanel({ cart, onRemove, onClear, onCheckout, total, activeTa
                                     payment_method: 'cash', // Default for pre-check
                                     status: 'completed',
                                     created_at: new Date().toISOString(),
+                                    organization_id: '', // Mock
                                     synced: false
                                 };
                                 const mockItems: SaleItem[] = cart.map(c => ({

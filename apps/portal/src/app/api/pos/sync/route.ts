@@ -41,6 +41,23 @@ const createAdminClient = () => {
     );
 };
 
+// Helper: Simple retry logic for upserts
+async function upsertWithRetry(supabase: any, table: string, data: any[], maxRetries = 3) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+        try {
+            const { error } = await supabase.from(table).upsert(data);
+            if (!error) return; // Success
+            throw error;
+        } catch (err) {
+            attempt++;
+            if (attempt >= maxRetries) throw err;
+            // Simple backoff: 100ms, 200ms, 400ms...
+            await new Promise(r => setTimeout(r, 100 * Math.pow(2, attempt - 1)));
+        }
+    }
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -167,7 +184,7 @@ export async function POST(request: Request) {
 
         const results = {
             shifts: { success: 0, failed: 0, errors: [] as any[] },
-            sales: { success: 0, failed: 0, errors: [] as any[] },
+            sales: { success: 0, failed: 0, partialFailed: [] as any[], errors: [] as any[] },
             expenses: { success: 0, failed: 0, errors: [] as any[] },
             orders: { success: 0, failed: 0, errors: [] as any[] },
             deliveries: { success: 0, failed: 0, errors: [] as any[] }
@@ -186,19 +203,48 @@ export async function POST(request: Request) {
         }
 
         // 5. Process Sales
-        const cleanSales = sales.map((s: any) => ({
-            ...s,
-            branch_id: branchId
-        }));
+        // TODO: Future improvement: Create a server-side RPC to wrap header+items in a DB transaction for atomicity.
+        const cleanSales: any[] = [];
+        const saleItemsMap: Record<string, any[]> = {};
+
+        for (const s of sales) {
+            const { items, ...saleData } = s;
+            cleanSales.push({ ...saleData, branch_id: branchId });
+
+            if (Array.isArray(items) && items.length > 0) {
+                saleItemsMap[s.id] = items.map(item => ({
+                    ...item,
+                    organization_id: s.organization_id || undefined
+                }));
+            }
+        }
 
         if (cleanSales.length > 0) {
+            // 5a. Upsert Headers (Batch)
             const { error } = await supabase.from('sales').upsert(cleanSales);
             if (error) {
                 results.sales.failed = cleanSales.length;
                 results.sales.errors.push(error);
-                console.error("Sync Sales Error:", error);
+                console.error("Sync Sales Error (Header):", error);
             } else {
+                // 5b. Upsert Items (Per Sale to isolate failures)
                 results.sales.success = cleanSales.length;
+
+                // TODO: Future improvement: Create a server-side RPC that wraps header+items in a DB transaction for a future atomic solution.
+                for (const sale of cleanSales) {
+                    const items = saleItemsMap[sale.id];
+                    if (items && items.length > 0) {
+                        try {
+                            await upsertWithRetry(supabase, 'sale_items', items);
+                        } catch (itemsError: any) {
+                            console.error(`Sync Sales Item Error (Sale ${sale.id}):`, itemsError);
+                            results.sales.partialFailed.push({
+                                sale_id: sale.id,
+                                error: itemsError.message || itemsError
+                            });
+                        }
+                    }
+                }
             }
         }
 

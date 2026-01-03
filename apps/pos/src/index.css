@@ -9,6 +9,12 @@
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --brand-primary: #F6B323;
+  --brand-secondary: #4A3728;
+  --brand-accent: #F9F1E0;
+  --brand-background: #ffffff;
+  --brand-text: #1f2937;
+  --brand-primary-foreground: #4A3728;
 }
 
 
@@ -18,8 +24,8 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--brand-background);
+  color: var(--brand-text);
   height: 100vh;
   overflow: hidden;
 }

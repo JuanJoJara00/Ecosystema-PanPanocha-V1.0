@@ -19,12 +19,15 @@
     "build:pos": "pnpm --filter @panpanocha/pos build",
     "lint": "pnpm --parallel --filter './apps/*' lint",
     "clean": "pnpm --parallel --filter './apps/*' --filter './packages/*' clean",
-    "typecheck": "pnpm --parallel --filter './apps/*' --filter './packages/*' typecheck"
+    "typecheck": "pnpm --parallel --filter './apps/*' --filter './packages/*' typecheck",
+    "gen:types": "npx ts-node --project scripts/tsconfig.json scripts/gen_types.ts"
   },
   "devDependencies": {
+    "@types/node": "^25.0.3",
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@powersync/web": "^1.30.0"
+    "@powersync/web": "^1.30.0",
+    "@supabase/supabase-js": "^2.89.0"
   }
 }

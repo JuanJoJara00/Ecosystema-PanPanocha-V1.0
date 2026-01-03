@@ -1,7 +1,7 @@
 import { Search, RefreshCw, User, Menu } from 'lucide-react';
 import { usePosStore } from '../../store';
-import { brandConfig } from '@panpanocha/config';
 import { Button, Input } from '@panpanocha/ui';
+import { useTheme } from '../../providers/ThemeContext';
 import { LoadingOverlay } from '../Loading';
 import { SyncStatus } from './SyncStatus';
 
@@ -16,6 +16,7 @@ interface NavbarProps {
 
 export function Navbar({ searchTerm, setSearchTerm, onOpenSidebar, onOpenDashboard, onOpenUserModal }: NavbarProps) {
     const { currentUser, currentShift, branches, isLoading, sync } = usePosStore();
+    const { meta } = useTheme();
 
     // Get current branch name
     const currentBranchName = branches.find(b => b.id === currentShift?.branch_id)?.name || 'Sin Sede';
@@ -29,16 +30,16 @@ export function Navbar({ searchTerm, setSearchTerm, onOpenSidebar, onOpenDashboa
                 title="Abrir Dashboard"
             >
                 <div className="w-12 h-12 flex items-center justify-center overflow-hidden transition-transform group-hover:scale-110 duration-300">
-                    {brandConfig?.company && (
+                    {meta.logoUrl && (
                         <img
-                            src={brandConfig.company.logoUrl}
-                            alt={brandConfig.company.name}
+                            src={meta.logoUrl}
+                            alt={meta.companyName || 'Logo'}
                             className="w-full h-full object-contain filter drop-shadow-md"
                         />
                     )}
                 </div>
                 <div className="flex flex-col leading-none">
-                    <span className="font-bold text-xl tracking-wide font-display text-brand-primary group-hover:text-white transition-colors">PANPANOCHA</span>
+                    <span className="font-bold text-xl tracking-wide font-display text-brand-primary group-hover:text-white transition-colors">{meta.companyName || 'Pan Panocha'}</span>
                     <span className="text-[10px] text-brand-accent/90 tracking-wider font-semibold">{currentBranchName.toUpperCase()}</span>
                 </div>
             </div>
@@ -57,10 +58,11 @@ export function Navbar({ searchTerm, setSearchTerm, onOpenSidebar, onOpenDashboa
 
                 {/* Sync Status - Moved Here */}
                 <SyncStatus />
+
                 <Button
                     variant="ghost"
                     onClick={() => sync()}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#D4AF37] hover:bg-[#C19B2D] text-white transition-all h-auto border-none shadow-sm ${isLoading ? 'opacity-70' : ''}`}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl bg-brand-primary hover:bg-brand-primary/80 text-white transition-all h-auto border-none shadow-sm ${isLoading ? 'opacity-70' : ''}`}
                     disabled={isLoading}
                     title="Sincronizar Datos"
                 >

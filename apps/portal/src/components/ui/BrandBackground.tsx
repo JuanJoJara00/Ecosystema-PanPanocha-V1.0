@@ -16,12 +16,13 @@ export function BrandBackground({ opacity = 0.15, className = '' }: { opacity?: 
     const COLS = 20;
     const ROWS = 20;
     const items = Array.from({ length: COLS * ROWS });
+    const rootStyle = { '--main-opacity': opacity } as React.CSSProperties;
 
     return (
         <div
             className={`absolute inset-0 z-0 pointer-events-none overflow-hidden select-none ${className} ${styles.root}`}
             // eslint-disable-next-line
-            style={{ '--main-opacity': opacity } as React.CSSProperties}
+            style={rootStyle}
         >
             {/* Background tint (Matched to POS) */}
             <div className="absolute inset-0 bg-brand-accent/5 mix-blend-multiply dark:bg-transparent" />
@@ -47,15 +48,23 @@ export function BrandBackground({ opacity = 0.15, className = '' }: { opacity?: 
                     const left = (col * 5) + staggerOffset + (randX * 1 - 0.5);
                     const imgOpacity = 0.6 + (((i * 17) % 5) / 10);
 
+                    const itemStyle = {
+                        '--bg-top': `${top}%`,
+                        '--bg-left': `${left}%`,
+                    } as React.CSSProperties;
+
+                    const imgStyle = {
+                        '--bg-rot': `${randRot}deg`,
+                        '--bg-scale': randScale,
+                        '--bg-opacity': imgOpacity
+                    } as React.CSSProperties;
+
                     return (
                         <div
                             key={i}
                             className={`absolute flex items-center justify-center transform ${styles.backgroundItem}`}
                             // eslint-disable-next-line
-                            style={{
-                                '--bg-top': `${top}%`,
-                                '--bg-left': `${left}%`,
-                            } as React.CSSProperties}
+                            style={itemStyle}
                         >
                             <div className="w-24 h-24 md:w-36 md:h-36 p-4 flex items-center justify-center">
                                 <img
@@ -63,11 +72,7 @@ export function BrandBackground({ opacity = 0.15, className = '' }: { opacity?: 
                                     alt=""
                                     className={`w-full h-full object-contain filter grayscale brightness-50 contrast-125 transition-opacity duration-300 dark:brightness-[0.2] dark:invert-0 ${styles.backgroundImage}`}
                                     // eslint-disable-next-line
-                                    style={{
-                                        '--bg-rot': `${randRot}deg`,
-                                        '--bg-scale': randScale,
-                                        '--bg-opacity': imgOpacity
-                                    } as React.CSSProperties}
+                                    style={imgStyle}
                                 />
                             </div>
                         </div>

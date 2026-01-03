@@ -4,8 +4,12 @@ import './index.css'
 import './mock-electron' // Browser fallback
 import App from './App.tsx'
 
+import { ConfigProvider } from './providers/ConfigProvider'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ConfigProvider>
+      <App />
+    </ConfigProvider>
   </StrictMode>,
 )

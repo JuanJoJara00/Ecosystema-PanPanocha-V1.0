@@ -22,13 +22,15 @@ interface DeliveryFormModalProps {
 }
 
 export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormModalProps) {
-    const { currentBranchId, showAlert } = usePosStore();
+    const { currentBranchId, organizationId, showAlert } = usePosStore();
+
     const [loading, setLoading] = useState(false);
 
     // Form data
     const [deliveryFee, setDeliveryFee] = useState<number>(BUSINESS_CONFIG.DELIVERY_FEE_DEFAULT);
     const [assignedDriver, setAssignedDriver] = useState('');
     const [driverId, setDriverId] = useState('');
+    const [driverPhone, setDriverPhone] = useState(''); // Added to capture driver contact
     const [notes, setNotes] = useState('');
 
     const calculateProductTotal = () => {
@@ -47,6 +49,11 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
 
         if (!driverId.trim()) {
             showAlert('warning', 'Faltan Datos', 'Por favor ingresa la cédula del domiciliario');
+            return;
+        }
+
+        if (!driverPhone.trim()) {
+            showAlert('warning', 'Faltan Datos', 'Por favor ingresa el teléfono del domiciliario');
             return;
         }
 
@@ -69,17 +76,35 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
             // Generate explicit ID for reservation tracking
             const deliveryId = crypto.randomUUID();
 
+            // Validate organizationId before proceeding
+            // organizationId already available from destructuring
+            if (!organizationId || organizationId.trim() === '') {
+                showAlert('error', 'Error de Configuración', 'El ID de la organización no está configurado. Por favor, reinicie la aplicación o contacte soporte.');
+                setLoading(false);
+                return;
+            }
+
+            // Canonical user info for external delivery services
+            // We map the driver's phone to customer contact fields because:
+            // 1. The driver is the physical entity picking up the order
+            // 2. We need a valid contact point for this transaction
+            // 3. The actual end-customer might be anonymous or managed by the platform
+            const EXTERNAL_SERVICE_ADDRESS = 'Empresa de Domicilios';
+
             const dataToSave = {
                 id: deliveryId, // Use explicit ID
+                organization_id: organizationId,
                 branch_id: currentBranchId,
                 customer_name: 'Domicilio Externo',
-                customer_phone: assignedDriver,
-                customer_address: 'Empresa de Domicilios',
+                phone: driverPhone, // Driver contact
+                address: EXTERNAL_SERVICE_ADDRESS,
+                customer_phone: driverPhone, // Driver contact
+                customer_address: EXTERNAL_SERVICE_ADDRESS,
                 product_details: JSON.stringify(productList),
                 delivery_fee: deliveryFee,
                 assigned_driver: assignedDriver,
-                status: 'pending',
-                notes: notes || null
+                status: 'pending' as const,
+                notes: notes || undefined,
             };
 
             const { branches } = usePosStore.getState();
@@ -104,15 +129,11 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
             }));
             await window.electron.addReservations(reservationItems, 'delivery', deliveryId);
 
-            // 3. Trigger background sync
-            if (navigator.onLine) {
-                import('../../services/sync').then(({ SyncService }) => {
-                    SyncService.push().catch(err => console.error('[Delivery] Background sync failed:', err));
-                });
-            }
+            // 3. Sync handled by PowerSync automatically
+            console.log('[Delivery] Saved locally, PowerSync handles replication.');
 
             // 4. Update UI
-            await usePosStore.getState().reloadProducts();
+            usePosStore.getState().triggerProductsRefresh();
 
 
             showAlert('success', 'Domicilio Registrado', 'Domicilio registrado exitosamente');
@@ -135,6 +156,8 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+                        aria-label="Cerrar"
+                        title="Cerrar"
                     >
                         <X size={24} />
                     </button>
@@ -167,7 +190,7 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                             <Package size={18} className="text-blue-500" />
                             Productos del Pedido
                         </h4>
-                        <div className="bg-gray-50 rounded-xl p-4 space-y-2 max-h-64overflow-y-auto border-2 border-gray-100">
+                        <div className="bg-gray-50 rounded-xl p-4 space-y-2 max-h-64 overflow-y-auto border-2 border-gray-100">
                             {cartItems.map((item) => (
                                 <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100">
                                     <div className="flex-1">
@@ -223,6 +246,17 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                                 }}
                                 className="border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                                 placeholder="1234567890"
+                            />
+                            <Input
+                                label="Celular Domiciliario *"
+                                required
+                                value={driverPhone}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    setDriverPhone(value);
+                                }}
+                                className="border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                                placeholder="300 123 4567"
                             />
                         </div>
 

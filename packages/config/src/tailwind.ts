@@ -24,6 +24,13 @@ export const tailwindConfig: Partial<Config> = {
                 primary: brandColors.primary,
                 secondary: brandColors.secondary,
                 accent: brandColors.accent,
+
+                // White Label Brand Colors (Dynamic)
+                brand: {
+                    primary: 'var(--brand-primary)',
+                    secondary: 'var(--brand-secondary)',
+                    accent: 'var(--brand-accent)',
+                }
             },
         },
     },

@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase-server';
+import { createClient } from '@/lib/supabase-server';
 import { DeviceApprovalForm } from './DeviceApprovalForm';
 import { notFound } from 'next/navigation';
 
@@ -17,7 +17,7 @@ export default async function ApprovalPage({ searchParams }: PageProps) {
         );
     }
 
-    const supabase = await createServerClient();
+    const supabase = await createClient();
 
     // Fetch Session
     const { data: sessionData, error } = await supabase

@@ -2,13 +2,31 @@ import type { UUID, ISODateString, TenantEntity } from './common';
 
 export interface Delivery extends TenantEntity {
     id: UUID;
+    branch_id: UUID; // Added to match payload
     sale_id?: UUID;
     customer_name: string;
-    phone: string;
-    address: string;
-    status: 'pending' | 'assigned' | 'delivered' | 'cancelled';
-    delivery_person?: string;
-    delivery_cost: number;
+
+    // Contact Info (Canonical + Legacy support if needed, but per request we use canonical)
+    /**
+     * @deprecated Use `customer_phone` instead.
+     */
+    phone?: string;
+    /**
+     * @deprecated Use `customer_address` instead.
+     */
+    address?: string;
+
+    // DB Schema Fields
+    customer_phone?: string;
+    customer_address?: string;
+
+    status: 'pending' | 'dispatched' | 'delivered' | 'cancelled';
+
+    // Canonical Fields
+    assigned_driver?: string; // Renamed from delivery_person
+    delivery_fee: number;     // Renamed from delivery_cost
+
+    product_details?: string; // Added to match payload
     notes?: string;
     created_at: ISODateString;
 }

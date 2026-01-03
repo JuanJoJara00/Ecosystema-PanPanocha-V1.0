@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, UserPlus, X, Phone, Star, User } from 'lucide-react';
 import { Button, Input, Card } from '@panpanocha/ui';
 import type { Client } from '../../types';
+import { usePosStore } from '../../store';
 import { v4 as uuidv4 } from 'uuid';
 
 interface Props {
@@ -40,6 +41,12 @@ export function ClientSearchModal({ onClose, onSelectClient, onSkip }: Props) {
 
     const handleCreateClient = async (e: React.FormEvent) => {
         e.preventDefault();
+        const orgId = usePosStore.getState().organizationId;
+        if (!orgId) {
+            usePosStore.getState().showAlert('error', 'Error de Configuración', 'No se ha detectado la organización. Por favor, reinicie la sesión.');
+            return;
+        }
+
         const newClient: Client = {
             id: uuidv4(),
             full_name: newClientName,
@@ -49,16 +56,15 @@ export function ClientSearchModal({ onClose, onSelectClient, onSkip }: Props) {
             points: 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            synced: false
+            synced: false,
+            organization_id: orgId // Tenant Context
         };
 
         try {
             await window.electron.createClient(newClient);
             // Optimistic Sync
-            // Optimistic Sync
-            import('../../services/sync').then(({ SyncService }) => {
-                SyncService.push().catch((err: any) => console.error("Client Sync failed", err));
-            });
+            // Optimistic Sync handled by PowerSync
+            console.log("Client created locally.");
             onSelectClient(newClient);
         } catch (error) {
             console.error("Error creating client:", error);

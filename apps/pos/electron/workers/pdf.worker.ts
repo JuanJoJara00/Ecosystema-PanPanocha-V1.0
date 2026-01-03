@@ -1,133 +1,138 @@
-
 import { parentPort } from 'worker_threads';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
-import path from 'path';
 
-// Helper to load logo
-const getLogoPath = (isPackaged: boolean, resourcesPath: string) => {
-    // In dev: .../apps/pos/public/images/logo_v2.png
-    // In prod: .../resources/public/images/logo_v2.png (if we copy it there)
-    // Or we can pass the absolute path from main process to be safe.
-    return '';
-};
 
-// Listen for messages from the Main Process
-parentPort?.on('message', async (task: { type: string; payload: any; outputInfo: { path: string }; assets?: { logoPath?: string } }) => {
-    console.log(`[Worker] Received task: ${task.type}`);
+// Define types to match the messages sent from PrinterService
+type WorkerTask =
+    | { type: 'GENERATE_CLOSING'; payload: any; outputInfo: { path: string }; assets: { logoPath: string; companyName?: string; nit?: string } };
 
+if (!parentPort) {
+    throw new Error('This file must be run as a worker thread');
+}
+
+parentPort.on('message', async (task: WorkerTask) => {
     try {
-        const doc = new PDFDocument({
-            size: [226.77, 841.89], // 80mm width
-            margins: { top: 10, bottom: 10, left: 10, right: 10 }
-        });
-
-        // Ensure directory exists
-        const dir = path.dirname(task.outputInfo.path);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
-        const stream = fs.createWriteStream(task.outputInfo.path);
-        doc.pipe(stream);
-
-        // --- LOGIC DISPATCHER ---
-        if (task.type === 'GENERATE_TICKET') {
-            generateTicket(doc, task.payload, task.assets?.logoPath);
-        } else if (task.type === 'GENERATE_CLOSING') {
-            // TODO: Implement Closing Logic
-            generateClosing(doc, task.payload, task.assets?.logoPath);
-        }
-        // ------------------------
-
-        doc.end();
-
-        stream.on('finish', () => {
+        if (task.type === 'GENERATE_CLOSING') {
+            await generateClosingPDF(task.payload, task.outputInfo.path, task.assets);
             parentPort?.postMessage({ status: 'SUCCESS', path: task.outputInfo.path });
-        });
-
-        stream.on('error', (err) => {
-            throw err;
-        });
-
-    } catch (error) {
-        console.error('[Worker] Error:', error);
-        parentPort?.postMessage({ status: 'ERROR', error: error instanceof Error ? error.message : 'Unknown error' });
+        } else {
+            throw new Error(`Unknown task type: ${(task as any).type}`);
+        }
+    } catch (error: any) {
+        parentPort?.postMessage({ status: 'ERROR', error: error.message });
     }
 });
 
-function generateTicket(doc: PDFKit.PDFDocument, saleData: any, logoPath?: string) {
-    const { sale, items, client, paymentData, branch, user } = saleData;
-
-    // === LOGO ===
-    if (logoPath && fs.existsSync(logoPath)) {
+async function generateClosingPDF(data: any, outputPath: string, assets: { logoPath: string; companyName?: string; nit?: string }) {
+    return new Promise<void>((resolve, reject) => {
         try {
-            doc.image(logoPath, 88, 15, { width: 50, height: 50 });
-            doc.y = 75;
+            const doc = new PDFDocument({ margin: 50, size: 'A4' });
+            const stream = fs.createWriteStream(outputPath);
+
+            doc.pipe(stream);
+
+            // --- Header ---
+            if (fs.existsSync(assets.logoPath)) {
+                doc.image(assets.logoPath, 50, 45, { width: 50 });
+            }
+
+            doc.fontSize(20).text(assets.companyName || 'PAN PANOCHA', 110, 50);
+            doc.fontSize(10).text(`Nit: ${assets.nit || '900.123.456-7'}`, 110, 75);
+            doc.moveDown();
+
+            doc.fontSize(16).text('CIERRE DE CAJA', { align: 'center' });
+            doc.fontSize(12).text(`Tipo: ${data.closingType || 'PARCIAL'}`, { align: 'center' });
+            doc.moveDown();
+
+            // --- Metadata ---
+            const date = new Date().toLocaleString('es-CO');
+            doc.fontSize(10);
+            doc.text(`Fecha: ${date}`, { align: 'right' });
+            doc.text(`Cajero: ${data.user?.full_name || 'N/A'}`);
+            doc.text(`Sede: ${data.branch?.name || 'Principal'}`);
+            doc.text(`Turno: ${data.shift?.id?.substring(0, 8) || 'N/A'}`);
+            doc.moveDown();
+
+            doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+            doc.moveDown();
+
+            // --- Summary ---
+            doc.fontSize(14).text('RESUMEN DE VENTAS');
+            doc.moveDown(0.5);
+            doc.fontSize(10);
+
+            const summary = data.summary || {};
+            const rows = [
+                ['Ventas Totales', `$${(summary.totalSales || 0).toLocaleString('es-CO')}`],
+                ['Efectivo', `$${(summary.cashSales || 0).toLocaleString('es-CO')}`],
+                ['Tarjeta', `$${(summary.cardSales || 0).toLocaleString('es-CO')}`],
+                ['Transferencia', `$${(summary.transferSales || 0).toLocaleString('es-CO')}`],
+                ['Gastos', `-$${(summary.totalExpenses || 0).toLocaleString('es-CO')}`]
+            ];
+
+            let y = doc.y;
+            rows.forEach(([label, value]) => {
+                doc.text(label, 50, y);
+                doc.text(value, 400, y, { align: 'right' });
+                y += 15;
+            });
+            doc.y = y;
+            doc.moveDown();
+
+            // --- Validation ---
+            doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+            doc.moveDown();
+            doc.fontSize(12).text('VALIDACIÓN');
+            doc.moveDown(0.5);
+
+            y = doc.y;
+            doc.fontSize(10);
+
+            const expected = (data.shift?.initial_cash || 0) + (summary.cashSales || 0) - (summary.totalExpenses || 0);
+            const real = data.cashCount || 0;
+            const diff = data.difference || 0;
+
+            doc.text('Base Inicial:', 50, y);
+            doc.text(`$${(data.shift?.initial_cash || 0).toLocaleString('es-CO')}`, 400, y, { align: 'right' });
+            y += 15;
+
+            doc.text('Efectivo Esperado:', 50, y);
+            doc.text(`$${expected.toLocaleString('es-CO')}`, 400, y, { align: 'right' });
+            y += 15;
+
+            doc.text('Efectivo Real (Contado):', 50, y);
+            doc.text(`$${real.toLocaleString('es-CO')}`, 400, y, { align: 'right' });
+            y += 15;
+
+            doc.font('Helvetica-Bold');
+            const diffLabel = diff > 0 ? 'SOBRANTE' : diff < 0 ? 'FALTANTE' : 'CUADRE';
+            const diffColor = diff !== 0 ? 'red' : 'green';
+
+            doc.fillColor(diffColor).text(`${diffLabel}:`, 50, y);
+            doc.text(`$${Math.abs(diff).toLocaleString('es-CO')}`, 400, y, { align: 'right' });
+            doc.fillColor('black').font('Helvetica');
+            y += 25;
+
+            doc.fontSize(14).text(`A ENTREGAR: $${(data.cashToDeliver || 0).toLocaleString('es-CO')}`, 50, y, { align: 'center' });
+            doc.moveDown(2);
+
+            // --- Signatures ---
+            y = doc.y + 50;
+            doc.moveTo(50, y).lineTo(200, y).stroke();
+            doc.moveTo(350, y).lineTo(500, y).stroke();
+
+            doc.fontSize(10);
+            doc.text('Firma Cajero', 50, y + 5, { width: 150, align: 'center' });
+            doc.text('Firma Supervisor', 350, y + 5, { width: 150, align: 'center' });
+
+            doc.end();
+
+            stream.on('finish', resolve);
+            stream.on('error', reject);
+
         } catch (e) {
-            console.error('[Worker] Logo error:', e);
+            reject(e);
         }
-    }
-
-    // === HEADER ===
-    doc.font('Courier-Bold');
-    doc.fontSize(11).text('PANPANOCHA', { align: 'center' });
-    doc.fontSize(8).font('Courier').text(branch?.nit ? `NIT: ${branch.nit}` : 'NIT: 1008171201', { align: 'center' });
-    doc.text('CADA INSTANTE TIENE MAGIA', { align: 'center' });
-
-    doc.moveDown(0.3);
-    doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-    doc.moveDown(0.3);
-
-    // === INFO ===
-    doc.fontSize(9).font('Courier-Bold').text('SEDE: ' + (branch?.name || 'Principal').toUpperCase());
-    doc.fontSize(8).font('Courier');
-    if (branch?.address) doc.text('Dir: ' + branch.address);
-    if (branch?.phone) doc.text('Tel: ' + branch.phone);
-    doc.moveDown(0.5);
-
-    const dateStr = new Date(sale.created_at).toLocaleDateString('es-CO');
-    const timeStr = new Date(sale.created_at).toLocaleTimeString('es-CO');
-
-    doc.text(`Tiquete: ${sale.id.slice(0, 8)}`);
-    doc.text(`Fecha: ${dateStr} ${timeStr}`);
-    doc.text(`Cajero: ${user?.full_name || 'Staff'}`);
-
-    // === PRODUCTS ===
-    doc.moveDown(0.5);
-    doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-    doc.moveDown(0.2);
-
-    items.forEach((item: any) => {
-        const name = (item.product_name || 'Producto').toUpperCase(); // Ensure payload has product_name
-        const price = (item.unit_price || 0).toLocaleString('es-CO');
-        const qty = item.quantity || 0;
-        const subtotal = (item.total_price || 0).toLocaleString('es-CO');
-
-        doc.font('Courier-Bold').fontSize(9).text(name);
-        if (item.note) {
-            doc.font('Courier-Oblique').fontSize(8).text(`  (${item.note})`);
-        }
-        doc.font('Courier').fontSize(8);
-        doc.text(`  $${price} x ${qty}`, { continued: true });
-        doc.text(`$${subtotal}`, { align: 'right' });
-        doc.moveDown(0.2);
     });
-
-    // === TOTALS ===
-    doc.moveDown(0.5);
-    doc.moveTo(10, doc.y).lineTo(216.77, doc.y).stroke();
-    doc.moveDown(0.2);
-
-    doc.fontSize(10).font('Courier-Bold');
-    doc.text('TOTAL:', { continued: true });
-    doc.text(`$${(sale.total_amount || 0).toLocaleString('es-CO')}`, { align: 'right' });
-
-    doc.moveDown(1);
-    doc.fontSize(8).font('Courier').text('Gracias por su compra', { align: 'center' });
-}
-
-function generateClosing(doc: PDFKit.PDFDocument, data: any, logoPath?: string) {
-    // Placeholder for closing logic - can be migrated from main.ts later or now
-    doc.fontSize(12).text('Cierre de Caja - Placeholder');
 }
