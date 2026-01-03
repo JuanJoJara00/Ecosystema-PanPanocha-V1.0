@@ -56,7 +56,11 @@ export default function Sidebar({ isOpen, onClose, children }: SidebarProps) {
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-3">
                             <div className="bg-white/10 p-1.5 rounded-full backdrop-blur-sm border border-white/20">
-                                <img src={meta.logoUrl} alt={meta.companyName} className="w-8 h-8 object-contain" />
+                                {meta.logoUrl ? (
+                                    <img src={meta.logoUrl} alt={meta.companyName} className="w-8 h-8 object-contain" />
+                                ) : (
+                                    <div className="w-8 h-8" />
+                                )}
                             </div>
                             <h2 className="text-xl font-bold text-white uppercase tracking-wider drop-shadow-sm">
                                 Menú

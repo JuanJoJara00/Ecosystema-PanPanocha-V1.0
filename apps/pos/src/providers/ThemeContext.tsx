@@ -37,8 +37,23 @@ const defaultMeta: BrandingMeta = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [colors, setColors] = useState<ThemeColors>(defaultColors);
-    const [meta, setMeta] = useState<BrandingMeta>(defaultMeta);
+    const [colors, setColors] = useState<ThemeColors>(() => {
+        try {
+            const stored = localStorage.getItem('theme-colors');
+            return stored ? JSON.parse(stored) : defaultColors;
+        } catch (e) {
+            return defaultColors;
+        }
+    });
+
+    const [meta, setMeta] = useState<BrandingMeta>(() => {
+        try {
+            const stored = localStorage.getItem('theme-meta');
+            return stored ? JSON.parse(stored) : defaultMeta;
+        } catch (e) {
+            return defaultMeta;
+        }
+    });
 
     useEffect(() => {
         const root = document.documentElement;
@@ -48,7 +63,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         root.style.setProperty('--color-accent', colors.accent);
         root.style.setProperty('--color-background', colors.background);
         root.style.setProperty('--color-text', colors.text);
+        localStorage.setItem('theme-colors', JSON.stringify(colors));
     }, [colors]);
+
+    useEffect(() => {
+        localStorage.setItem('theme-meta', JSON.stringify(meta));
+    }, [meta]);
 
     const setTheme = (newColors: ThemeColors, newMeta?: BrandingMeta) => {
         setColors(newColors);

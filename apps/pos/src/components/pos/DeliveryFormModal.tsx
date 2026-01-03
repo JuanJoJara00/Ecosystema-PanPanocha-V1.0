@@ -22,13 +22,15 @@ interface DeliveryFormModalProps {
 }
 
 export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormModalProps) {
-    const { currentBranchId, showAlert } = usePosStore();
+    const { currentBranchId, organizationId, showAlert } = usePosStore();
+
     const [loading, setLoading] = useState(false);
 
     // Form data
     const [deliveryFee, setDeliveryFee] = useState<number>(BUSINESS_CONFIG.DELIVERY_FEE_DEFAULT);
     const [assignedDriver, setAssignedDriver] = useState('');
     const [driverId, setDriverId] = useState('');
+    const [driverPhone, setDriverPhone] = useState(''); // Added to capture driver contact
     const [notes, setNotes] = useState('');
 
     const calculateProductTotal = () => {
@@ -47,6 +49,11 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
 
         if (!driverId.trim()) {
             showAlert('warning', 'Faltan Datos', 'Por favor ingresa la cédula del domiciliario');
+            return;
+        }
+
+        if (!driverPhone.trim()) {
+            showAlert('warning', 'Faltan Datos', 'Por favor ingresa el teléfono del domiciliario');
             return;
         }
 
@@ -70,27 +77,29 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
             const deliveryId = crypto.randomUUID();
 
             // Validate organizationId before proceeding
-            const organizationId = usePosStore.getState().organizationId;
+            // organizationId already available from destructuring
             if (!organizationId || organizationId.trim() === '') {
                 showAlert('error', 'Error de Configuración', 'El ID de la organización no está configurado. Por favor, reinicie la aplicación o contacte soporte.');
                 setLoading(false);
                 return;
             }
 
+            // Canonical address mapping for external service context
+            // Fixed address used since these are external driver pickups, not direct customer deliveries
+            const EXTERNAL_SERVICE_ADDRESS = 'Empresa de Domicilios';
+
             const dataToSave = {
                 id: deliveryId, // Use explicit ID
                 organization_id: organizationId,
                 branch_id: currentBranchId,
                 customer_name: 'Domicilio Externo',
-                phone: '', // No driver phone collected in this form
-                address: 'Empresa de Domicilios', // Mapped to address
-                customer_phone: '', // No customer phone collected in this form
-                customer_address: 'Empresa de Domicilios',
+                phone: driverPhone, // Mapped to driver phone
+                address: EXTERNAL_SERVICE_ADDRESS,
+                customer_phone: driverPhone, // Mapping driver phone as contact point for this external delivery
+                customer_address: EXTERNAL_SERVICE_ADDRESS,
                 product_details: JSON.stringify(productList),
                 delivery_fee: deliveryFee,
-                delivery_cost: deliveryFee, // Alias: delivery_cost used in some legacy views
                 assigned_driver: assignedDriver,
-                delivery_person: assignedDriver, // Alias: delivery_person used in some legacy views
                 status: 'pending' as const,
                 notes: notes || undefined,
             };
@@ -234,6 +243,17 @@ export default function DeliveryFormModal({ onClose, cartItems }: DeliveryFormMo
                                 }}
                                 className="border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                                 placeholder="1234567890"
+                            />
+                            <Input
+                                label="Celular Domiciliario *"
+                                required
+                                value={driverPhone}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    setDriverPhone(value);
+                                }}
+                                className="border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                                placeholder="300 123 4567"
                             />
                         </div>
 

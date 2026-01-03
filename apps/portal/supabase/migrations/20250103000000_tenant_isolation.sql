@@ -22,6 +22,20 @@ END $$;
 -- --- INVENTORY ITEMS ---
 ALTER TABLE inventory_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Branch Isolation" ON inventory_items;
+-- Catalog tables are shared: all authenticated users can read
+CREATE POLICY "Authenticated Read" ON inventory_items
+    FOR SELECT
+    USING (auth.uid() IS NOT NULL);
+
+-- Only admins can modify catalog (optional - adjust as needed)
+CREATE POLICY "Admin Write" ON inventory_items
+    FOR ALL
+    USING (
+        EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operaciones'))
+    )
+    WITH CHECK (
+        EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'operaciones'))
+    );
 -- Inventory items are global or per branch? 
 -- schema.ts says: inventory_items has NO branch_id? 
 -- Wait, schema.ts `products` has no branch_id (global catalog).
@@ -42,7 +56,7 @@ CREATE POLICY "Branch Isolation" ON branch_inventory
 
 -- --- SALES (Create if missing, matching PowerSync Schema) ---
 CREATE TABLE IF NOT EXISTS sales (
-  id text PRIMARY KEY, -- text/uuid
+  id uuid PRIMARY KEY, -- Changed to uuid for safety
   organization_id text,
   branch_id uuid NOT NULL REFERENCES branches(id),
   shift_id uuid, -- REFERENCES shifts(id)
@@ -72,9 +86,9 @@ CREATE POLICY "Branch Isolation" ON sales
 
 -- --- SALE ITEMS ---
 CREATE TABLE IF NOT EXISTS sale_items (
-    id text PRIMARY KEY,
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY, -- Changed to match 20250102
     organization_id text,
-    sale_id text NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
+    sale_id uuid NOT NULL REFERENCES sales(id) ON DELETE CASCADE, -- Changed to uuid
     product_id uuid NOT NULL REFERENCES products(id),
     quantity decimal(10,2) NOT NULL,
     unit_price decimal(10,2) NOT NULL,
@@ -108,7 +122,7 @@ CREATE POLICY "Branch Isolation" ON sale_items
 -- POS uses 'shifts'. If we create 'shifts' table, does it conflict with 'cash_closings'?
 -- Let's create 'shifts' if missing to support POS.
 CREATE TABLE IF NOT EXISTS shifts (
-    id text PRIMARY KEY,
+    id uuid PRIMARY KEY, -- Changed to uuid
     organization_id text,
     branch_id uuid NOT NULL REFERENCES branches(id),
     user_id uuid NOT NULL REFERENCES profiles(id),
@@ -143,10 +157,10 @@ CREATE INDEX IF NOT EXISTS idx_sales_shift_id ON sales(shift_id);
 
 -- --- EXPENSES ---
 CREATE TABLE IF NOT EXISTS expenses (
-    id text PRIMARY KEY,
+    id uuid PRIMARY KEY, -- Changed to uuid
     organization_id text,
     branch_id uuid NOT NULL REFERENCES branches(id),
-    shift_id text REFERENCES shifts(id),
+    shift_id uuid REFERENCES shifts(id), -- Changed to uuid
     user_id uuid NOT NULL REFERENCES profiles(id),
     description text NOT NULL,
     amount decimal(10,2) NOT NULL,
@@ -166,7 +180,7 @@ CREATE POLICY "Branch Isolation" ON expenses
 
 -- --- DELIVERIES ---
 CREATE TABLE IF NOT EXISTS deliveries (
-    id text PRIMARY KEY,
+    id uuid PRIMARY KEY, -- Changed to uuid
     organization_id text,
     branch_id uuid NOT NULL REFERENCES branches(id),
     customer_name text NOT NULL,
@@ -174,7 +188,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
     customer_address text NOT NULL,
     product_details text,
     delivery_fee decimal(10,2) DEFAULT 0,
-    status text DEFAULT 'pending',
+    status text DEFAULT 'pending' CHECK (status IN ('pending', 'dispatched', 'delivered', 'cancelled')),
     assigned_driver text,
     created_at timestamp with time zone DEFAULT now(),
     synced boolean DEFAULT false

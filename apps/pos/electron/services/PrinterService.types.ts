@@ -70,3 +70,34 @@ export interface CombinedClosingData {
         totalTransfer: number;
     };
 }
+
+export interface PrintTicketData {
+    sale: {
+        id: string;
+        created_at: string;
+        total_amount: number;
+        shift_id?: string;
+        branch_id?: string;
+        created_by?: string;
+        [key: string]: unknown;
+    };
+    items: Array<{
+        quantity: number;
+        name?: string;
+        product_name?: string;
+        unit_price?: number;
+        total_price?: number;
+        notes?: string;
+        [key: string]: unknown;
+    }>;
+    client?: Record<string, unknown>;
+    paymentData?: Record<string, unknown>;
+    branch?: {
+        name: string;
+        [key: string]: unknown;
+    };
+    user?: {
+        full_name: string;
+        [key: string]: unknown;
+    };
+}

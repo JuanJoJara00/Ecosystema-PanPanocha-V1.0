@@ -9,8 +9,9 @@ interface ConfigProviderProps {
 
 // Inner component to handle logic that requires useTheme
 function ConfigConsumer({ children }: { children: ReactNode }) {
-    const { setTheme } = useTheme();
+    // const { setTheme } = useTheme();
 
+    // Placeholder for future organization theme loading
     useEffect(() => {
         // TODO: Load from Organization Store or API
         // const orgSettings = useOrganizationStore.getState().settings;
@@ -26,7 +27,8 @@ function ConfigConsumer({ children }: { children: ReactNode }) {
         //     background: '#ffffff',
         //     text: '#000000'
         // });
-    }, [setTheme]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return <>{children}</>;
 }

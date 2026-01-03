@@ -9,6 +9,14 @@ const config: Config = {
     theme: {
         extend: {
             ...sharedConfig.theme?.extend,
+            colors: {
+                ...(sharedConfig.theme?.extend?.colors as any),
+                brand: {
+                    primary: 'var(--color-primary)',
+                    secondary: 'var(--color-secondary)',
+                    accent: 'var(--color-accent)',
+                }
+            }
         },
     },
     darkMode: 'class',

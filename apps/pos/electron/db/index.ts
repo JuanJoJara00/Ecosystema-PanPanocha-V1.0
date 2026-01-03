@@ -20,7 +20,17 @@ class POSConnector implements PowerSyncBackendConnector {
     }
 
     async fetchCredentials() {
-        const portalUrl = process.env.PORTAL_API_URL || process.env.VITE_PORTAL_API_URL || 'http://localhost:3000';
+        // 1. Resolve Portal URL
+        let portalUrl = process.env.PORTAL_API_URL || process.env.VITE_PORTAL_API_URL;
+
+        if (!portalUrl) {
+            if (process.env.NODE_ENV === 'production') {
+                throw new Error('PORTAL_API_URL environment variable is missing in production.');
+            }
+            portalUrl = 'http://localhost:3000';
+            console.warn('[PowerSync] No PORTAL_API_URL set, defaulting to localhost:3000');
+        }
+
         console.log('[PowerSync] Fetching credentials from:', portalUrl);
 
         if (!this.authToken) {
@@ -28,8 +38,12 @@ class POSConnector implements PowerSyncBackendConnector {
             throw new Error('No auth token available for PowerSync');
         }
 
+        // 2. Resolve Timeout
+        const envTimeout = parseInt(process.env.POWERSYNC_TIMEOUT_MS || process.env.VITE_POWERSYNC_TIMEOUT_MS || '', 10);
+        const timeoutMs = (!isNaN(envTimeout) && envTimeout > 0) ? envTimeout : 10000;
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
             const response = await fetch(`${portalUrl}/api/powersync/token`, {
@@ -65,72 +79,74 @@ class POSConnector implements PowerSyncBackendConnector {
         }
     }
 
+    /**
+     * Hybrid Sync Strategy (Graph API + PowerSync)
+     * 
+     * PowerSync sends us flat rows in the `batch` parameter. However, our backend API 
+     * (`/api/pos/sync`) is designed to handle complex Graphs (e.g. Sales with nested Items) 
+     * to ensure transactional integrity and validation of the entire order at once.
+     * 
+     * Therefore, we use a hybrid approach:
+     * 1. Trigger: PowerSync's `uploadData` acts as the "trigger" that local changes exist.
+     * 2. Monitor: We scan the `batch` to ensure we aren't ignoring unexpected data types.
+     * 3. Sync: We explicitly query the local SQLite DB for unsynced Sales (Graph) and push 
+     *    them to the API. This ensures the backend receives the full object it expects.
+     * 
+     * TODO: Future enhancement should either:
+     * - Adapt the API to accept flat rows (PowerSync Native).
+     * - Or implement `uploadBatchItems` to handle Shifts/Expenses directly from the batch.
+     */
     async uploadData(batch: any) {
         if (!this.authToken) {
             console.warn('[PowerSync] No auth token, skipping upload.');
             throw new Error('No auth token');
         }
 
-        // Group operations by table
-        const payload: any = {
-            sales: [],
-            shifts: [],
-            expenses: [],
-            branch_id: this.branchId // Must be set externally or inferred
+        // Monitoring: Check what's in the batch
+        const counts = {
+            sales: 0,
+            sale_items: 0,
+            shifts: 0,
+            expenses: 0,
+            others: 0
         };
 
         for (const op of batch.crud) {
-            if (op.op === 'PUT') {
+            if (op.op === 'PUT' || op.op === 'PATCH') {
                 switch (op.table) {
-                    case 'sales':
-                        // Fetch items for this sale from local DB? 
-                        // PowerSync batch data is just the row. 
-                        // But my API expects nested items.
-                        // I need to enrich this data or change API to accept flat items.
-                        // For "10x speed", let's fetch the full object with Drizzle if possible, or just send what we have.
-
-                        // LIMITATION: batch.crud.opData contains the row data.
-                        // Ideally, we send what we have. 
-                        // But if sale_items are separate ops, we can collect them.
-                        payload.sales.push(op.opData);
-                        break;
-                    case 'sale_items':
-                        // If API expects nested, this is hard.
-                        // But if I fixed API to flat upsert (which I didn't fully, I assume nesting),
-                        // I should fix API to accept flat sale_items too or handle association here.
-
-                        // Hack: Attach items to sales in payload if possible, or just send flat list if API supports it.
-                        // My API fix (Step 241) looks for "items" array in sale object.
-                        // It does NOT support flat "sale_items" array in root payload.
-
-                        // RE-PIVOT: I will query Drizzle here to get the full graph!
-                        // But I can't easily access Drizzle instance inside this class without circular dep.
-                        // We will rely on the "Outbox" pattern I ALREADY built which does this perfectly.
-                        // The user ASKED "Why custom sync?". 
-                        // Answer: Because PowerSync uploadData receives flat rows, and my API needs Graphs.
-                        // 
-                        // Compromise: I will assume the `batch` contains enough info or I will query using a localized helper.
-                        break;
-                    case 'shifts':
-                        payload.shifts.push(op.opData);
-                        break;
-                    case 'expenses':
-                        payload.expenses.push(op.opData);
-                        break;
+                    case 'sales': counts.sales++; break;
+                    case 'sale_items': counts.sale_items++; break;
+                    case 'shifts': counts.shifts++; break;
+                    case 'expenses': counts.expenses++; break;
+                    default: counts.others++; break;
                 }
             }
         }
 
-        // ... Implementation continues ...
-        // Actually, realized PowerSync uploadData is tricky with Graph APIs.
-        // I will implement a "Smart Upload" that ignores the batch content (ack!) 
-        // and just flushes the Outbox using my existing logic, but triggered by PowerSync!
+        console.log('[PowerSync] Batch Analysis:', counts);
 
-        console.log('[PowerSync] Upload triggered. flushing custom outbox...');
-        await this.flushOutbox();
+        // Warning for unhandled types
+        if (counts.shifts > 0) console.warn('⚠️ [Sync] Warning: Shifts detected in batch but currently ignored by Sync Strategy.');
+        if (counts.expenses > 0) console.warn('⚠️ [Sync] Warning: Expenses detected in batch but currently ignored by Sync Strategy.');
+        if (counts.others > 0) console.warn('⚠️ [Sync] Warning: Unknown tables detected in batch.');
+
+        // Execute Graph Sync for Sales
+        // This queries the DB directly for strict correctness
+        if (counts.sales > 0 || counts.sale_items > 0) {
+            console.log('[PowerSync] Triggering Sales Graph Sync...');
+            await this.flushSalesGraph();
+        } else {
+            console.log('[PowerSync] No sales changes detected, skipping Graph Sync.');
+        }
+
+        // TODO: Implement flushShifts() or flushExpenses() here if needed
+        // For now, we only support strictly Sales Graph Sync via this mechanism.
     }
 
-    async flushOutbox() {
+    /**
+     * Flushes local pending sales to the backend API as full Graph objects.
+     */
+    async flushSalesGraph() {
         // Re-implement the logic from SyncService here, using global db instance if available.
         // This satisfies "Use PowerSync Native" (hooking into uploadData) but keeps "Graph Sync" capability.
 

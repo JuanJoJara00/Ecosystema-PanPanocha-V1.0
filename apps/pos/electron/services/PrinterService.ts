@@ -2,7 +2,7 @@
 import { ThermalPrinter, PrinterTypes, CharacterSet } from 'node-thermal-printer';
 import { app } from 'electron';
 
-import { ClosingData, OrderDetailsData, CombinedClosingData } from './PrinterService.types';
+import { ClosingData, OrderDetailsData, CombinedClosingData, PrintTicketData } from './PrinterService.types';
 
 export class PrinterService {
     private static instance: PrinterService;
@@ -36,6 +36,9 @@ export class PrinterService {
      */
     private createPrinter(target: 'receipt' | 'kitchen' = 'receipt'): ThermalPrinter {
         const printerName = this.printers[target];
+        if (!printerName) {
+            throw new Error(`Unknown printer target: ${target}. Available: ${Object.keys(this.printers).join(', ')}`);
+        }
         return new ThermalPrinter({
             type: PrinterTypes.EPSON,
             interface: `printer:${printerName}`,
@@ -50,7 +53,7 @@ export class PrinterService {
      * @param data The sale or order data
      * @param target 'receipt' (Customer Receipt) | 'kitchen' (Kitchen Order)
      */
-    public async printTicket(data: any, target: 'receipt' | 'kitchen' = 'receipt'): Promise<void> {
+    public async printTicket(data: PrintTicketData, target: 'receipt' | 'kitchen' = 'receipt'): Promise<void> {
         console.log(`[Printer] Starting print job for ${target}`);
         const printer = this.createPrinter(target);
 
@@ -67,7 +70,7 @@ export class PrinterService {
         // --- Metadata ---
         printer.alignLeft();
         printer.println(`Fecha: ${new Date().toLocaleString('es-CO')}`);
-        if (data.shift_id) printer.println(`Turno: ${data.shift_id}`);
+        if (data.sale.shift_id) printer.println(`Turno: ${data.sale.shift_id}`);
         if (data.user?.full_name) printer.println(`Cajero: ${data.user.full_name}`);
         if (data.branch?.name) printer.println(`Sede: ${data.branch.name}`);
         printer.drawLine();
@@ -85,7 +88,7 @@ export class PrinterService {
         // Handle items array
         const items = data.items || [];
 
-        items.forEach((item: any) => {
+        items.forEach((item) => {
             const qty = item.quantity || 1;
             const name = (item.product_name || item.name || 'Item').substring(0, isKitchen ? 40 : 20);
 
@@ -98,7 +101,7 @@ export class PrinterService {
                 printer.newLine();
             } else {
                 // Receipt format: Quantity Name Price
-                const price = item.total_price || (item.unit_price * qty) || 0;
+                const price = item.total_price || ((item.unit_price || 0) * qty) || 0;
                 // Simple table formatting manually since tableCustom implies specific column widths
                 // Left aligned name, Right aligned price
                 printer.tableCustom([
@@ -114,7 +117,7 @@ export class PrinterService {
             printer.drawLine();
             printer.bold(true);
             printer.setTextSize(1, 1);
-            const total = data.total_amount || 0;
+            const total = data.sale.total_amount || 0;
             printer.println(`TOTAL: $${total.toLocaleString('es-CO')}`);
 
             printer.newLine();

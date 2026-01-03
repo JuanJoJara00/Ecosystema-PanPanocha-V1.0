@@ -16,9 +16,14 @@ BEGIN
     WHERE id = NEW.order_id;
 
     -- Validate that Purchase Order exists and has a branch
-    IF target_branch_id IS NULL THEN
-        RAISE EXCEPTION 'Purchase Order % not found or has no branch. Cannot update inventory.', NEW.order_id;
     END IF;
+
+    -- Lock existing row if present to prevent race conditions
+    -- This serializes concurrent updates for the same branch/item pair
+    PERFORM 1 
+    FROM branch_inventory
+    WHERE branch_id = target_branch_id AND item_id = NEW.item_id
+    FOR UPDATE;
 
     -- Upsert into Branch Inventory
     INSERT INTO branch_inventory (branch_id, item_id, quantity, last_updated)

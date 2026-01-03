@@ -110,18 +110,21 @@ BEGIN
 
     ELSE
       -- Product Changed: Handle both old and new products
-      -- 1. Restore OLD stock (Always valid)
-      -- Lock OLD product row
-      PERFORM 1 FROM products WHERE id = OLD.product_id FOR UPDATE;
+      -- Acquire locks in consistent order to prevent deadlock
+      IF OLD.product_id < NEW.product_id THEN
+        PERFORM 1 FROM products WHERE id = OLD.product_id FOR UPDATE;
+        PERFORM 1 FROM products WHERE id = NEW.product_id FOR UPDATE;
+      ELSE
+        PERFORM 1 FROM products WHERE id = NEW.product_id FOR UPDATE;
+        PERFORM 1 FROM products WHERE id = OLD.product_id FOR UPDATE;
+      END IF;
 
+      -- 1. Restore OLD stock (Always valid)
       UPDATE products
       SET stock = stock + OLD.quantity
       WHERE id = OLD.product_id;
       
       -- 2. Deduct NEW stock (Check availability)
-      -- Lock new product row
-      PERFORM 1 FROM products WHERE id = NEW.product_id FOR UPDATE;
-      
       UPDATE products
       SET stock = stock - NEW.quantity
       WHERE id = NEW.product_id AND stock >= NEW.quantity;
@@ -136,7 +139,7 @@ BEGIN
 
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_catalog;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, auth, pg_catalog;
 
 -- 3. Create Trigger
 DROP TRIGGER IF EXISTS trigger_deduct_stock ON sale_items;

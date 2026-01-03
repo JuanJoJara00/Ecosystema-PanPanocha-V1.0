@@ -631,6 +631,7 @@ export default function DeliveriesSection() {
                                         </button>
 
                                         <button
+                                            type="button"
                                             onClick={() => setShowCancelConfirm(true)}
                                             disabled={processing}
                                             className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-4 rounded-xl text-sm uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
@@ -663,12 +664,14 @@ export default function DeliveriesSection() {
                                     </p>
                                     <div className="grid grid-cols-2 gap-3 pt-2">
                                         <button
+                                            type="button"
                                             onClick={() => setShowCancelConfirm(false)}
                                             className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-xl text-sm transition-colors"
                                         >
                                             VOLVER
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => {
                                                 if (selectedDelivery) handleCancelDelivery(selectedDelivery.id);
                                                 setShowCancelConfirm(false);

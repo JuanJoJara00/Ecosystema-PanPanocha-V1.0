@@ -2,28 +2,70 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { SignJWT, importPKCS8 } from 'jose';
 
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
 export const dynamic = 'force-dynamic';
 
-export async function OPTIONS() {
-    return NextResponse.json({}, {
-        headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-    });
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'];
+
+// Initialize Rate Limiter
+// Allow 10 requests per 10 seconds per identifier
+const ratelimit = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(10, "10 s"),
+    analytics: true,
+    prefix: "@panpanocha/ratelimit",
+});
+
+function getCorsHeaders(request: Request) {
+    const origin = request.headers.get('origin') || '';
+    const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    return {
+        'Access-Control-Allow-Origin': allowOrigin,
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+}
+
+export async function OPTIONS(request: Request) {
+    return NextResponse.json({}, { headers: getCorsHeaders(request) });
 }
 
 export async function GET(request: Request) {
     try {
+        const corsHeaders = getCorsHeaders(request);
+
+        // Rate Limiting
         const authHeader = request.headers.get('Authorization');
+        const tokenPart = authHeader?.split(' ')[1];
+        const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+
+        // Prefer token (user-specific) if available, otherwise fallback to IP
+        const identifier = tokenPart || ip;
+
+        const { success, limit, reset, remaining } = await ratelimit.limit(identifier);
+
+        if (!success) {
+            return NextResponse.json({ error: 'Too Many Requests' }, {
+                status: 429,
+                headers: {
+                    ...corsHeaders,
+                    'X-RateLimit-Limit': limit.toString(),
+                    'X-RateLimit-Remaining': remaining.toString(),
+                    'X-RateLimit-Reset': reset.toString(),
+                    'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString()
+                }
+            });
+        }
+
         if (!authHeader) {
-            return NextResponse.json({ error: 'Missing Authorization Header' }, { status: 401 });
+            return NextResponse.json({ error: 'Missing Authorization Header' }, { status: 401, headers: corsHeaders });
         }
 
         const parts = authHeader.split(' ');
         if (parts.length !== 2 || parts[0] !== 'Bearer') {
-            return NextResponse.json({ error: 'Invalid Authorization Header Format' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid Authorization Header Format' }, { status: 401, headers: corsHeaders });
         }
         const token = parts[1];
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -31,7 +73,7 @@ export async function GET(request: Request) {
 
         if (!supabaseUrl || !supabaseServiceKey) {
             console.error('[PowerSync] Missing Supabase Config');
-            return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500 });
+            return NextResponse.json({ error: 'Server Configuration Error' }, { status: 500, headers: corsHeaders });
         }
 
         // Verify Supabase Token
@@ -40,7 +82,7 @@ export async function GET(request: Request) {
 
         if (error || !user) {
             console.error('[PowerSync] Invalid User Token:', error);
-            return NextResponse.json({ error: 'Invalid Token' }, { status: 401 });
+            return NextResponse.json({ error: 'Invalid Token' }, { status: 401, headers: corsHeaders });
         }
 
         // Generate PowerSync Token
@@ -49,7 +91,7 @@ export async function GET(request: Request) {
 
         if (!powerSyncUrl || !privateKeyPEM) {
             console.error('[PowerSync] Missing PowerSync Keys');
-            return NextResponse.json({ error: 'PowerSync Config Missing' }, { status: 500 });
+            return NextResponse.json({ error: 'PowerSync Config Missing' }, { status: 500, headers: corsHeaders });
         }
 
         const privateKey = await importPKCS8(privateKeyPEM, 'EdDSA');
@@ -68,9 +110,7 @@ export async function GET(request: Request) {
             token: psToken,
             endpoint: powerSyncUrl
         }, {
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-            }
+            headers: corsHeaders
         });
 
     } catch (e) {
