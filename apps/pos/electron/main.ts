@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { z } from 'zod'; // Security Validation
-import { resetAndGenerateMockData, generateMockEmployees } from './dev-reset-data';
 import { PrinterService } from './services/PrinterService'; // Worker Manager
 import { SecurityManager } from './security';
 
@@ -19,11 +18,9 @@ const originalHandle = ipcMain.handle;
 };
 
 // --- Sync Service Integration ---
-// import { SyncService } from './services/SyncService'; // REMOVED
 import { connector } from './db/index';
 
 // Initialize Sync Service
-// SyncService.start(); // REMOVED - PowerSync handles this
 
 ipcMain.handle('auth-set-token', (event, token: string) => {
     console.log('[Main] Auth Token Received for PowerSync Connector');
@@ -58,7 +55,6 @@ ipcMain.handle('printer-set-organization', (event, config) => {
 
 // Initialize DB
 import { initDatabase, getDb } from './db/index';
-import Database from 'better-sqlite3';
 // Legacy imports kept for now during Strangler Migration
 import { products, sales, saleItems, orders, orderItems, shifts, expenses, tipDistributions, branches, users } from './db/schema';
 import { count, like, eq, and, sql, desc, sum } from 'drizzle-orm';
@@ -103,11 +99,6 @@ const dbInitPromise = (async () => {
         branchController = new BranchController(db);
         userController = new UserController(db);
         systemController = new SystemController(db);
-
-        // Initialize legacy DB in parallel for now
-        // initDB(); // Migrated to Drizzle/PowerSync
-
-        // initDB(); // Migrated to Drizzle/PowerSync
 
         // Register IPC Handlers NOW that controllers are ready
         registerHandlers();
@@ -734,29 +725,7 @@ function registerBottomHandlers() {
     ipcMain.handle('db-update-delivery-status', (e, { id, status }) => deliveryController.updateStatus(id, status));
     ipcMain.handle('db-sync-deliveries', (e, items) => deliveryController.upsertMany(items));
 
-    // DEV ONLY: Reset and generate mock data
-    ipcMain.handle('dev-reset-and-generate-mock-data', async () => {
-        // Open a temporary connection strictly for this maintenance task
-        const dbPath = path.join(app.getPath('userData'), 'pos.db');
-        const tempDb = new Database(dbPath);
-        try {
-            const { resetAndGenerateMockData } = require('./dev-reset-data');
-            return resetAndGenerateMockData(tempDb);
-        } finally {
-            tempDb.close();
-        }
-    });
 
-    ipcMain.handle('dev-generate-employees', async () => {
-        const dbPath = path.join(app.getPath('userData'), 'pos.db');
-        const tempDb = new Database(dbPath);
-        try {
-            const { generateMockEmployees } = require('./dev-reset-data');
-            return generateMockEmployees(tempDb);
-        } finally {
-            tempDb.close();
-        }
-    });
 
     ipcMain.handle('print-combined-closing', async (e, data) => {
         console.log('[Printer] Generating Combined Closing via ESC/POS...');

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { usePosStore } from './store';
 import { PosLayout } from './components/pos/PosLayout';
 import { LoginScreen } from './components/auth/LoginScreen';
+import { supabase } from './api/client';
 import { ProvisioningScreen } from './components/auth/ProvisioningScreen';
 import { OpenShiftScreen } from './components/pos/OpenShiftScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -35,6 +36,19 @@ function App() {
     }
     */
   }, [initialize]);
+
+  // Auth Listener for Electron Sync
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.access_token) {
+        console.log('[App] Auth Update:', event);
+        window.electron.setAuthToken(session.access_token).catch(console.error);
+      }
+    });
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
 
 
