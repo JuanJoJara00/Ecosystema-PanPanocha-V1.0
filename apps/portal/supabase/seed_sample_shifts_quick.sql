@@ -16,7 +16,7 @@ SELECT
     650000,
     650000,
     'closed',
-    '{"mys": {"base_cash": 100000, "sales_cash": 350000, "sales_card": 150000, "sales_transfer": 50000, "expenses_total": 30000, "tips_total": 20000, "cash_audit_count": 650000}}'::jsonb,
+    '{"panpanocha": {"base_cash": 100000, "sales_cash": 350000, "sales_card": 150000, "sales_transfer": 50000, "expenses_total": 30000, "tips_total": 20000, "cash_audit_count": 650000}}'::jsonb,
     NOW(),
     NOW(),
     true
@@ -36,7 +36,7 @@ SELECT
     520000,
     520000,
     'closed',
-    '{"mys": {"base_cash": 100000, "sales_cash": 280000, "sales_card": 120000, "sales_transfer": 40000, "expenses_total": 15000, "tips_total": 5000, "cash_audit_count": 520000}}'::jsonb,
+    '{"panpanocha": {"base_cash": 100000, "sales_cash": 280000, "sales_card": 120000, "sales_transfer": 40000, "expenses_total": 15000, "tips_total": 5000, "cash_audit_count": 520000}}'::jsonb,
     NOW(),
     NOW(),
     true
@@ -56,7 +56,7 @@ SELECT
     700000,
     700000,
     'closed',
-    '{"mys": {"base_cash": 100000, "sales_cash": 400000, "sales_card": 180000, "sales_transfer": 60000, "expenses_total": 25000, "tips_total": 15000, "cash_audit_count": 700000}, "siigo": {"base_cash": 50000, "sales_cash": 200000, "sales_card": 100000, "sales_transfer": 30000, "expenses_total": 10000, "tips_total": 5000, "cash_audit_count": 235000}}'::jsonb,
+    '{"panpanocha": {"base_cash": 100000, "sales_cash": 400000, "sales_card": 180000, "sales_transfer": 60000, "expenses_total": 25000, "tips_total": 15000, "cash_audit_count": 700000}, "siigo": {"base_cash": 50000, "sales_cash": 200000, "sales_card": 100000, "sales_transfer": 30000, "expenses_total": 10000, "tips_total": 5000, "cash_audit_count": 235000}}'::jsonb,
     NOW(),
     NOW(),
     true
@@ -76,7 +76,7 @@ SELECT
     480000,
     480000,
     'closed',
-    '{"mys": {"base_cash": 100000, "sales_cash": 250000, "sales_card": 110000, "sales_transfer": 35000, "expenses_total": 10000, "tips_total": 5000, "cash_audit_count": 480000}}'::jsonb,
+    '{"panpanocha": {"base_cash": 100000, "sales_cash": 250000, "sales_card": 110000, "sales_transfer": 35000, "expenses_total": 10000, "tips_total": 5000, "cash_audit_count": 480000}}'::jsonb,
     NOW(),
     NOW(),
     true
@@ -96,7 +96,7 @@ SELECT
     545000,
     550000,
     'closed',
-    '{"mys": {"base_cash": 100000, "sales_cash": 300000, "sales_card": 130000, "sales_transfer": 45000, "expenses_total": 20000, "tips_total": 5000, "cash_audit_count": 545000, "notes": "Faltante de $5,000"}}'::jsonb,
+    '{"panpanocha": {"base_cash": 100000, "sales_cash": 300000, "sales_card": 130000, "sales_transfer": 45000, "expenses_total": 20000, "tips_total": 5000, "cash_audit_count": 545000, "notes": "Faltante de $5,000"}}'::jsonb,
     NOW(),
     NOW(),
     true
@@ -120,7 +120,7 @@ SELECT
     EXTRACT(HOUR FROM start_time) as hora,
     shift_type,
     initial_cash as base,
-    (closing_metadata->'mys'->>'sales_cash')::numeric as ventas_efectivo,
+    (closing_metadata->'panpanocha'->>'sales_cash')::numeric as ventas_efectivo,
     status
 FROM shifts
 WHERE status = 'closed'

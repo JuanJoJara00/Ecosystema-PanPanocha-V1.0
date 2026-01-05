@@ -21,7 +21,7 @@ type UnifiedClosing = {
     shift: string
     branch_name: string
     branch_id: string
-    mys?: any
+    panpanocha?: any
     siigo?: any
 }
 
@@ -98,8 +98,8 @@ export default function ClosingHistory() {
             if (type === 'panpanocha_invoice') {
                 updatedMetadata = {
                     ...updatedMetadata,
-                    mys: {
-                        ...(updatedMetadata.mys || {}),
+                    panpanocha: {
+                        ...(updatedMetadata.panpanocha || {}),
                         panpanocha_invoice_url: publicUrl
                     }
                 }
@@ -127,8 +127,8 @@ export default function ClosingHistory() {
             if (type === 'panpanocha_invoice') {
                 updatedUnified = {
                     ...updatedUnified,
-                    mys: {
-                        ...updatedUnified.mys,
+                    panpanocha: {
+                        ...updatedUnified.panpanocha,
                         panpanocha_invoice_url: publicUrl
                     }
                 }
@@ -192,7 +192,7 @@ export default function ClosingHistory() {
 
             const branch = branches.find(b => b.id === s.branch_id)
 
-            const mysData = {
+            const panpanochaData = {
                 base_cash: s.initial_cash || 0,
                 sales_cash: (s.final_cash || 0) - (s.initial_cash || 0),
                 sales_card: 0,
@@ -201,7 +201,7 @@ export default function ClosingHistory() {
                 tips_total: 0,
                 cash_audit_count: s.final_cash || 0,
                 notes: 'Cierre Operativo POS',
-                ...metadata.mys
+                ...metadata.panpanocha
             };
 
             return {
@@ -210,8 +210,7 @@ export default function ClosingHistory() {
                 shift: 'General',
                 branch_id: s.branch_id,
                 branch_name: branch?.name || 'Sede Desconocida',
-                panpanocha: mysData,
-                mys: mysData,
+                panpanocha: panpanochaData,
                 siigo: metadata.siigo || null
             }
         })
@@ -286,14 +285,14 @@ export default function ClosingHistory() {
         doc.text(`Fecha: ${formatDate(unified.date)}`, 14, 38)
 
         let startY = 55
-        // Mys Table
-        if (unified.mys) {
+        // PanPanocha Table
+        if (unified.panpanocha) {
             doc.setFontSize(14)
             doc.setTextColor(217, 119, 6) // Orange
             doc.text('Cierre Panpanocha (Operativo)', 14, startY)
 
             autoTable(doc, {
-                startY: startY + 5, head: [['Concepto', 'Valor']], body: [['Ventas', formatCurrency(unified.mys.sales_cash)]]
+                startY: startY + 5, head: [['Concepto', 'Valor']], body: [['Ventas', formatCurrency(unified\.panpanocha.sales_cash)]]
             })
             // @ts-ignore
             startY = doc.lastAutoTable.finalY + 15
@@ -365,7 +364,7 @@ export default function ClosingHistory() {
                             <p className="text-3xl font-black text-orange-900 dark:text-orange-200">
                                 {formatCurrency(
                                     filteredClosings.reduce((sum, c) =>
-                                        sum + ((c.mys?.sales_cash || 0) + (c.mys?.sales_card || 0) + (c.mys?.sales_transfer || 0)), 0
+                                        sum + ((cpan panocha?.sales_cash || 0) + (cpan panocha?.sales_card || 0) + (cpan panocha?.sales_transfer || 0)), 0
                                     )
                                 )}
                             </p>
@@ -407,7 +406,7 @@ export default function ClosingHistory() {
                             <p className="text-3xl font-black text-gray-900 dark:text-gray-200">
                                 {formatCurrency(
                                     filteredClosings.reduce((sum, c) =>
-                                        sum + ((c.mys?.expenses_total || 0) + (c.mys?.tips_total || 0) + (c.siigo?.expenses_total || 0) + (c.siigo?.tips_total || 0)), 0
+                                        sum + ((cpan panocha?.expenses_total || 0) + (cpan panocha?.tips_total || 0) + (c.siigo?.expenses_total || 0) + (c.siigo?.tips_total || 0)), 0
                                     )
                                 )}
                             </p>
@@ -440,12 +439,12 @@ export default function ClosingHistory() {
 
                                 <div className="p-4 space-y-4">
                                     {closings.map(unified => {
-                                        const mysTotal = unified.mys ? ((unified.mys.sales_cash || 0) + (unified.mys.sales_card || 0) + (unified.mys.sales_transfer || 0)) : 0
+                                        const mysTotal = unified\.panpanocha ? ((unified\.panpanocha.sales_cash || 0) + (unified\.panpanocha.sales_card || 0) + (unified\.panpanocha.sales_transfer || 0)) : 0
                                         const siigoTotal = unified.siigo ? ((unified.siigo.sales_cash || 0) + (unified.siigo.sales_card || 0) + (unified.siigo.sales_transfer || 0)) : 0
                                         const combinedTotal = mysTotal + siigoTotal
 
                                         // Combined Difference Calculation
-                                        const mysDiff = unified.mys ? (unified.mys.cash_audit_count - (unified.mys.base_cash + unified.mys.sales_cash - unified.mys.expenses_total - unified.mys.tips_total)) : 0
+                                        const mysDiff = unified\.panpanocha ? (unified\.panpanocha.cash_audit_count - (unified\.panpanocha.base_cash + unified\.panpanocha.sales_cash - unified\.panpanocha.expenses_total - unified\.panpanocha.tips_total)) : 0
                                         const siigoDiff = unified.siigo ? (unified.siigo.cash_audit_count - (unified.siigo.base_cash + unified.siigo.sales_cash - unified.siigo.expenses_total - unified.siigo.tips_total)) : 0
                                         const totalDiff = mysDiff + siigoDiff
 
@@ -474,7 +473,7 @@ export default function ClosingHistory() {
                                                         </div>
 
                                                         <div className="flex items-center gap-2">
-                                                            {unified.mys && <span className="bg-orange-50 text-orange-700 border border-orange-200 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">Panpanocha</span>}
+                                                            {unified\.panpanocha && <span className="bg-orange-50 text-orange-700 border border-orange-200 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">Panpanocha</span>}
                                                             {unified.siigo && <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">SIIGO</span>}
                                                             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 ${isFullyComplete ? 'bg-green-100 text-green-700' : 'bg-[#5D4037]/10 text-[#5D4037]'}`}>
                                                                 <div className={`w-2 h-2 rounded-full ${isFullyComplete ? 'bg-green-500' : 'bg-[#5D4037]'}`} />
@@ -494,26 +493,26 @@ export default function ClosingHistory() {
                                                         <div>
                                                             <p className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1 tracking-wider">Efectivo</p>
                                                             <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">
-                                                                {formatCurrency((unified.mys?.sales_cash || 0) + (unified.siigo?.sales_cash || 0))}
+                                                                {formatCurrency((unifiedpan panocha?.sales_cash || 0) + (unified.siigo?.sales_cash || 0))}
                                                             </p>
                                                         </div>
                                                         <div>
                                                             <p className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1 tracking-wider">Tarjeta</p>
                                                             <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">
-                                                                {formatCurrency((unified.mys?.sales_card || 0) + (unified.siigo?.sales_card || 0))}
+                                                                {formatCurrency((unifiedpan panocha?.sales_card || 0) + (unified.siigo?.sales_card || 0))}
                                                             </p>
                                                         </div>
                                                         <div>
                                                             <p className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1 tracking-wider">Transf.</p>
                                                             <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">
-                                                                {formatCurrency((unified.mys?.sales_transfer || 0) + (unified.siigo?.sales_transfer || 0))}
+                                                                {formatCurrency((unifiedpan panocha?.sales_transfer || 0) + (unified.siigo?.sales_transfer || 0))}
                                                             </p>
                                                         </div>
                                                         <div>
                                                             <p className="text-[10px] uppercase font-bold text-red-300 dark:text-red-400 mb-1 tracking-wider">Gastos</p>
                                                             <p className="font-bold text-red-500 dark:text-red-400 text-sm">
                                                                 {formatCurrency(
-                                                                    ((unified.mys?.expenses_total || 0) + (unified.mys?.tips_total || 0)) +
+                                                                    ((unifiedpan panocha?.expenses_total || 0) + (unifiedpan panocha?.tips_total || 0)) +
                                                                     ((unified.siigo?.expenses_total || 0) + (unified.siigo?.tips_total || 0))
                                                                 )}
                                                             </p>
@@ -568,31 +567,31 @@ export default function ClosingHistory() {
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
 
                                 {/* PANPANOCHA SIDE */}
-                                <div className={`p-5 rounded-3xl border-2 transition-all ${selectedUnified.mys ? 'border-orange-200 dark:border-orange-500/30 bg-white dark:bg-slate-900 shadow-sm' : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-slate-800 opacity-60'}`}>
+                                <div className={`p-5 rounded-3xl border-2 transition-all ${selectedUnified\.panpanocha ? 'border-orange-200 dark:border-orange-500/30 bg-white dark:bg-slate-900 shadow-sm' : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-slate-800 opacity-60'}`}>
                                     <div className="flex items-center gap-3 mb-6 pb-4 border-b border-orange-100 dark:border-orange-500/20">
                                         <div className="bg-orange-100 dark:bg-orange-500/20 p-2 rounded-xl text-orange-600 dark:text-orange-400 shadow-sm"><Store className="w-5 h-5" /></div>
                                         <h4 className="font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Cierre Panpanocha</h4>
                                     </div>
 
-                                    {selectedUnified.mys ? (
+                                    {selectedUnified\.panpanocha ? (
                                         (() => {
-                                            const exp = selectedUnified.mys.base_cash + selectedUnified.mys.sales_cash - selectedUnified.mys.expenses_total - selectedUnified.mys.tips_total
-                                            const real = selectedUnified.mys.cash_audit_count
+                                            const exp = selectedUnified\.panpanocha.base_cash + selectedUnified\.panpanocha.sales_cash - selectedUnified\.panpanocha.expenses_total - selectedUnified\.panpanocha.tips_total
+                                            const real = selectedUnified\.panpanocha.cash_audit_count
                                             const diff = real - exp
                                             const hasDiff = Math.abs(diff) > 50
 
                                             // MERGED EXPENSES DISPLAY
-                                            const displayExpenses = (selectedUnified.mys.expenses_total || 0) + (selectedUnified.mys.tips_total || 0)
+                                            const displayExpenses = (selectedUnified\.panpanocha.expenses_total || 0) + (selectedUnified\.panpanocha.tips_total || 0)
 
                                             return (
                                                 <div className="space-y-6">
                                                     <div className="space-y-3 text-sm">
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Base Inicial</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.mys.base_cash)}</span></div>
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Efectivo</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.mys.sales_cash)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Base Inicial</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified\.panpanocha.base_cash)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Efectivo</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified\.panpanocha.sales_cash)}</span></div>
 
                                                         {/* NEW: Card & Transfer */}
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Tarjeta</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.mys.sales_card || 0)}</span></div>
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Transferencia</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.mys.sales_transfer || 0)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Tarjeta</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified\.panpanocha.sales_card || 0)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Transferencia</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified\.panpanocha.sales_transfer || 0)}</span></div>
 
                                                         <div className="flex justify-between items-center p-2 hover:bg-red-50/50 dark:hover:bg-red-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Gastos</span> <span className="font-bold text-red-500 dark:text-red-400">-{formatCurrency(displayExpenses)}</span></div>
 
@@ -619,7 +618,7 @@ export default function ClosingHistory() {
                                                         <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Total Ventas Registradas</h5>
                                                         <div className="flex justify-between items-end">
                                                             <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Global</span>
-                                                            <span className="font-black text-xl text-gray-800 dark:text-white">{formatCurrency((selectedUnified.mys.sales_cash || 0) + (selectedUnified.mys.sales_card || 0) + (selectedUnified.mys.sales_transfer || 0))}</span>
+                                                            <span className="font-black text-xl text-gray-800 dark:text-white">{formatCurrency((selectedUnified\.panpanocha.sales_cash || 0) + (selectedUnified\.panpanocha.sales_card || 0) + (selectedUnified\.panpanocha.sales_transfer || 0))}</span>
                                                         </div>
                                                     </div>
 
@@ -638,14 +637,14 @@ export default function ClosingHistory() {
 
                                                         <div
                                                             onClick={() => {
-                                                                if (selectedUnified.mys?.panpanocha_invoice_url) {
-                                                                    window.open(selectedUnified.mys.panpanocha_invoice_url, '_blank')
+                                                                if (selectedUnifiedpan panocha?.panpanocha_invoice_url) {
+                                                                    window.open(selectedUnified\.panpanocha.panpanocha_invoice_url, '_blank')
                                                                 } else {
                                                                     panpanochaInvoiceInputRef.current?.click()
                                                                 }
                                                             }}
                                                             className={`w-full border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group relative overflow-hidden
-                                                                ${selectedUnified.mys?.panpanocha_invoice_url
+                                                                ${selectedUnifiedpan panocha?.panpanocha_invoice_url
                                                                     ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-500/30 hover:bg-orange-100 dark:hover:bg-orange-900/30'
                                                                     : 'bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-orange-200 dark:hover:border-orange-500/50 hover:shadow-sm'
                                                                 }`}
@@ -654,14 +653,14 @@ export default function ClosingHistory() {
                                                                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-600"></div>
                                                             ) : (
                                                                 <>
-                                                                    <div className={`p-2 rounded-full transition-colors ${selectedUnified.mys?.panpanocha_invoice_url ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-orange-500 group-hover:border-orange-100'}`}>
-                                                                        {selectedUnified.mys?.panpanocha_invoice_url ? <Check className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
+                                                                    <div className={`p-2 rounded-full transition-colors ${selectedUnifiedpan panocha?.panpanocha_invoice_url ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-orange-500 group-hover:border-orange-100'}`}>
+                                                                        {selectedUnifiedpan panocha?.panpanocha_invoice_url ? <Check className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
                                                                     </div>
-                                                                    <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnified.mys?.panpanocha_invoice_url ? 'text-orange-700 dark:text-orange-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600'}`}>
-                                                                        {selectedUnified.mys?.panpanocha_invoice_url ? 'Factura Cargada' : 'Factura POS PanPanocha'}
+                                                                    <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnifiedpan panocha?.panpanocha_invoice_url ? 'text-orange-700 dark:text-orange-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600'}`}>
+                                                                        {selectedUnifiedpan panocha?.panpanocha_invoice_url ? 'Factura Cargada' : 'Factura POS PanPanocha'}
                                                                     </span>
 
-                                                                    {selectedUnified.mys?.panpanocha_invoice_url && (
+                                                                    {selectedUnifiedpan panocha?.panpanocha_invoice_url && (
                                                                         <div
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation()
@@ -908,7 +907,7 @@ export default function ClosingHistory() {
                                                         <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Total Ventas</p>
                                                         <p className="text-xl font-black text-white leading-none">
                                                             {formatCurrency(
-                                                                ((selectedUnified.mys?.sales_cash || 0) + (selectedUnified.mys?.sales_card || 0) + (selectedUnified.mys?.sales_transfer || 0)) +
+                                                                ((selectedUnifiedpan panocha?.sales_cash || 0) + (selectedUnifiedpan panocha?.sales_card || 0) + (selectedUnifiedpan panocha?.sales_transfer || 0)) +
                                                                 ((selectedUnified.siigo?.sales_cash || 0) + (selectedUnified.siigo?.sales_card || 0) + (selectedUnified.siigo?.sales_transfer || 0))
                                                             )}
                                                         </p>
@@ -918,15 +917,15 @@ export default function ClosingHistory() {
                                                 <div className="grid grid-cols-3 gap-2 text-[10px] font-medium border-t border-white/10 pt-3 text-slate-300">
                                                     <div className="flex flex-col">
                                                         <span className="opacity-40 text-[9px] uppercase mb-0.5">Efectivo</span>
-                                                        <span className="font-bold">{formatCurrency((selectedUnified.mys?.sales_cash || 0) + (selectedUnified.siigo?.sales_cash || 0))}</span>
+                                                        <span className="font-bold">{formatCurrency((selectedUnifiedpan panocha?.sales_cash || 0) + (selectedUnified.siigo?.sales_cash || 0))}</span>
                                                     </div>
                                                     <div className="flex flex-col border-l border-white/10 pl-2">
                                                         <span className="opacity-40 text-[9px] uppercase mb-0.5">Tarjeta</span>
-                                                        <span className="font-bold">{formatCurrency((selectedUnified.mys?.sales_card || 0) + (selectedUnified.siigo?.sales_card || 0))}</span>
+                                                        <span className="font-bold">{formatCurrency((selectedUnifiedpan panocha?.sales_card || 0) + (selectedUnified.siigo?.sales_card || 0))}</span>
                                                     </div>
                                                     <div className="flex flex-col border-l border-white/10 pl-2">
                                                         <span className="opacity-40 text-[9px] uppercase mb-0.5">Transf.</span>
-                                                        <span className="font-bold">{formatCurrency((selectedUnified.mys?.sales_transfer || 0) + (selectedUnified.siigo?.sales_transfer || 0))}</span>
+                                                        <span className="font-bold">{formatCurrency((selectedUnifiedpan panocha?.sales_transfer || 0) + (selectedUnified.siigo?.sales_transfer || 0))}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -941,7 +940,7 @@ export default function ClosingHistory() {
                                                         <p className="text-[10px] uppercase tracking-widest font-bold text-red-300/70 mb-1">Total Gastos</p>
                                                         <p className="text-xl font-black text-red-300 group-hover:text-red-200 transition-colors leading-none">
                                                             {formatCurrency(
-                                                                ((selectedUnified.mys?.expenses_total || 0) + (selectedUnified.mys?.tips_total || 0)) +
+                                                                ((selectedUnifiedpan panocha?.expenses_total || 0) + (selectedUnifiedpan panocha?.tips_total || 0)) +
                                                                 ((selectedUnified.siigo?.expenses_total || 0) + (selectedUnified.siigo?.tips_total || 0))
                                                             )}
                                                         </p>
@@ -964,7 +963,7 @@ export default function ClosingHistory() {
                                                         <p className="text-[10px] uppercase tracking-widest font-black text-emerald-400/80 mb-1">Total a Entregar</p>
                                                         <p className="text-2xl font-black text-emerald-400 group-hover:text-emerald-300 transition-colors leading-none">
                                                             {formatCurrency(
-                                                                ((selectedUnified.mys?.cash_audit_count || 0) - (selectedUnified.mys?.base_cash || 0)) +
+                                                                ((selectedUnifiedpan panocha?.cash_audit_count || 0) - (selectedUnifiedpan panocha?.base_cash || 0)) +
                                                                 ((selectedUnified.siigo?.cash_audit_count || 0) - (selectedUnified.siigo?.base_cash || 0))
                                                             )}
                                                         </p>
