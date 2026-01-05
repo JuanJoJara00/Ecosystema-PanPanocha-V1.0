@@ -347,6 +347,75 @@ export default function ClosingHistory() {
                 onTabChange={setSelectedBranch}
                 labelAll="Todas las Sedes"
             />
+
+            {/* KPI Cards */}
+            {!loading && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Efectivo Panpanocha */}
+                    <Card className="bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 border-2 border-orange-200 dark:border-orange-500/30 shadow-sm">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="bg-orange-100 dark:bg-orange-500/20 p-2 rounded-xl">
+                                    <Store className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                                </div>
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                                    Efectivo Panpanocha
+                                </h3>
+                            </div>
+                            <p className="text-3xl font-black text-orange-900 dark:text-orange-200">
+                                {formatCurrency(
+                                    filteredClosings.reduce((sum, c) =>
+                                        sum + ((c.mys?.sales_cash || 0) + (c.mys?.sales_card || 0) + (c.mys?.sales_transfer || 0)), 0
+                                    )
+                                )}
+                            </p>
+                        </div>
+                    </Card>
+
+                    {/* Efectivo Siigo */}
+                    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-500/30 shadow-sm">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="bg-blue-100 dark:bg-blue-500/20 p-2 rounded-xl">
+                                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                                    Efectivo Siigo
+                                </h3>
+                            </div>
+                            <p className="text-3xl font-black text-blue-900 dark:text-blue-200">
+                                {formatCurrency(
+                                    filteredClosings.reduce((sum, c) =>
+                                        sum + ((c.siigo?.sales_cash || 0) + (c.siigo?.sales_card || 0) + (c.siigo?.sales_transfer || 0)), 0
+                                    )
+                                )}
+                            </p>
+                        </div>
+                    </Card>
+
+                    {/* Gastos de Caja */}
+                    <Card className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 border-2 border-gray-200 dark:border-gray-500/30 shadow-sm">
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="bg-gray-100 dark:bg-gray-500/20 p-2 rounded-xl">
+                                    <DollarSign className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                </div>
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                                    Gastos de Caja
+                                </h3>
+                            </div>
+                            <p className="text-3xl font-black text-gray-900 dark:text-gray-200">
+                                {formatCurrency(
+                                    filteredClosings.reduce((sum, c) =>
+                                        sum + ((c.mys?.expenses_total || 0) + (c.mys?.tips_total || 0) + (c.siigo?.expenses_total || 0) + (c.siigo?.tips_total || 0)), 0
+                                    )
+                                )}
+                            </p>
+                        </div>
+                    </Card>
+                </div>
+            )}
+
             {
                 loading ? (
                     <div className="text-center py-10 text-gray-400">Cargando historial unificado...</div>
