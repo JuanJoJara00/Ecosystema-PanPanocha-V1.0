@@ -56,6 +56,7 @@ export function initDB() {
       expected_cash REAL,
       status TEXT DEFAULT 'open',
       turn_type TEXT,
+      closing_metadata TEXT,
       synced INTEGER DEFAULT 0
     );
 
@@ -239,13 +240,21 @@ export const ShiftDAO = {
       `);
     return stmt.run(shift);
   },
-  close: (id: string, endTime: string, finalCash: number, expectedCash: number) => {
+  close: (data: { id: string, endTime: string, finalCash: number, expectedCash: number, closing_metadata?: any }) => {
     const stmt = db.prepare(`
         UPDATE shifts 
-        SET end_time = @endTime, final_cash = @finalCash, expected_cash = @expectedCash, status = 'closed', synced = 0
+        SET end_time = @endTime, 
+            final_cash = @finalCash, 
+            expected_cash = @expectedCash, 
+            closing_metadata = @closing_metadata,
+            status = 'closed', 
+            synced = 0
         WHERE id = @id
       `);
-    return stmt.run({ id, endTime, finalCash, expectedCash });
+    return stmt.run({
+      ...data,
+      closing_metadata: data.closing_metadata ? JSON.stringify(data.closing_metadata) : null
+    });
   },
   getCurrent: () => {
     return db.prepare("SELECT * FROM shifts WHERE status = 'open' ORDER BY start_time DESC LIMIT 1").get();
@@ -354,6 +363,17 @@ function runMigrations() {
         console.log('[DB Migrations] Adding document_id column to clients...');
         db.exec(`ALTER TABLE clients ADD COLUMN document_id TEXT UNIQUE`);
         console.log('[DB Migrations] ✅ document_id added');
+      }
+    }
+
+    // Shifts Migration for closing_metadata
+    const shiftsInfo = db.prepare("PRAGMA table_info(shifts)").all() as any[];
+    if (shiftsInfo && shiftsInfo.length > 0) {
+      const hasMetadata = shiftsInfo.some((col: any) => col.name === 'closing_metadata');
+      if (!hasMetadata) {
+        console.log('[DB Migrations] Adding closing_metadata column to shifts...');
+        db.exec(`ALTER TABLE shifts ADD COLUMN closing_metadata TEXT`);
+        console.log('[DB Migrations] ✅ closing_metadata added');
       }
     }
 

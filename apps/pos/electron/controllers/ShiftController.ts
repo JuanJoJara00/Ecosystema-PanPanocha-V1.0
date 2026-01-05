@@ -45,12 +45,13 @@ export class ShiftController {
         return { status: 'created', shift };
     }
 
-    async closeShift(data: { id: string, endTime: string, finalCash: number, expectedCash: number }) {
+    async closeShift(data: { id: string, endTime: string, finalCash: number, expectedCash: number, closing_metadata?: any }) {
         await this.db.update(shifts)
             .set({
                 end_time: data.endTime,
                 final_cash: data.finalCash,
                 expected_cash: data.expectedCash,
+                closing_metadata: data.closing_metadata ? JSON.stringify(data.closing_metadata) : null,
                 status: 'closed'
             })
             .where(eq(shifts.id, data.id));

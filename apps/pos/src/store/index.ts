@@ -809,16 +809,25 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
     },
 
     closeShift: async (finalCash) => {
-        const { currentShift } = get();
+        const { currentShift, closingSession } = get();
         if (!currentShift) return;
 
         // Calculate expected from DB summary
         const summary = await window.electron.getShiftSummary(currentShift.id);
+
+        // Construct metadata for backend reconciliation
+        const closing_metadata = {
+            panpanocha: closingSession.panpanocha.savedData || null,
+            siigo: closingSession.siigo.savedData || null,
+            tips: closingSession.tips.distributions || null
+        };
+
         await window.electron.closeShift({
             id: currentShift.id,
             endTime: new Date().toISOString(),
             finalCash,
-            expectedCash: currentShift.initial_cash + summary.cashSales - (summary.totalExpenses || 0)
+            expectedCash: currentShift.initial_cash + summary.cashSales - (summary.totalExpenses || 0),
+            closing_metadata
         });
 
         get().resetClosingSession();

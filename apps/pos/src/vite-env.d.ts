@@ -68,7 +68,7 @@ declare global {
 
             // Shifts
             openShift: (shift: Shift) => Promise<Shift>;
-            closeShift: (data: { id: string, endTime: string, finalCash: number, expectedCash: number }) => Promise<void>;
+            closeShift: (data: { id: string, endTime: string, finalCash: number, expectedCash: number, closing_metadata?: any }) => Promise<void>;
             getShift: () => Promise<Shift | null>;
             getShiftSummary: (shiftId: string) => Promise<{
                 totalSales: number;
