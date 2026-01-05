@@ -98,6 +98,11 @@ interface PosState {
     sidebarDateFilter: 'shift' | 'today' | '7d' | '15d';
     setSidebarDateFilter: (filter: 'shift' | 'today' | '7d' | '15d') => void;
 
+    // Data
+    products: Product[];
+    setProducts: (products: Product[]) => void;
+    loadProducts: () => Promise<void>;
+
     // Closing Session State (Persistence)
     closingSession: ClosingSession;
     updateClosingSession: (section: 'panpanocha' | 'siigo' | 'tips', data: Partial<ClosingSession['panpanocha'] | ClosingSession['siigo'] | ClosingSession['tips']>) => void;
@@ -618,6 +623,24 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
     },
 
     isLoading: false,
+    products: [],
+    setProducts: (products) => set({ products }),
+    loadProducts: async () => {
+        try {
+            const result = await window.electron.getProducts();
+            // Handle both paginated (legacy hybrid) and direct array returns if any
+            const productList = Array.isArray(result) ? result : (result.data || []);
+            set({ products: productList });
+            console.log(`[Store] Loaded ${productList.length} products`);
+
+            // Trigger UI Refresh if needed
+            // set({ refreshProductsTrigger: get().refreshProductsTrigger + 1 }); // REMOVED: Causes infinite loop with App.tsx listener
+
+        } catch (e) {
+            console.error('[Store] Failed to load products', e);
+        }
+    },
+
     lastSync: 0,
     sidebarDateFilter: 'shift',
     setSidebarDateFilter: (filter) => set({ sidebarDateFilter: filter }),
@@ -626,9 +649,11 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         set({ isLoading: true });
         try {
             // 1. Load local data first (for offline)
-            // 1. Load local data first (for offline)
             const localBranches = await window.electron.getBranches();
             const activeShift = await window.electron.getShift();
+
+            // Load Products Immediately
+            await get().loadProducts();
 
             console.log("[Store] Loaded local data:", {
                 branches: localBranches.length,
@@ -649,13 +674,26 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
                 organizationId: storedOrgId || activeShift?.organization_id || '' // Fallback to shift if available
             });
 
-            // Restore Session for Electron Sync
+            // 1. Restore Device Token for Electron Sync (Priority for Headless/Device Auth)
+            if (storedToken) {
+                try {
+                    console.log("[Init] Decrypting Device Token...");
+                    const deviceToken = await window.electron.decrypt(storedToken);
+                    await window.electron.setAuthToken(deviceToken);
+                    console.log("[Init] Device Token restored and sent to Electron");
+                } catch (e) {
+                    console.error("[Init] Failed to decrypt device token", e);
+                }
+            }
+
+            // 2. Restore User Session (Optional Override)
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.access_token) {
+                // If a user is logged in, we also send this.
                 window.electron.setAuthToken(session.access_token).catch(console.error);
             }
 
-            // 2. Sync NOW (not background) to get fresh data
+            // 3. Sync NOW (not background) to get fresh data
             try {
                 // With PowerSync, data might already be coming in.
                 // We just ensure we have the latest view from SQLite.
@@ -676,6 +714,9 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         try {
             // With PowerSync, we just need to reload from the local DB
             // The replication happens in the background.
+
+            // Reload key data
+            await get().loadProducts();
 
             // Also trigger other reloads if needed
             set({ refreshHistoryTrigger: get().refreshHistoryTrigger + 1 });

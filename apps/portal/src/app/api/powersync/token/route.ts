@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { SignJWT, importPKCS8 } from 'jose';
+import { SignJWT, importPKCS8, base64url } from 'jose';
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -94,33 +94,65 @@ export async function GET(request: Request) {
                 detectSessionInUrl: false,
             }
         });
-        const { data: { user }, error } = await supabase.auth.getUser(token);
 
-        if (error || !user) {
-            console.error('[PowerSync] Invalid User Token:', error);
-            return NextResponse.json({ error: 'Invalid Token' }, { status: 401, headers: corsHeaders });
+        let user;
+
+        // DEV OVERRIDE: Allow Mock Tokens from Provisioning Mock
+        const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+        if (isDev && token.includes('.mock_signature')) {
+            console.warn('[PowerSync] ⚠️ Development Mode: Accepting Mock Token');
+            try {
+                // Manually decode payload without verification
+                const payloadPart = token.split('.')[1];
+                const cleanPayload = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+                const decoded = Buffer.from(cleanPayload, 'base64').toString();
+                const payload = JSON.parse(decoded);
+
+                // Create minimal user object
+                user = {
+                    id: payload.sub,
+                    aud: 'authenticated',
+                    role: 'authenticated'
+                };
+            } catch (e) {
+                console.error('[PowerSync] Failed to parse mock token:', e);
+            }
+        }
+
+        if (!user) {
+            const { data: { user: realUser }, error } = await supabase.auth.getUser(token);
+            if (error || !realUser) {
+                console.error('[PowerSync] Invalid User Token:', error);
+                return NextResponse.json({ error: 'Invalid Token' }, { status: 401, headers: corsHeaders });
+            }
+            user = realUser;
         }
 
         // Generate PowerSync Token
         const powerSyncUrl = process.env.POWERSYNC_URL;
-        const privateKeyPEM = process.env.POWERSYNC_PRIVATE_KEY;
 
-        if (!powerSyncUrl || !privateKeyPEM) {
-            console.error('[PowerSync] Missing PowerSync Keys');
+        // Use Secret (HS256) instead of Private Key (RS256/EdDSA)
+        const jwtSecret = process.env.POWERSYNC_JWT_SECRET; // This replaces POWERSYNC_PRIVATE_KEY
+
+        if (!powerSyncUrl || !jwtSecret) {
+            console.error('[PowerSync] Missing PowerSync Keys or Secret');
             return NextResponse.json({ error: 'PowerSync Config Missing' }, { status: 500, headers: corsHeaders });
         }
 
-        const privateKey = await importPKCS8(privateKeyPEM, 'EdDSA');
+        // PowerSync JWT with HS256 (Shared Secret)
+        // Dashboard treats the input as Base64URL, so we must decode it to matching bytes
+        const secretBytes = base64url.decode(jwtSecret);
 
-        // PowerSync JWT
+        // Fix 1: Add 'kid' to match Dashboard Configuration
+        // Fix 2: Backdate 'iat' by 30s to handle Clock Skew between Portal & PowerSync Cloud
         const psToken = await new SignJWT({})
-            .setProtectedHeader({ alg: 'EdDSA' })
-            .setIssuedAt()
+            .setProtectedHeader({ alg: 'HS256', kid: 'portal-secret' })
+            .setIssuedAt(Math.floor(Date.now() / 1000) - 30)
             .setIssuer('supabase-powersync')
             .setAudience(powerSyncUrl)
             .setExpirationTime('1h')
             .setSubject(user.id)
-            .sign(privateKey);
+            .sign(secretBytes);
 
         return NextResponse.json({
             token: psToken,

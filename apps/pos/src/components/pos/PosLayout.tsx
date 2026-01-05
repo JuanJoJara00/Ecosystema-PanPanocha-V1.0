@@ -26,8 +26,7 @@ import { ExpenseFormModal } from './ExpenseFormModal';
 import { UserProfileModal } from './UserProfileModal';
 import { CloseShiftFAB } from './CloseShiftFAB';
 import { CloseShiftMenuModal } from './CloseShiftMenuModal';
-import { useLiveQuery, type PaginatedResponse } from '../../hooks/useLiveQuery';
-import type { Product } from '../../types';
+import { useLiveQuery } from '../../hooks/useLiveQuery';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'; // Pagination Icons
 
 export function PosLayout() {
@@ -50,6 +49,7 @@ export function PosLayout() {
 
     // const { products: storeProducts } = usePosStore(); // REMOVED
     const {
+        products, // Get products from global state
         cart,
         tables,
         activeTableId,
@@ -81,23 +81,24 @@ export function PosLayout() {
     // Data Logic: Fetch Categories from DB (DISTINCT)
     const { data: categories = [] } = useLiveQuery<string[]>('db:get-categories');
 
-    // Data Logic: Products (Server-Side Pagination from Main Process)
-    // 1. Reset page when filters change
+    // Client-Side Filtering & Pagination
     useEffect(() => {
         setPage(1);
-    }, [activeCategory, searchTerm]);
+    }, [activeCategory, searchTerm, products.length]);
 
-    // 2. Fetch Page
-    const { data: paginatedData, loading: isLoadingProducts } = useLiveQuery<PaginatedResponse<Product>>('db:get-products', {
-        page,
-        pageSize,
-        search: searchTerm,
-        category: activeCategory
+    const filteredProducts = products.filter(p => {
+        const matchCategory = activeCategory === 'all' || p.category === activeCategory;
+        const searchLower = searchTerm.toLowerCase();
+        const matchSearch = !searchTerm ||
+            p.name.toLowerCase().includes(searchLower);
+        return matchCategory && matchSearch;
     });
 
-    const productsToRender = paginatedData?.data || [];
-    const totalPages = paginatedData?.totalPages || 1;
-    const totalItems = paginatedData?.total || 0;
+    const totalItems = filteredProducts.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const startIndex = (page - 1) * pageSize;
+    const productsToRender = filteredProducts.slice(startIndex, startIndex + pageSize);
+    const isLoadingProducts = false; // Store is reactive, so "loading" isn't explicitly tracked here same way
 
     // DEBUG: Log first filtered product
     useEffect(() => {

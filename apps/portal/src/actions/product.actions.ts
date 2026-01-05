@@ -17,13 +17,14 @@ async function getAuthenticatedService() {
     // 2. Resolve Tenant Identity (SaaS Injection)
     // Note: In production, this might be in metadata, but querying profile is safer/standard
     const { data: profile, error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .select('organization_id')
         .eq('id', user.id)
         .single();
 
     if (profileError || !profile?.organization_id) {
-        throw new Error('User has no organization assigned');
+        console.error('Auth Debug:', { userId: user.id, profileError });
+        throw new Error(`User has no organization assigned (Error: ${profileError?.message || 'Missing OrgID'})`);
     }
 
     const service = new ProductService(supabase);

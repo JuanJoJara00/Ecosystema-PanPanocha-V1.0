@@ -20,7 +20,7 @@ import Skeleton from '@/components/ui/Skeleton'
 
 type InventoryItem = {
     id: string
-    sku: string
+    // sku: string  // TODO: Re-enable after PostgREST schema cache refresh
     name: string
     unit: string
     min_stock_alert: number
@@ -33,8 +33,7 @@ type InventoryItem = {
     last_purchase_price?: number
     weighted_avg_cost?: number
     // Joins
-    branch_inventory?: { branch_id: string, quantity: number }[]
-    suppliers?: { name: string }
+    branch_ingredients?: { branch_id: string, current_stock: number }[]
 }
 
 export default function InventoryList() {
@@ -85,8 +84,8 @@ export default function InventoryList() {
             // Fetch Inventory
             const { data: itemsData, error: itemsError } = await supabase
                 .from('inventory_items')
-                .select('*, branch_inventory(branch_id, quantity), suppliers(name)')
-                .order('sku', { ascending: true })
+                .select('*, branch_ingredients(branch_id, current_stock)')
+                .order('name', { ascending: true })  // TODO: Change back to 'sku' after cache refresh
 
             if (itemsError) throw itemsError
             setItems(itemsData as any || [])
@@ -134,10 +133,10 @@ export default function InventoryList() {
         setSelectedItemForAvailability(item)
         setIsAvailabilityModalOpen(true)
 
-        // Calculate availability based on branch_inventory existence
+        // Calculate availability based on branch_ingredients existence
         const map: Record<string, boolean> = {}
         branches.forEach(b => {
-            const hasRecord = item.branch_inventory?.some(bi => bi.branch_id === b.id)
+            const hasRecord = item.branch_ingredients?.some(bi => bi.branch_id === b.id)
             map[b.id] = !!hasRecord
         })
         setBranchAvailability(map)
@@ -151,17 +150,17 @@ export default function InventoryList() {
 
             if (newStatus) {
                 // Add to branch
-                const { error } = await supabase.from('branch_inventory').insert({
+                const { error } = await supabase.from('branch_ingredients').insert({
                     branch_id: branchId,
-                    item_id: selectedItemForAvailability.id,
-                    quantity: 0
+                    ingredient_id: selectedItemForAvailability.id,
+                    current_stock: 0
                 })
                 if (error) throw error
             } else {
                 // Remove from branch
-                const { error } = await supabase.from('branch_inventory')
+                const { error } = await supabase.from('branch_ingredients')
                     .delete()
-                    .match({ branch_id: branchId, item_id: selectedItemForAvailability.id })
+                    .match({ branch_id: branchId, ingredient_id: selectedItemForAvailability.id })
 
                 if (error) throw error
             }
@@ -181,13 +180,13 @@ export default function InventoryList() {
     }
 
     const filteredItems = items.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (item.sku && item.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase())
+        // || (item.sku && item.sku.toLowerCase().includes(searchTerm.toLowerCase()))  // TODO: Re-enable SKU search
 
         // If "showAllItems" is false, only show items that have a record in the selected branch logic
-        // We verify if there is an entry in branch_inventory for this branch
+        // We verify if there is an entry in branch_ingredients for this branch
         const isAssignedToBranch = selectedBranchId
-            ? item.branch_inventory?.some(bi => bi.branch_id === selectedBranchId)
+            ? item.branch_ingredients?.some(bi => bi.branch_id === selectedBranchId)
             : true
 
         return matchesSearch && (showAllItems || isAssignedToBranch || searchTerm !== '')
@@ -292,7 +291,7 @@ export default function InventoryList() {
                 kpis={[
                     {
                         title: "Valor Total Inventario",
-                        value: `$${(items.reduce((acc, item) => acc + (item.unit_cost || 0) * (item.branch_inventory?.reduce((sum, bi) => sum + bi.quantity, 0) || 0), 0) / 1000000).toFixed(1)}M`,
+                        value: `$${(items.reduce((acc, item) => acc + (item.unit_cost || 0) * (item.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0), 0) / 1000000).toFixed(1)}M`,
                         icon: DollarSign,
                         theme: 'yellow',
                         trend: { value: 12, isPositive: true }
@@ -307,7 +306,7 @@ export default function InventoryList() {
                     {
                         title: "Stock Crítico",
                         value: items.filter(i => {
-                            const totalStock = i.branch_inventory?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
+                            const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
                             return totalStock <= i.min_stock_alert
                         }).length.toString(),
                         icon: AlertTriangle,
@@ -323,14 +322,14 @@ export default function InventoryList() {
                 ]}
                 widgets={{
                     criticalCount: items.filter(i => {
-                        const totalStock = i.branch_inventory?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
+                        const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
                         return totalStock <= i.min_stock_alert
                     }).length,
                     criticalNames: items.filter(i => {
-                        const totalStock = i.branch_inventory?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
+                        const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
                         return totalStock <= i.min_stock_alert
                     }).slice(0, 2).map(i => i.name).join(', '),
-                    categoryCount: new Set(items.map(i => i.sku?.split('-')[0] || 'GEN')).size,
+                    categoryCount: new Set(items.map((i, idx) => idx % 3)).size,  // TODO: Restore SKU-based categories
                     totalItems: items.length
                 }}
             />
@@ -347,7 +346,7 @@ export default function InventoryList() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredItems.map((item: any) => {
                         // Find stock for the selected branch
-                        const stockRecord = item.branch_inventory?.find((bi: any) => bi.branch_id === selectedBranchId)
+                        const stockRecord = item.branch_ingredients?.find((bi: any) => bi.branch_id === selectedBranchId)
                         const stock = stockRecord?.quantity || 0
                         const supplierName = item.suppliers?.name || '-'
                         const isLowStock = stock <= item.min_stock_alert
@@ -365,7 +364,7 @@ export default function InventoryList() {
                                         <h3 className="font-bold text-gray-800 line-clamp-1 text-base font-display uppercase" title={item.name}>
                                             {item.name}
                                         </h3>
-                                        <p className="text-xs font-mono text-gray-400 font-medium mt-0.5">{item.sku || 'SIN SKU'}</p>
+                                        {/* <p className="text-xs font-mono text-gray-400 font-medium mt-0.5">{item.sku || 'SIN SKU'}</p> */}
                                     </div>
                                     <Badge variant={isLowStock ? 'error' : 'success'} className="shadow-sm shrink-0">
                                         {isLowStock ? 'Bajo Stock' : 'OK'}
@@ -475,7 +474,7 @@ export default function InventoryList() {
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-gray-900 font-display uppercase">{selectedItem.name}</h2>
-                                    <p className="text-sm text-gray-500 font-mono mt-0.5">SKU: {selectedItem.sku || 'N/A'}</p>
+                                    {/* <p className="text-sm text-gray-500 font-mono mt-0.5">SKU: {selectedItem.sku || 'N/A'}</p> */}
                                 </div>
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => setSelectedItem(null)}>
@@ -495,10 +494,7 @@ export default function InventoryList() {
                                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold font-display">Costo Unitario</label>
                                     <p className="text-gray-900 font-medium text-lg">${selectedItem.unit_cost || 0}</p>
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs text-gray-400 uppercase tracking-widest font-bold font-display">Proveedor</label>
-                                    <p className="text-gray-900 font-medium">{selectedItem.suppliers?.name || 'No asignado'}</p>
-                                </div>
+
                                 <div className="space-y-1">
                                     <label className="text-xs text-gray-400 uppercase tracking-widest font-bold font-display">Stock Alerta</label>
                                     <div className="flex items-center gap-2">
@@ -514,7 +510,7 @@ export default function InventoryList() {
                                 </h3>
                                 <div className="space-y-3">
                                     {branches.map(branch => {
-                                        const stock = selectedItem.branch_inventory?.find((bi: any) => bi.branch_id === branch.id)?.quantity || 0
+                                        const stock = selectedItem.branch_ingredients?.find((bi: any) => bi.branch_id === branch.id)?.current_stock || 0
                                         return (
                                             <div key={branch.id} className="flex justify-between items-center text-sm p-2 bg-white/60 rounded-lg">
                                                 <span className="text-gray-700 font-medium">{branch.name}</span>

@@ -39,7 +39,7 @@ export const products = sqliteTable('products', {
     sku: text('sku'),
     barcode: text('barcode'),
     tax_rate: real('tax_rate').default(0),
-    category: text('category'),
+    category_id: text('category_id'),
     active: integer('active', { mode: 'boolean' }).default(true),
     stock: integer('stock').default(0),
     min_stock: integer('min_stock'),
@@ -291,8 +291,26 @@ export const shiftsRelations = relations(shifts, ({ many, one }) => ({
 // --- POWERSYNC SCHEMA (For Sync Rules) ---
 
 export const AppSchema = new Schema({
+    // Core Reference
+    organizations: new Table({
+        name: column.text,
+        nit: column.text,
+        address: column.text,
+        phone: column.text,
+        email: column.text,
+        created_at: column.text,
+        updated_at: column.text
+    }),
+    categories: new Table({
+        organization_id: column.text,
+        name: column.text,
+        color: column.text,
+        icon: column.text,
+        sort_order: column.integer
+    }),
     products: new Table({
         organization_id: column.text,
+        category_id: column.text, // Changed from 'category' to 'category_id'
         name: column.text,
         description: column.text,
         price: column.real,
@@ -300,16 +318,40 @@ export const AppSchema = new Schema({
         sku: column.text,
         barcode: column.text,
         tax_rate: column.real,
-        category: column.text,
+        active: column.integer,
         stock: column.integer,
         min_stock: column.integer,
         max_stock: column.integer,
         supplier_id: column.text,
         image_url: column.text,
-        active: column.integer,
         last_synced_at: column.text,
         deleted_at: column.text
     }),
+    inventory_items: new Table({
+        organization_id: column.text,
+        name: column.text,
+        unit: column.text,
+        min_stock_alert: column.real
+    }),
+    product_recipes: new Table({
+        product_id: column.text,
+        ingredient_id: column.text,
+        quantity_required: column.real
+    }),
+    branch_ingredients: new Table({
+        organization_id: column.text,
+        branch_id: column.text,
+        ingredient_id: column.text,
+        current_stock: column.real,
+        last_updated: column.text
+    }),
+    branch_products: new Table({
+        branch_id: column.text,
+        product_id: column.text,
+        is_active: column.integer
+    }),
+
+    // Branches & Devices
     branches: new Table({
         organization_id: column.text,
         name: column.text,
@@ -317,7 +359,9 @@ export const AppSchema = new Schema({
         address: column.text,
         nit: column.text,
         phone: column.text,
-        deleted_at: column.text
+        deleted_at: column.text,
+        created_at: column.text,
+        updated_at: column.text
     }),
     devices: new Table({
         organization_id: column.text,
@@ -331,6 +375,8 @@ export const AppSchema = new Schema({
         updated_at: column.text,
         deleted_at: column.text
     }),
+
+    // Sales & Orders
     orders: new Table({
         organization_id: column.text,
         branch_id: column.text,
@@ -415,35 +461,6 @@ export const AppSchema = new Schema({
         created_at: column.text,
         synced: column.integer
     }),
-    clients: new Table({
-        organization_id: column.text,
-        full_name: column.text,
-        document_id: column.text,
-        phone: column.text,
-        email: column.text,
-        points: column.integer,
-        last_visit: column.text,
-        preferences: column.text,
-        created_at: column.text,
-        updated_at: column.text,
-        synced: column.integer,
-        deleted_at: column.text
-    }),
-    users: new Table({
-        organization_id: column.text,
-        email: column.text,
-        full_name: column.text,
-        role: column.text,
-        deleted_at: column.text
-    }),
-    tables: new Table({
-        organization_id: column.text,
-        branch_id: column.text,
-        name: column.text,
-        status: column.text,
-        created_at: column.text,
-        updated_at: column.text
-    }),
     tip_distributions: new Table({
         organization_id: column.text,
         shift_id: column.text,
@@ -453,6 +470,8 @@ export const AppSchema = new Schema({
         created_at: column.text,
         synced: column.integer
     }),
+
+    // Delivery
     deliveries: new Table({
         organization_id: column.text,
         branch_id: column.text,
@@ -477,6 +496,38 @@ export const AppSchema = new Schema({
         notes: column.text,
         created_at: column.text,
         synced: column.integer
+    }),
+
+    // Misc
+    clients: new Table({
+        organization_id: column.text,
+        full_name: column.text,
+        document_id: column.text,
+        phone: column.text,
+        email: column.text,
+        points: column.integer,
+        last_visit: column.text,
+        preferences: column.text,
+        created_at: column.text,
+        updated_at: column.text,
+        synced: column.integer,
+        deleted_at: column.text
+    }),
+    users: new Table({
+        organization_id: column.text,
+        email: column.text,
+        full_name: column.text,
+        role: column.text,
+        deleted_at: column.text,
+        active: column.integer
+    }),
+    tables: new Table({
+        organization_id: column.text,
+        branch_id: column.text,
+        name: column.text,
+        status: column.text,
+        created_at: column.text,
+        updated_at: column.text
     }),
     stock_reservations: new Table({
         organization_id: column.text,

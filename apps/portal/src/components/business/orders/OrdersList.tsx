@@ -72,7 +72,7 @@ export default function OrdersList() {
                     branch_id,
                     supplier:suppliers(name),
                     branch:branches(name),
-                    requester:profiles!purchase_orders_requested_by_fkey(full_name)
+                    requester:users!purchase_orders_requested_by_fkey(full_name)
                 `)
                 .gte('created_at', startISO)
                 .lte('created_at', endISO)

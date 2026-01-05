@@ -57,7 +57,7 @@ export function usePermissions() {
 
             // Get user profile with role
             const { data: profile } = await supabase
-                .from('profiles')
+                .from('users')
                 .select('role, branch_id, email')
                 .eq('id', user.id)
                 .single()

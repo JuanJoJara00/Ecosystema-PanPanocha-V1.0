@@ -168,9 +168,11 @@ function registerHandlers() {
         // HYBRID LEGACY: If no params, return full array
         if (!params) {
             const db = getDb();
-            return await db.select().from(products);
+            const allProducts = await db.select().from(products);
+            console.log(`[IPC] db:get-products (Full) -> Returning ${allProducts.length} items`);
+            return allProducts;
         }
-        return handlePaginated('db:get-products', products, params, products.name, products.category);
+        return handlePaginated('db:get-products', products, params, products.name, products.category_id);
     });
 };
 
@@ -609,7 +611,8 @@ function registerBottomHandlers() {
 
     // Sales IPC (Drizzle Controller)
     ipcMain.handle('db-save-sale', (e, sale, items) => salesController.saveSale(sale, items));
-    ipcMain.handle('db:get-products', (e, params) => inventoryController.getProducts(params));
+    // db:get-products is already handled in setupIPC with correct logic for both full/paginated
+    // ipcMain.handle('db:get-products', (e, params) => inventoryController.getProducts(params));
     ipcMain.handle('db:get-categories', () => inventoryController.getCategories());
     ipcMain.handle('db-get-sales-by-shift', (e, shiftId) => salesController.getByShift(shiftId));
 

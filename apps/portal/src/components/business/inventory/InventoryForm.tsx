@@ -23,7 +23,7 @@ export default function InventoryForm({ onSuccess, onCancel, initialData }: Inve
         name: '',
         unit: 'unidad', // This is technically 'usage_unit' usually, but let's keep it for compatibility or migrate it
         min_stock_alert: 0,
-        supplier_name: '',
+
         // WAC Fields
         buying_unit: 'Unidad',
         usage_unit: 'Unidad',
@@ -37,7 +37,7 @@ export default function InventoryForm({ onSuccess, onCancel, initialData }: Inve
                 name: initialData.name || '',
                 unit: initialData.unit || 'unidad',
                 min_stock_alert: initialData.min_stock_alert || 0,
-                supplier_name: initialData.supplier_id ? 'Provedor ID ' + initialData.supplier_id : '',
+
                 buying_unit: initialData.buying_unit || 'Unidad',
                 usage_unit: initialData.usage_unit || 'Unidad',
                 conversion_factor: initialData.conversion_factor || 1
@@ -52,26 +52,7 @@ export default function InventoryForm({ onSuccess, onCancel, initialData }: Inve
         setError(null)
 
         try {
-            // Handle Supplier Logic
-            let supplierId = null
-            if (formData.supplier_name) {
-                const { data: existingSup } = await supabase
-                    .from('suppliers')
-                    .select('id')
-                    .ilike('name', formData.supplier_name)
-                    .maybeSingle()
 
-                if (existingSup) {
-                    supplierId = existingSup.id
-                } else {
-                    const { data: newSup } = await supabase
-                        .from('suppliers')
-                        .insert({ name: formData.supplier_name })
-                        .select()
-                        .single()
-                    if (newSup) supplierId = newSup.id
-                }
-            }
 
             const { data: newItem, error } = await supabase
                 .from('inventory_items')
@@ -80,7 +61,6 @@ export default function InventoryForm({ onSuccess, onCancel, initialData }: Inve
                     name: formData.name,
                     unit: formData.unit,
                     min_stock_alert: formData.min_stock_alert,
-                    supplier_id: supplierId,
                     buying_unit: formData.buying_unit,
                     usage_unit: formData.usage_unit,
                     conversion_factor: formData.conversion_factor
@@ -97,12 +77,12 @@ export default function InventoryForm({ onSuccess, onCancel, initialData }: Inve
                 const branchId = branches?.[0]?.id
 
                 if (branchId) {
-                    await supabase.from('branch_inventory').upsert({
+                    await supabase.from('branch_ingredients').upsert({
                         branch_id: branchId,
-                        item_id: newItem.id,
-                        quantity: (formData as any).initial_stock,
+                        ingredient_id: newItem.id,
+                        current_stock: (formData as any).initial_stock,
                         last_updated: new Date().toISOString()
-                    }, { onConflict: 'branch_id, item_id' })
+                    }, { onConflict: 'branch_id,ingredient_id' })
                 }
             }
 
@@ -133,12 +113,7 @@ export default function InventoryForm({ onSuccess, onCancel, initialData }: Inve
                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
             />
 
-            <Input
-                label="Proveedor"
-                placeholder="Ej: La Granja SAS"
-                value={formData.supplier_name}
-                onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-            />
+
 
             <div className="grid grid-cols-2 gap-4">
                 <Select
@@ -148,10 +123,13 @@ export default function InventoryForm({ onSuccess, onCancel, initialData }: Inve
                     options={[
                         { value: 'unidad', label: 'Unidad' },
                         { value: 'kg', label: 'Kilogramos (kg)' },
-                        { value: 'gr', label: 'Gramos (gr)' },
-                        { value: 'lt', label: 'Litros (lt)' },
+                        { value: 'g', label: 'Gramos (g)' },
+                        { value: 'l', label: 'Litros (l)' },
                         { value: 'ml', label: 'Mililitros (ml)' },
-                        { value: 'paquete', label: 'Paquete' }
+                        { value: 'lb', label: 'Libras (lb)' },
+                        { value: 'paquete', label: 'Paquete' },
+                        { value: 'caja', label: 'Caja' },
+                        { value: 'docena', label: 'Docena' }
                     ]}
                 />
 

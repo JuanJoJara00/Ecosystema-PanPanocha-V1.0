@@ -112,7 +112,7 @@ export default function OrderForm({ onSuccess, onCancel, initialOrderId }: Order
 
             // Fetch current stock
             const { data: stockData } = await supabase
-                .from('branch_inventory')
+                .from('branch_ingredients')
                 .select('item_id, quantity')
                 .eq('branch_id', selectedBranchId)
 

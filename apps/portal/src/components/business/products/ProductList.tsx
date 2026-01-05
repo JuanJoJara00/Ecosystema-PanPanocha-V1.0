@@ -123,7 +123,7 @@ export default function ProductList() {
         const inventoryChannel = supabase
             .channel('inventory-changes')
             .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'branch_inventory' },
+                { event: '*', schema: 'public', table: 'branch_ingredients' },
                 (payload) => {
                     console.log('[Realtime] Inventory changed, refreshing stock...')
                     fetchStocks(selectedBranchId)
@@ -259,7 +259,7 @@ export default function ProductList() {
         if (!newCategoryName.trim()) return
         try {
             const { error } = await supabase
-                .from('product_categories')
+                .from('categories')
                 .insert([{ name: newCategoryName.trim() }])
 
             if (error) throw error
@@ -293,7 +293,7 @@ export default function ProductList() {
         if (!editingCategory || !editingCategory.name.trim()) return
         try {
             const { error } = await supabase
-                .from('product_categories')
+                .from('categories')
                 .update({ name: editingCategory.name.trim() })
                 .eq('id', editingCategory.id)
 

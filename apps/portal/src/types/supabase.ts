@@ -14,48 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      branch_inventory: {
+      branch_ingredients: {
         Row: {
           branch_id: string
+          current_stock: number | null
           id: string
-          item_id: string
-          last_updated: string
-          organization_id: string
-          quantity: number | null
+          ingredient_id: string
+          last_updated: string | null
+          organization_id: string | null
         }
         Insert: {
           branch_id: string
+          current_stock?: number | null
           id?: string
-          item_id: string
-          last_updated?: string
-          organization_id: string
-          quantity?: number | null
+          ingredient_id: string
+          last_updated?: string | null
+          organization_id?: string | null
         }
         Update: {
           branch_id?: string
+          current_stock?: number | null
           id?: string
-          item_id?: string
-          last_updated?: string
-          organization_id?: string
-          quantity?: number | null
+          ingredient_id?: string
+          last_updated?: string | null
+          organization_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "branch_inventory_branch_id_fkey"
+            foreignKeyName: "branch_ingredients_branch_id_fkey"
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "branch_inventory_item_id_fkey"
-            columns: ["item_id"]
+            foreignKeyName: "branch_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "branch_inventory_organization_id_fkey"
+            foreignKeyName: "branch_ingredients_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -66,23 +66,20 @@ export type Database = {
       branch_products: {
         Row: {
           branch_id: string
-          created_at: string | null
+          id: string
           is_active: boolean | null
-          price_override: number | null
           product_id: string
         }
         Insert: {
           branch_id: string
-          created_at?: string | null
+          id?: string
           is_active?: boolean | null
-          price_override?: number | null
           product_id: string
         }
         Update: {
           branch_id?: string
-          created_at?: string | null
+          id?: string
           is_active?: boolean | null
-          price_override?: number | null
           product_id?: string
         }
         Relationships: [
@@ -106,38 +103,32 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
-          created_at: string
+          created_at: string | null
           id: string
-          is_active: boolean | null
-          manager_name: string | null
           name: string
-          nit: string | null
           organization_id: string
           phone: string | null
+          updated_at: string | null
         }
         Insert: {
           address?: string | null
           city?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_active?: boolean | null
-          manager_name?: string | null
           name: string
-          nit?: string | null
           organization_id: string
           phone?: string | null
+          updated_at?: string | null
         }
         Update: {
           address?: string | null
           city?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          is_active?: boolean | null
-          manager_name?: string | null
           name?: string
-          nit?: string | null
           organization_id?: string
           phone?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -149,39 +140,65 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          color: string | null
+          icon: string | null
+          id: string
+          name: string
+          organization_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           created_at: string | null
-          document_id: string | null
           email: string | null
           full_name: string
           id: string
-          organization_id: string
+          organization_id: string | null
           phone: string | null
-          points: number | null
-          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
-          document_id?: string | null
           email?: string | null
           full_name: string
-          id: string
-          organization_id: string
+          id?: string
+          organization_id?: string | null
           phone?: string | null
-          points?: number | null
-          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
-          document_id?: string | null
           email?: string | null
           full_name?: string
           id?: string
-          organization_id?: string
+          organization_id?: string | null
           phone?: string | null
-          points?: number | null
-          updated_at?: string | null
         }
         Relationships: [
           {
@@ -193,260 +210,68 @@ export type Database = {
           },
         ]
       }
-      closing_movements: {
-        Row: {
-          amount: number
-          closing_id: string
-          created_at: string | null
-          description: string | null
-          employee_id: string | null
-          evidence_url: string | null
-          id: string
-          type: string
-        }
-        Insert: {
-          amount: number
-          closing_id: string
-          created_at?: string | null
-          description?: string | null
-          employee_id?: string | null
-          evidence_url?: string | null
-          id?: string
-          type: string
-        }
-        Update: {
-          amount?: number
-          closing_id?: string
-          created_at?: string | null
-          description?: string | null
-          employee_id?: string | null
-          evidence_url?: string | null
-          id?: string
-          type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "closing_movements_closing_id_fkey"
-            columns: ["closing_id"]
-            isOneToOne: false
-            referencedRelation: "closings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "closing_movements_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      closing_products: {
-        Row: {
-          closing_id: string
-          created_at: string | null
-          id: string
-          product_id: string
-          quantity: number
-          total: number | null
-          unit_price: number
-        }
-        Insert: {
-          closing_id: string
-          created_at?: string | null
-          id?: string
-          product_id: string
-          quantity: number
-          total?: number | null
-          unit_price: number
-        }
-        Update: {
-          closing_id?: string
-          created_at?: string | null
-          id?: string
-          product_id?: string
-          quantity?: number
-          total?: number | null
-          unit_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "closing_products_closing_id_fkey"
-            columns: ["closing_id"]
-            isOneToOne: false
-            referencedRelation: "closings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "closing_products_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      closings: {
-        Row: {
-          base_cash: number | null
-          branch_id: string
-          cash_audit_count: number | null
-          closed_by: string
-          closing_date: string | null
-          closing_time: string | null
-          closing_type: string
-          created_at: string | null
-          difference: number | null
-          end_cash_real: number | null
-          end_cash_system: number | null
-          expenses_total: number | null
-          id: string
-          notes: string | null
-          opened_by: string | null
-          opening_time: string | null
-          sales_card: number | null
-          sales_cash: number | null
-          sales_transfer: number | null
-          shift: string | null
-          siigo_expenses: number | null
-          siigo_income: number | null
-          start_cash: number | null
-          status: string | null
-          tips_total: number | null
-        }
-        Insert: {
-          base_cash?: number | null
-          branch_id: string
-          cash_audit_count?: number | null
-          closed_by: string
-          closing_date?: string | null
-          closing_time?: string | null
-          closing_type: string
-          created_at?: string | null
-          difference?: number | null
-          end_cash_real?: number | null
-          end_cash_system?: number | null
-          expenses_total?: number | null
-          id?: string
-          notes?: string | null
-          opened_by?: string | null
-          opening_time?: string | null
-          sales_card?: number | null
-          sales_cash?: number | null
-          sales_transfer?: number | null
-          shift?: string | null
-          siigo_expenses?: number | null
-          siigo_income?: number | null
-          start_cash?: number | null
-          status?: string | null
-          tips_total?: number | null
-        }
-        Update: {
-          base_cash?: number | null
-          branch_id?: string
-          cash_audit_count?: number | null
-          closed_by?: string
-          closing_date?: string | null
-          closing_time?: string | null
-          closing_type?: string
-          created_at?: string | null
-          difference?: number | null
-          end_cash_real?: number | null
-          end_cash_system?: number | null
-          expenses_total?: number | null
-          id?: string
-          notes?: string | null
-          opened_by?: string | null
-          opening_time?: string | null
-          sales_card?: number | null
-          sales_cash?: number | null
-          sales_transfer?: number | null
-          shift?: string | null
-          siigo_expenses?: number | null
-          siigo_income?: number | null
-          start_cash?: number | null
-          status?: string | null
-          tips_total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "closings_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "closings_opened_by_fkey"
-            columns: ["opened_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       deliveries: {
         Row: {
           assigned_driver: string | null
           branch_id: string | null
           client_payment_proof_url: string | null
-          created_at: string
+          created_at: string | null
           customer_address: string | null
           customer_name: string | null
           customer_phone: string | null
           delivery_document_id: string | null
-          delivery_fee: number
+          delivery_fee: number | null
           delivery_name: string | null
           delivery_receipt_url: string | null
           id: string
-          last_edit_type: string | null
+          last_edit_type: Database["public"]["Enums"]["edit_type"] | null
           last_edited_at: string | null
           last_edited_by: string | null
           notes: string | null
           organization_id: string
-          product_details: string
+          product_details: string | null
           status: Database["public"]["Enums"]["delivery_status"] | null
         }
         Insert: {
           assigned_driver?: string | null
           branch_id?: string | null
           client_payment_proof_url?: string | null
-          created_at?: string
+          created_at?: string | null
           customer_address?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivery_document_id?: string | null
-          delivery_fee?: number
+          delivery_fee?: number | null
           delivery_name?: string | null
           delivery_receipt_url?: string | null
           id?: string
-          last_edit_type?: string | null
+          last_edit_type?: Database["public"]["Enums"]["edit_type"] | null
           last_edited_at?: string | null
           last_edited_by?: string | null
           notes?: string | null
           organization_id: string
-          product_details: string
+          product_details?: string | null
           status?: Database["public"]["Enums"]["delivery_status"] | null
         }
         Update: {
           assigned_driver?: string | null
           branch_id?: string | null
           client_payment_proof_url?: string | null
-          created_at?: string
+          created_at?: string | null
           customer_address?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivery_document_id?: string | null
-          delivery_fee?: number
+          delivery_fee?: number | null
           delivery_name?: string | null
           delivery_receipt_url?: string | null
           id?: string
-          last_edit_type?: string | null
+          last_edit_type?: Database["public"]["Enums"]["edit_type"] | null
           last_edited_at?: string | null
           last_edited_by?: string | null
           notes?: string | null
           organization_id?: string
-          product_details?: string
+          product_details?: string | null
           status?: Database["public"]["Enums"]["delivery_status"] | null
         }
         Relationships: [
@@ -459,72 +284,6 @@ export type Database = {
           },
           {
             foreignKeyName: "deliveries_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      devices: {
-        Row: {
-          app_version: string | null
-          auth_token_hash: string | null
-          branch_id: string
-          created_at: string | null
-          deleted_at: string | null
-          fingerprint: string | null
-          id: string
-          ip_address: string | null
-          last_seen_at: string | null
-          name: string
-          organization_id: string
-          status: Database["public"]["Enums"]["device_status"] | null
-          type: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          app_version?: string | null
-          auth_token_hash?: string | null
-          branch_id: string
-          created_at?: string | null
-          deleted_at?: string | null
-          fingerprint?: string | null
-          id?: string
-          ip_address?: string | null
-          last_seen_at?: string | null
-          name: string
-          organization_id?: string
-          status?: Database["public"]["Enums"]["device_status"] | null
-          type?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          app_version?: string | null
-          auth_token_hash?: string | null
-          branch_id?: string
-          created_at?: string | null
-          deleted_at?: string | null
-          fingerprint?: string | null
-          id?: string
-          ip_address?: string | null
-          last_seen_at?: string | null
-          name?: string
-          organization_id?: string
-          status?: Database["public"]["Enums"]["device_status"] | null
-          type?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "devices_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "devices_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -625,6 +384,20 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "employee_custom_permissions_modified_by_fkey"
+            columns: ["modified_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_custom_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
         ]
       }
       employees: {
@@ -639,23 +412,23 @@ export type Database = {
           id: string
           organization_id: string
           phone: string | null
-          position: string
-          salary_type: string | null
+          position: Database["public"]["Enums"]["employee_position"]
+          salary_type: Database["public"]["Enums"]["salary_type"] | null
           updated_at: string | null
         }
         Insert: {
           active?: boolean | null
-          base_salary: number
+          base_salary?: number
           branch_id?: string | null
           created_at?: string | null
           email?: string | null
           full_name: string
-          hire_date: string
+          hire_date?: string
           id?: string
           organization_id: string
           phone?: string | null
-          position: string
-          salary_type?: string | null
+          position: Database["public"]["Enums"]["employee_position"]
+          salary_type?: Database["public"]["Enums"]["salary_type"] | null
           updated_at?: string | null
         }
         Update: {
@@ -669,8 +442,8 @@ export type Database = {
           id?: string
           organization_id?: string
           phone?: string | null
-          position?: string
-          salary_type?: string | null
+          position?: Database["public"]["Enums"]["employee_position"]
+          salary_type?: Database["public"]["Enums"]["salary_type"] | null
           updated_at?: string | null
         }
         Relationships: [
@@ -693,45 +466,33 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
-          branch_id: string | null
-          category: string
+          branch_id: string
+          category: Database["public"]["Enums"]["expense_category"] | null
           created_at: string | null
-          created_by: string | null
-          description: string | null
+          description: string
           id: string
-          organization_id: string
-          payment_method: string | null
+          organization_id: string | null
           shift_id: string | null
-          user_id: string | null
-          voucher_number: string | null
         }
         Insert: {
           amount: number
-          branch_id?: string | null
-          category: string
+          branch_id: string
+          category?: Database["public"]["Enums"]["expense_category"] | null
           created_at?: string | null
-          created_by?: string | null
-          description?: string | null
+          description: string
           id?: string
-          organization_id: string
-          payment_method?: string | null
+          organization_id?: string | null
           shift_id?: string | null
-          user_id?: string | null
-          voucher_number?: string | null
         }
         Update: {
           amount?: number
-          branch_id?: string | null
-          category?: string
+          branch_id?: string
+          category?: Database["public"]["Enums"]["expense_category"] | null
           created_at?: string | null
-          created_by?: string | null
-          description?: string | null
+          description?: string
           id?: string
-          organization_id?: string
-          payment_method?: string | null
+          organization_id?: string | null
           shift_id?: string | null
-          user_id?: string | null
-          voucher_number?: string | null
         }
         Relationships: [
           {
@@ -761,7 +522,6 @@ export type Database = {
         Row: {
           buying_unit: string | null
           conversion_factor: number | null
-          created_at: string
           id: string
           last_purchase_price: number | null
           min_stock_alert: number | null
@@ -769,7 +529,7 @@ export type Database = {
           organization_id: string
           sku: string | null
           supplier_id: string | null
-          unit: string
+          unit: Database["public"]["Enums"]["inventory_unit"]
           unit_cost: number | null
           usage_unit: string | null
           weighted_avg_cost: number | null
@@ -777,7 +537,6 @@ export type Database = {
         Insert: {
           buying_unit?: string | null
           conversion_factor?: number | null
-          created_at?: string
           id?: string
           last_purchase_price?: number | null
           min_stock_alert?: number | null
@@ -785,7 +544,7 @@ export type Database = {
           organization_id: string
           sku?: string | null
           supplier_id?: string | null
-          unit: string
+          unit?: Database["public"]["Enums"]["inventory_unit"]
           unit_cost?: number | null
           usage_unit?: string | null
           weighted_avg_cost?: number | null
@@ -793,7 +552,6 @@ export type Database = {
         Update: {
           buying_unit?: string | null
           conversion_factor?: number | null
-          created_at?: string
           id?: string
           last_purchase_price?: number | null
           min_stock_alert?: number | null
@@ -801,7 +559,7 @@ export type Database = {
           organization_id?: string
           sku?: string | null
           supplier_id?: string | null
-          unit?: string
+          unit?: Database["public"]["Enums"]["inventory_unit"]
           unit_cost?: number | null
           usage_unit?: string | null
           weighted_avg_cost?: number | null
@@ -823,215 +581,35 @@ export type Database = {
           },
         ]
       }
-      inventory_price_history: {
-        Row: {
-          branch_id: string | null
-          buying_price: number | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          item_id: string | null
-          new_avg_cost: number | null
-          old_avg_cost: number | null
-          quantity_bought: number | null
-          transaction_type: string
-        }
-        Insert: {
-          branch_id?: string | null
-          buying_price?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          item_id?: string | null
-          new_avg_cost?: number | null
-          old_avg_cost?: number | null
-          quantity_bought?: number | null
-          transaction_type: string
-        }
-        Update: {
-          branch_id?: string | null
-          buying_price?: number | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          item_id?: string | null
-          new_avg_cost?: number | null
-          old_avg_cost?: number | null
-          quantity_bought?: number | null
-          transaction_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "inventory_price_history_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "inventory_price_history_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      order_items: {
-        Row: {
-          created_at: string | null
-          id: string
-          order_id: string
-          organization_id: string
-          product_id: string
-          quantity: number
-          total_price: number
-          unit_price: number
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          order_id: string
-          organization_id: string
-          product_id: string
-          quantity?: number
-          total_price: number
-          unit_price: number
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          order_id?: string
-          organization_id?: string
-          product_id?: string
-          quantity?: number
-          total_price?: number
-          unit_price?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      orders: {
-        Row: {
-          branch_id: string
-          created_at: string | null
-          created_by: string | null
-          customer_name: string | null
-          diners: number | null
-          id: string
-          organization_id: string
-          shift_id: string | null
-          status: string | null
-          table_id: string | null
-          total_amount: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          branch_id: string
-          created_at?: string | null
-          created_by?: string | null
-          customer_name?: string | null
-          diners?: number | null
-          id?: string
-          organization_id: string
-          shift_id?: string | null
-          status?: string | null
-          table_id?: string | null
-          total_amount?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          branch_id?: string
-          created_at?: string | null
-          created_by?: string | null
-          customer_name?: string | null
-          diners?: number | null
-          id?: string
-          organization_id?: string
-          shift_id?: string | null
-          status?: string | null
-          table_id?: string | null
-          total_amount?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_shift_id_fkey"
-            columns: ["shift_id"]
-            isOneToOne: false
-            referencedRelation: "shifts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_table_id_fkey"
-            columns: ["table_id"]
-            isOneToOne: false
-            referencedRelation: "tables"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       organizations: {
         Row: {
+          address: string | null
           created_at: string | null
+          email: string | null
           id: string
-          is_active: boolean | null
           name: string
-          settings: Json | null
-          slug: string
+          nit: string | null
+          phone: string | null
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
-          is_active?: boolean | null
           name: string
-          settings?: Json | null
-          slug: string
+          nit?: string | null
+          phone?: string | null
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
-          is_active?: boolean | null
           name?: string
-          settings?: Json | null
-          slug?: string
+          nit?: string | null
+          phone?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1049,16 +627,16 @@ export type Database = {
           notes: string | null
           organization_id: string
           payment_date: string | null
-          payment_method: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_proof_url: string | null
           payment_type: string | null
           period_end: string
           period_start: string
-          status: string | null
+          status: Database["public"]["Enums"]["payroll_status"] | null
           updated_at: string | null
         }
         Insert: {
-          base_amount: number
+          base_amount?: number
           bonuses?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -1069,12 +647,12 @@ export type Database = {
           notes?: string | null
           organization_id: string
           payment_date?: string | null
-          payment_method?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_proof_url?: string | null
           payment_type?: string | null
           period_end: string
           period_start: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["payroll_status"] | null
           updated_at?: string | null
         }
         Update: {
@@ -1089,12 +667,12 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           payment_date?: string | null
-          payment_method?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_proof_url?: string | null
           payment_type?: string | null
           period_end?: string
           period_start?: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["payroll_status"] | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1102,7 +680,7 @@ export type Database = {
             foreignKeyName: "payroll_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -1156,55 +734,23 @@ export type Database = {
           },
         ]
       }
-      product_categories: {
-        Row: {
-          created_at: string | null
-          id: string
-          name: string
-          organization_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          name: string
-          organization_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          name?: string
-          organization_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_categories_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       product_recipes: {
         Row: {
-          created_at: string | null
           id: string
-          ingredient_id: string | null
-          product_id: string | null
+          ingredient_id: string
+          product_id: string
           quantity_required: number
         }
         Insert: {
-          created_at?: string | null
           id?: string
-          ingredient_id?: string | null
-          product_id?: string | null
+          ingredient_id: string
+          product_id: string
           quantity_required: number
         }
         Update: {
-          created_at?: string | null
           id?: string
-          ingredient_id?: string | null
-          product_id?: string | null
+          ingredient_id?: string
+          product_id?: string
           quantity_required?: number
         }
         Relationships: [
@@ -1224,100 +770,55 @@ export type Database = {
           },
         ]
       }
-      production_logs: {
-        Row: {
-          branch_id: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          product_id: string | null
-          production_date: string | null
-          quantity_produced: number
-        }
-        Insert: {
-          branch_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          product_id?: string | null
-          production_date?: string | null
-          quantity_produced: number
-        }
-        Update: {
-          branch_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          product_id?: string | null
-          production_date?: string | null
-          quantity_produced?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "production_logs_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "production_logs_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       products: {
         Row: {
           active: boolean | null
-          category: string | null
           category_id: string | null
-          created_at: string
+          cost_price: number | null
+          created_at: string | null
           description: string | null
           id: string
           image_url: string | null
-          last_synced_at: string | null
           name: string
           organization_id: string
           price: number
-          stock: number
+          sku: string | null
+          tax_rate: number | null
         }
         Insert: {
           active?: boolean | null
-          category?: string | null
           category_id?: string | null
-          created_at?: string
+          cost_price?: number | null
+          created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
-          last_synced_at?: string | null
           name: string
           organization_id: string
-          price: number
-          stock?: number
+          price?: number
+          sku?: string | null
+          tax_rate?: number | null
         }
         Update: {
           active?: boolean | null
-          category?: string | null
           category_id?: string | null
-          created_at?: string
+          cost_price?: number | null
+          created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
-          last_synced_at?: string | null
           name?: string
           organization_id?: string
           price?: number
-          stock?: number
+          sku?: string | null
+          tax_rate?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "product_categories"
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
           {
@@ -1329,121 +830,9 @@ export type Database = {
           },
         ]
       }
-      profiles: {
-        Row: {
-          branch_id: string | null
-          created_at: string
-          document_id: string | null
-          email: string | null
-          employee_id: string | null
-          full_name: string | null
-          id: string
-          organization_id: string
-          role: Database["public"]["Enums"]["user_role"] | null
-        }
-        Insert: {
-          branch_id?: string | null
-          created_at?: string
-          document_id?: string | null
-          email?: string | null
-          employee_id?: string | null
-          full_name?: string | null
-          id: string
-          organization_id: string
-          role?: Database["public"]["Enums"]["user_role"] | null
-        }
-        Update: {
-          branch_id?: string | null
-          created_at?: string
-          document_id?: string | null
-          email?: string | null
-          employee_id?: string | null
-          full_name?: string | null
-          id?: string
-          organization_id?: string
-          role?: Database["public"]["Enums"]["user_role"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      provisioning_sessions: {
-        Row: {
-          assigned_branch_id: string | null
-          created_at: string | null
-          device_name: string | null
-          expires_at: string | null
-          fingerprint: string
-          generated_auth_token: string | null
-          id: string
-          ip_address: string | null
-          organization_id: string | null
-          status: Database["public"]["Enums"]["provisioning_status"] | null
-        }
-        Insert: {
-          assigned_branch_id?: string | null
-          created_at?: string | null
-          device_name?: string | null
-          expires_at?: string | null
-          fingerprint: string
-          generated_auth_token?: string | null
-          id?: string
-          ip_address?: string | null
-          organization_id?: string | null
-          status?: Database["public"]["Enums"]["provisioning_status"] | null
-        }
-        Update: {
-          assigned_branch_id?: string | null
-          created_at?: string | null
-          device_name?: string | null
-          expires_at?: string | null
-          fingerprint?: string
-          generated_auth_token?: string | null
-          id?: string
-          ip_address?: string | null
-          organization_id?: string | null
-          status?: Database["public"]["Enums"]["provisioning_status"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "provisioning_sessions_assigned_branch_id_fkey"
-            columns: ["assigned_branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "provisioning_sessions_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       purchase_order_items: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           item_id: string
           order_id: string
@@ -1451,7 +840,7 @@ export type Database = {
           unit_price: number | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           item_id: string
           order_id: string
@@ -1459,7 +848,7 @@ export type Database = {
           unit_price?: number | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           item_id?: string
           order_id?: string
@@ -1486,51 +875,54 @@ export type Database = {
       purchase_orders: {
         Row: {
           branch_id: string
-          created_at: string
+          created_at: string | null
           id: string
           invoice_url: string | null
-          last_edit_type: string | null
+          last_edit_type: Database["public"]["Enums"]["edit_type"] | null
           last_modified_at: string | null
           last_modified_by: string | null
           organization_id: string
           payment_proof_url: string | null
-          payment_status: string | null
+          payment_status: Database["public"]["Enums"]["payroll_status"] | null
           requested_by: string
-          status: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"] | null
           supplier_id: string
           total_amount: number | null
+          updated_at: string | null
         }
         Insert: {
           branch_id: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           invoice_url?: string | null
-          last_edit_type?: string | null
+          last_edit_type?: Database["public"]["Enums"]["edit_type"] | null
           last_modified_at?: string | null
           last_modified_by?: string | null
           organization_id: string
           payment_proof_url?: string | null
-          payment_status?: string | null
+          payment_status?: Database["public"]["Enums"]["payroll_status"] | null
           requested_by: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"] | null
           supplier_id: string
           total_amount?: number | null
+          updated_at?: string | null
         }
         Update: {
           branch_id?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           invoice_url?: string | null
-          last_edit_type?: string | null
+          last_edit_type?: Database["public"]["Enums"]["edit_type"] | null
           last_modified_at?: string | null
           last_modified_by?: string | null
           organization_id?: string
           payment_proof_url?: string | null
-          payment_status?: string | null
+          payment_status?: Database["public"]["Enums"]["payroll_status"] | null
           requested_by?: string
-          status?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"] | null
           supplier_id?: string
           total_amount?: number | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -1544,7 +936,7 @@ export type Database = {
             foreignKeyName: "purchase_orders_last_modified_by_fkey"
             columns: ["last_modified_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -1558,7 +950,7 @@ export type Database = {
             foreignKeyName: "purchase_orders_requested_by_fkey"
             columns: ["requested_by"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -1574,13 +966,13 @@ export type Database = {
         Row: {
           assigned_driver: string | null
           branch_id: string | null
-          created_at: string
+          created_at: string | null
           customer_address: string | null
           customer_name: string | null
           customer_phone: string | null
           delivery_fee: number | null
           id: string
-          last_edit_type: string | null
+          last_edit_type: Database["public"]["Enums"]["edit_type"] | null
           last_edited_at: string | null
           last_edited_by: string | null
           notes: string | null
@@ -1589,20 +981,20 @@ export type Database = {
           product_details: string | null
           rappi_order_id: string | null
           rappi_receipt_url: string | null
-          status: string | null
+          status: Database["public"]["Enums"]["rappi_order_status"] | null
           ticket_url: string | null
           total_value: number | null
         }
         Insert: {
           assigned_driver?: string | null
           branch_id?: string | null
-          created_at?: string
+          created_at?: string | null
           customer_address?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivery_fee?: number | null
           id?: string
-          last_edit_type?: string | null
+          last_edit_type?: Database["public"]["Enums"]["edit_type"] | null
           last_edited_at?: string | null
           last_edited_by?: string | null
           notes?: string | null
@@ -1611,20 +1003,20 @@ export type Database = {
           product_details?: string | null
           rappi_order_id?: string | null
           rappi_receipt_url?: string | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["rappi_order_status"] | null
           ticket_url?: string | null
           total_value?: number | null
         }
         Update: {
           assigned_driver?: string | null
           branch_id?: string | null
-          created_at?: string
+          created_at?: string | null
           customer_address?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivery_fee?: number | null
           id?: string
-          last_edit_type?: string | null
+          last_edit_type?: Database["public"]["Enums"]["edit_type"] | null
           last_edited_at?: string | null
           last_edited_by?: string | null
           notes?: string | null
@@ -1633,7 +1025,7 @@ export type Database = {
           product_details?: string | null
           rappi_order_id?: string | null
           rappi_receipt_url?: string | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["rappi_order_status"] | null
           ticket_url?: string | null
           total_value?: number | null
         }
@@ -1654,103 +1046,59 @@ export type Database = {
           },
         ]
       }
-      receipt_settings: {
+      role_permissions: {
         Row: {
-          company_name: string
-          company_nit: string
-          company_slogan: string | null
           created_at: string | null
-          font_size_multiplier: number | null
-          footer_text: string | null
-          header_text: string | null
           id: string
-          logo_url: string | null
-          paper_width_mm: number | null
-          show_cashier: boolean | null
-          show_client_data: boolean | null
-          show_footer_branding: boolean | null
-          show_nit: boolean | null
-          updated_at: string | null
+          permission: string
+          role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
-          company_name?: string
-          company_nit: string
-          company_slogan?: string | null
           created_at?: string | null
-          font_size_multiplier?: number | null
-          footer_text?: string | null
-          header_text?: string | null
           id?: string
-          logo_url?: string | null
-          paper_width_mm?: number | null
-          show_cashier?: boolean | null
-          show_client_data?: boolean | null
-          show_footer_branding?: boolean | null
-          show_nit?: boolean | null
-          updated_at?: string | null
+          permission: string
+          role: Database["public"]["Enums"]["user_role"]
         }
         Update: {
-          company_name?: string
-          company_nit?: string
-          company_slogan?: string | null
           created_at?: string | null
-          font_size_multiplier?: number | null
-          footer_text?: string | null
-          header_text?: string | null
           id?: string
-          logo_url?: string | null
-          paper_width_mm?: number | null
-          show_cashier?: boolean | null
-          show_client_data?: boolean | null
-          show_footer_branding?: boolean | null
-          show_nit?: boolean | null
-          updated_at?: string | null
+          permission?: string
+          role?: Database["public"]["Enums"]["user_role"]
         }
         Relationships: []
       }
       sale_items: {
         Row: {
           id: string
-          organization_id: string
+          organization_id: string | null
           product_id: string
           quantity: number
           sale_id: string
-          total_price: number
+          tax_amount: number | null
+          total_price: number | null
           unit_price: number
         }
         Insert: {
           id?: string
-          organization_id: string
+          organization_id?: string | null
           product_id: string
-          quantity: number
+          quantity?: number
           sale_id: string
-          total_price: number
+          tax_amount?: number | null
+          total_price?: number | null
           unit_price: number
         }
         Update: {
           id?: string
-          organization_id?: string
+          organization_id?: string | null
           product_id?: string
           quantity?: number
           sale_id?: string
-          total_price?: number
+          tax_amount?: number | null
+          total_price?: number | null
           unit_price?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "sale_items_new_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sale_items_new_sale_id_fkey"
-            columns: ["sale_id"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "sale_items_organization_id_fkey"
             columns: ["organization_id"]
@@ -1758,96 +1106,62 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sales: {
         Row: {
-          branch_id: string | null
-          client_id: string | null
-          created_at: string
-          created_by: string | null
-          created_by_system: string | null
-          diners: number | null
-          discount_amount: number | null
+          branch_id: string
+          created_at: string | null
           id: string
-          notes: string | null
-          order_id: string | null
-          organization_id: string
-          payment_method: string
-          sale_channel: string | null
+          organization_id: string | null
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
           shift_id: string | null
-          status: string | null
+          status: Database["public"]["Enums"]["sale_status"] | null
           synced: boolean | null
-          tip_amount: number | null
           total_amount: number
         }
         Insert: {
-          branch_id?: string | null
-          client_id?: string | null
-          created_at: string
-          created_by?: string | null
-          created_by_system?: string | null
-          diners?: number | null
-          discount_amount?: number | null
+          branch_id: string
+          created_at?: string | null
           id?: string
-          notes?: string | null
-          order_id?: string | null
-          organization_id: string
-          payment_method: string
-          sale_channel?: string | null
+          organization_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           shift_id?: string | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["sale_status"] | null
           synced?: boolean | null
-          tip_amount?: number | null
-          total_amount: number
+          total_amount?: number
         }
         Update: {
-          branch_id?: string | null
-          client_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          created_by_system?: string | null
-          diners?: number | null
-          discount_amount?: number | null
+          branch_id?: string
+          created_at?: string | null
           id?: string
-          notes?: string | null
-          order_id?: string | null
-          organization_id?: string
-          payment_method?: string
-          sale_channel?: string | null
+          organization_id?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
           shift_id?: string | null
-          status?: string | null
+          status?: Database["public"]["Enums"]["sale_status"] | null
           synced?: boolean | null
-          tip_amount?: number | null
           total_amount?: number
         }
         Relationships: [
           {
-            foreignKeyName: "sales_new_branch_id_fkey"
+            foreignKeyName: "sales_branch_id_fkey"
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_new_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_new_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sales_new_shift_id_fkey"
-            columns: ["shift_id"]
-            isOneToOne: false
-            referencedRelation: "shifts"
             referencedColumns: ["id"]
           },
           {
@@ -1857,58 +1171,63 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       shifts: {
         Row: {
           branch_id: string
-          closing_metadata: Json | null
           created_at: string | null
           end_time: string | null
           expected_cash: number | null
           final_cash: number | null
           id: string
           initial_cash: number | null
-          organization_id: string
-          pending_tips: number | null
-          start_time: string | null
-          status: string | null
-          turn_type: string | null
+          organization_id: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["shift_status"] | null
           user_id: string
         }
         Insert: {
           branch_id: string
-          closing_metadata?: Json | null
           created_at?: string | null
           end_time?: string | null
           expected_cash?: number | null
           final_cash?: number | null
           id?: string
           initial_cash?: number | null
-          organization_id: string
-          pending_tips?: number | null
-          start_time?: string | null
-          status?: string | null
-          turn_type?: string | null
+          organization_id?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["shift_status"] | null
           user_id: string
         }
         Update: {
           branch_id?: string
-          closing_metadata?: Json | null
           created_at?: string | null
           end_time?: string | null
           expected_cash?: number | null
           final_cash?: number | null
           id?: string
           initial_cash?: number | null
-          organization_id?: string
-          pending_tips?: number | null
-          start_time?: string | null
-          status?: string | null
-          turn_type?: string | null
+          organization_id?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["shift_status"] | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "shifts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "shifts_organization_id_fkey"
             columns: ["organization_id"]
@@ -1916,60 +1235,20 @@ export type Database = {
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      stock_reservations: {
-        Row: {
-          created_at: string | null
-          id: string
-          organization_id: string
-          product_id: string | null
-          quantity: number
-          source_id: string
-          source_type: string
-          status: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          organization_id: string
-          product_id?: string | null
-          quantity: number
-          source_id: string
-          source_type: string
-          status?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          organization_id?: string
-          product_id?: string | null
-          quantity?: number
-          source_id?: string
-          source_type?: string
-          status?: string | null
-        }
-        Relationships: [
           {
-            foreignKeyName: "stock_reservations_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: "shifts_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stock_reservations_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
       }
       suppliers: {
         Row: {
+          address: string | null
           contact_name: string | null
-          created_at: string
+          created_at: string | null
           delivery_day: string | null
           delivery_time_days: number | null
           email: string | null
@@ -1979,10 +1258,12 @@ export type Database = {
           order_day: string | null
           organization_id: string
           phone: string | null
+          updated_at: string | null
         }
         Insert: {
+          address?: string | null
           contact_name?: string | null
-          created_at?: string
+          created_at?: string | null
           delivery_day?: string | null
           delivery_time_days?: number | null
           email?: string | null
@@ -1992,10 +1273,12 @@ export type Database = {
           order_day?: string | null
           organization_id: string
           phone?: string | null
+          updated_at?: string | null
         }
         Update: {
+          address?: string | null
           contact_name?: string | null
-          created_at?: string
+          created_at?: string | null
           delivery_day?: string | null
           delivery_time_days?: number | null
           email?: string | null
@@ -2005,6 +1288,7 @@ export type Database = {
           order_day?: string | null
           organization_id?: string
           phone?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -2016,136 +1300,42 @@ export type Database = {
           },
         ]
       }
-      tables: {
-        Row: {
-          branch_id: string
-          created_at: string | null
-          id: string
-          name: string
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          branch_id: string
-          created_at?: string | null
-          id?: string
-          name: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          branch_id?: string
-          created_at?: string | null
-          id?: string
-          name?: string
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tables_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tip_distributions: {
-        Row: {
-          amount: number
-          created_at: string | null
-          employee_id: string | null
-          employee_name: string | null
-          id: string
-          shift_id: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          employee_id?: string | null
-          employee_name?: string | null
-          id?: string
-          shift_id?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          employee_id?: string | null
-          employee_name?: string | null
-          id?: string
-          shift_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tip_distributions_shift_id_fkey"
-            columns: ["shift_id"]
-            isOneToOne: false
-            referencedRelation: "shifts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      transaction_events: {
-        Row: {
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          payload: Json
-          synced_at: string | null
-          type: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          payload: Json
-          synced_at?: string | null
-          type: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          payload?: Json
-          synced_at?: string | null
-          type?: string
-        }
-        Relationships: []
-      }
       users: {
         Row: {
+          active: boolean | null
           branch_id: string | null
           created_at: string | null
-          deleted_at: string | null
           email: string | null
-          full_name: string
+          employee_id: string | null
+          full_name: string | null
           id: string
-          pin_hash: string | null
-          role: string
-          updated_at: string | null
+          organization_id: string
+          pin_code: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
         }
         Insert: {
+          active?: boolean | null
           branch_id?: string | null
           created_at?: string | null
-          deleted_at?: string | null
           email?: string | null
-          full_name: string
+          employee_id?: string | null
+          full_name?: string | null
           id?: string
-          pin_hash?: string | null
-          role?: string
-          updated_at?: string | null
+          organization_id: string
+          pin_code?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
         }
         Update: {
+          active?: boolean | null
           branch_id?: string | null
           created_at?: string | null
-          deleted_at?: string | null
           email?: string | null
-          full_name?: string
+          employee_id?: string | null
+          full_name?: string | null
           id?: string
-          pin_hash?: string | null
-          role?: string
-          updated_at?: string | null
+          organization_id?: string
+          pin_code?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: [
           {
@@ -2155,70 +1345,77 @@ export type Database = {
             referencedRelation: "branches"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "users_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      current_user_permissions: {
-        Row: {
-          permission_name: string | null
-          permission_value: boolean | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
-      can_modify_employee_permissions: {
-        Args: { target_employee_id: string }
-        Returns: boolean
-      }
-      decrement_product_stock: {
-        Args: { product_id: string; quantity: number }
-        Returns: undefined
-      }
-      deduct_inventory: {
-        Args: { p_branch_id: string; p_products_json: Json }
-        Returns: undefined
-      }
-      get_auth_org_id: { Args: never; Returns: string }
-      get_branch_products_stock: {
-        Args: { p_branch_id: string }
-        Returns: {
-          product_id: string
-          stock: number
-        }[]
-      }
-      get_effective_permissions: {
-        Args: { target_user_id: string }
-        Returns: {
-          permission_name: string
-          permission_value: boolean
-        }[]
-      }
-      get_supplier_stats: {
-        Args: never
-        Returns: {
-          current_debt: number
-          supplier_id: string
-          total_purchased: number
-        }[]
-      }
-      handle_new_stock_entry: {
-        Args: {
-          p_branch_id: string
-          p_item_id: string
-          p_quantity_bought: number
-          p_unit_price: number
-          p_user_id?: string
-        }
-        Returns: Json
-      }
+      [_ in never]: never
     }
     Enums: {
       delivery_status: "pending" | "dispatched" | "delivered" | "cancelled"
-      device_status: "pending" | "active" | "inactive" | "decommissioned"
-      provisioning_status: "waiting" | "approved" | "rejected" | "expired"
-      user_role: "admin" | "cajero" | "mesero" | "cocina" | "dev" | "empleado"
+      edit_type: "created" | "updated" | "deleted" | "status_change"
+      employee_position:
+        | "cajero"
+        | "panadero"
+        | "cocina"
+        | "mesero"
+        | "domiciliario"
+        | "limpieza"
+        | "administrador"
+        | "otro"
+      expense_category:
+        | "servicios"
+        | "nomina"
+        | "inventario"
+        | "mantenimiento"
+        | "arriendo"
+        | "transporte"
+        | "marketing"
+        | "impuestos"
+        | "domicilios"
+        | "otro"
+      inventory_unit:
+        | "kg"
+        | "g"
+        | "l"
+        | "ml"
+        | "unidad"
+        | "paquete"
+        | "caja"
+        | "docena"
+        | "lb"
+      payment_method:
+        | "cash_panpanocha"
+        | "cash_siigo"
+        | "card"
+        | "transfer"
+        | "rappi"
+      payroll_status: "pending" | "paid"
+      purchase_order_status: "pending" | "approved" | "received" | "cancelled"
+      rappi_order_status: "created" | "preparing" | "ready" | "picked_up"
+      salary_type: "monthly" | "biweekly" | "weekly" | "daily" | "hourly"
+      sale_status: "pending" | "completed" | "cancelled" | "refunded"
+      shift_status: "open" | "closed" | "pending_review"
+      user_role:
+        | "dev"
+        | "owner"
+        | "admin"
+        | "domicilios/pick-up"
+        | "panadero"
+        | "cajero"
+        | "cocina"
+        | "mesero"
+        | "empleado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2347,9 +1544,64 @@ export const Constants = {
   public: {
     Enums: {
       delivery_status: ["pending", "dispatched", "delivered", "cancelled"],
-      device_status: ["pending", "active", "inactive", "decommissioned"],
-      provisioning_status: ["waiting", "approved", "rejected", "expired"],
-      user_role: ["admin", "cajero", "mesero", "cocina", "dev", "empleado"],
+      edit_type: ["created", "updated", "deleted", "status_change"],
+      employee_position: [
+        "cajero",
+        "panadero",
+        "cocina",
+        "mesero",
+        "domiciliario",
+        "limpieza",
+        "administrador",
+        "otro",
+      ],
+      expense_category: [
+        "servicios",
+        "nomina",
+        "inventario",
+        "mantenimiento",
+        "arriendo",
+        "transporte",
+        "marketing",
+        "impuestos",
+        "domicilios",
+        "otro",
+      ],
+      inventory_unit: [
+        "kg",
+        "g",
+        "l",
+        "ml",
+        "unidad",
+        "paquete",
+        "caja",
+        "docena",
+        "lb",
+      ],
+      payment_method: [
+        "cash_panpanocha",
+        "cash_siigo",
+        "card",
+        "transfer",
+        "rappi",
+      ],
+      payroll_status: ["pending", "paid"],
+      purchase_order_status: ["pending", "approved", "received", "cancelled"],
+      rappi_order_status: ["created", "preparing", "ready", "picked_up"],
+      salary_type: ["monthly", "biweekly", "weekly", "daily", "hourly"],
+      sale_status: ["pending", "completed", "cancelled", "refunded"],
+      shift_status: ["open", "closed", "pending_review"],
+      user_role: [
+        "dev",
+        "owner",
+        "admin",
+        "domicilios/pick-up",
+        "panadero",
+        "cajero",
+        "cocina",
+        "mesero",
+        "empleado",
+      ],
     },
   },
 } as const

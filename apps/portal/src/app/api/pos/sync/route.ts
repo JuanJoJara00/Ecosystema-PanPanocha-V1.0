@@ -84,7 +84,7 @@ export async function GET(request: Request) {
         // Parallel fetch for efficiency
         const [
             { data: products },
-            { data: profiles },
+            { data: users },
             { data: branches },
             { data: tables },
             { data: expenses },
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
             })(),
 
             // 2. Profiles (Staff)
-            supabase.from('profiles').select('id, email, full_name, role'),
+            supabase.from('users').select('id, email, full_name, role'),
 
             // 3. Branches (Reference)
             supabase.from('branches').select('*'),
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
             products: products || [],
-            profiles: profiles || [],
+            users: users || [],
             branches: branches || [],
             tables: tables || [],
             expenses: expenses || [],

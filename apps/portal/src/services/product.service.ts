@@ -74,7 +74,7 @@ export class ProductService {
                 category: productData.category,
                 active: productData.active ?? true,
                 description: productData.description
-            })
+            } as any)
             .select()
             .single();
 

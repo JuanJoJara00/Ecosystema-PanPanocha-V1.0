@@ -39,7 +39,7 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
             // Fetch Order Info
             const { data: orderData, error: orderError } = await supabase
                 .from('purchase_orders')
-                .select(`*, supplier:suppliers(name), branch:branches(name), requester:profiles!purchase_orders_requested_by_fkey(full_name), modifier:profiles!purchase_orders_last_modified_by_fkey(full_name)`)
+                .select(`*, supplier:suppliers(name), branch:branches(name), requester:users!purchase_orders_requested_by_fkey(full_name), modifier:users!purchase_orders_last_modified_by_fkey(full_name)`)
                 .eq('id', orderId)
                 .single()
 
@@ -144,7 +144,7 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
                 const qtyToAdd = receiveQuantities[item.id] ?? item.quantity
 
                 const { data: currentStockVal } = await supabase
-                    .from('branch_inventory')
+                    .from('branch_ingredients')
                     .select('quantity')
                     .eq('branch_id', order.branch_id)
                     .eq('item_id', item.item_id)
@@ -154,7 +154,7 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
                 const newQty = currentQty + qtyToAdd
 
                 const { error: upsertError } = await supabase
-                    .from('branch_inventory')
+                    .from('branch_ingredients')
                     .upsert({
                         branch_id: order.branch_id,
                         item_id: item.item_id,
@@ -343,6 +343,8 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
                                         </label>
                                         <input
                                             type="file"
+                                            aria-label="Subir pago"
+                                            title="Subir pago"
                                             accept="image/*"
                                             onChange={async (e) => {
                                                 const file = e.target.files?.[0]
@@ -423,6 +425,8 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
                                             </label>
                                             <input
                                                 type="file"
+                                                aria-label="Subir factura"
+                                                title="Subir factura"
                                                 accept="image/*"
                                                 onChange={async (e) => {
                                                     const file = e.target.files?.[0]
@@ -486,6 +490,8 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
                                                             <td className="px-5 py-4 text-center">
                                                                 <input
                                                                     type="number"
+                                                                    aria-label="Cantidad recibida"
+                                                                    placeholder="0"
                                                                     min="0"
                                                                     className="w-24 text-center border-2 border-gray-200 rounded-lg p-1.5 font-bold text-green-700 focus:ring-4 focus:ring-green-100 focus:border-green-500 outline-none transition-all"
                                                                     value={receiveQuantities[item.id] ?? item.quantity}
@@ -545,6 +551,8 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
                                                     </label>
                                                     <input
                                                         type="file"
+                                                        aria-label="Subir recibo"
+                                                        title="Subir recibo"
                                                         accept="image/*"
                                                         onChange={async (e) => {
                                                             const file = e.target.files?.[0]
