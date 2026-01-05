@@ -2,6 +2,7 @@ import type { UUID, ISODateString, TenantEntity } from './common';
 import type { Product } from './product';
 
 export type ShiftStatus = 'open' | 'closed';
+export type ShiftType = 'mañana' | 'tarde' | 'turno_unico';
 
 export interface Shift extends TenantEntity {
     id: UUID;
@@ -11,7 +12,7 @@ export interface Shift extends TenantEntity {
     // Timings
     start_time: ISODateString;
     end_time?: ISODateString;
-    turn_type?: string;
+    shift_type?: ShiftType;
 
     // Money
     initial_cash: number;

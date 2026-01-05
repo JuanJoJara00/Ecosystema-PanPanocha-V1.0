@@ -2,16 +2,16 @@
 -- QUICK SAMPLE DATA - RUN THIS IN SUPABASE SQL EDITOR
 -- ============================================
 -- This creates 5 test shifts for the current month
+-- NOTE: Run the migration 20260105000001_add_shift_type.sql FIRST!
 
 -- Shift 1: Yesterday Morning ($550K total sales)
-INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, turn_type, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
+INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
 SELECT 
     b.id,
     u.id,
     u.organization_id,
-    NOW() - INTERVAL '1 day',
-    NOW() - INTERVAL '1 day' + INTERVAL '8 hours',
-    'morning',
+    NOW() - INTERVAL '1 day' + INTERVAL '8 hours',  -- 8 AM yesterday (mañana)
+    NOW() - INTERVAL '1 day' + INTERVAL '16 hours',  -- 4 PM yesterday
     100000,
     650000,
     650000,
@@ -25,14 +25,13 @@ WHERE u.role = 'owner'
 LIMIT 1;
 
 -- Shift 2: Yesterday Afternoon ($440K total sales)
-INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, turn_type, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
+INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
 SELECT 
     b.id,
     u.id,
     u.organization_id,
-    NOW() - INTERVAL '13 hours',
-    NOW() - INTERVAL '5 hours',
-    'afternoon',
+    NOW() - INTERVAL '1 day' + INTERVAL '14 hours',  -- 2 PM yesterday (tarde)
+    NOW() - INTERVAL '1 day' + INTERVAL '22 hours',  -- 10 PM yesterday
     100000,
     520000,
     520000,
@@ -46,14 +45,13 @@ WHERE u.role = 'owner'
 LIMIT 1;
 
 -- Shift 3: 5 Days Ago WITH SIIGO ($640K MYS + $330K Siigo)
-INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, turn_type, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
+INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
 SELECT 
     b.id,
     u.id,
     u.organization_id,
-    NOW() - INTERVAL '5 days',
-    NOW() - INTERVAL '5 days' + INTERVAL '8 hours',
-    'morning',
+    NOW() - INTERVAL '5 days' + INTERVAL '7 hours',  -- 7 AM (mañana)
+    NOW() - INTERVAL '5 days' + INTERVAL '15 hours',  -- 3 PM
     100000,
     700000,
     700000,
@@ -67,14 +65,13 @@ WHERE u.role = 'owner'
 LIMIT 1;
 
 -- Shift 4: 10 Days Ago ($395K total sales)
-INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, turn_type, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
+INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
 SELECT 
     b.id,
     u.id,
     u.organization_id,
-    NOW() - INTERVAL '10 days',
-    NOW() - INTERVAL '10 days' + INTERVAL '9 hours',
-    'afternoon',
+    NOW() - INTERVAL '10 days' + INTERVAL '15 hours',  -- 3 PM (tarde)
+    NOW() - INTERVAL '10 days' + INTERVAL '24 hours',  -- 12 AM next day
     100000,
     480000,
     480000,
@@ -88,14 +85,13 @@ WHERE u.role = 'owner'
 LIMIT 1;
 
 -- Shift 5: 15 Days Ago WITH SHORTAGE ($475K - $5K short!)
-INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, turn_type, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
+INSERT INTO shifts (branch_id, user_id, organization_id, start_time, end_time, initial_cash, final_cash, expected_cash, status, closing_metadata, created_at, updated_at, synced)
 SELECT 
     b.id,
     u.id,
     u.organization_id,
-    NOW() - INTERVAL '15 days',
-    NOW() - INTERVAL '15 days' + INTERVAL '8 hours',
-    'morning',
+    NOW() - INTERVAL '15 days' + INTERVAL '6 hours',  -- 6 AM (mañana)
+    NOW() - INTERVAL '15 days' + INTERVAL '14 hours',  -- 2 PM
     100000,
     545000,
     550000,
@@ -108,13 +104,25 @@ FROM branches b, users u
 WHERE u.role = 'owner'
 LIMIT 1;
 
+-- After inserting, the migration will auto-set shift_type based on start_time
+-- Or you can manually update:
+UPDATE shifts
+SET shift_type = CASE
+    WHEN EXTRACT(HOUR FROM start_time) < 14 THEN 'mañana'::shift_type
+    WHEN EXTRACT(HOUR FROM start_time) >= 14 THEN 'tarde'::shift_type
+    ELSE 'turno_unico'::shift_type
+END
+WHERE shift_type IS NULL;
+
 -- Verify data
 SELECT 
     start_time::date as fecha,
-    turn_type,
-    formatcurrency(initial_cash) as base,
+    EXTRACT(HOUR FROM start_time) as hora,
+    shift_type,
+    initial_cash as base,
     (closing_metadata->'mys'->>'sales_cash')::numeric as ventas_efectivo,
     status
 FROM shifts
 WHERE status = 'closed'
-ORDER BY start_time DESC;
+ORDER BY start_time DESC
+LIMIT 10;
