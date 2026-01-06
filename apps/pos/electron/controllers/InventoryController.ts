@@ -20,7 +20,7 @@ export class InventoryController {
 
         const conditions = [];
         if (p.search) conditions.push(like(products.name, `%${p.search}%`));
-        if (p.categoryId) conditions.push(eq(products.category, p.categoryId));
+        if (p.categoryId) conditions.push(eq(products.category_id, p.categoryId));
 
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -40,16 +40,18 @@ export class InventoryController {
     }
 
     async getCategories() {
+        // Use standard select with groupBy to ensure compatibility and robustness
         const result = await this.db.select({
-            category: sql<string>`DISTINCT ${products.category}`
+            category: products.category_id
         })
             .from(products)
             .where(
                 and(
                     eq(products.active, true),
-                    sql`${products.category} IS NOT NULL`
+                    sql`${products.category_id} IS NOT NULL`
                 )
-            );
+            )
+            .groupBy(products.category_id);
 
         return result.map((r: any) => r.category).filter(Boolean);
     }

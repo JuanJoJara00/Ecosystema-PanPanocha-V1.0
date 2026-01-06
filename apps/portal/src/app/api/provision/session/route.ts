@@ -70,7 +70,8 @@ export async function POST(request: Request) {
         if (error) {
             const errorId = crypto.randomUUID();
             console.error(`[Provision] Database Error (${errorId}):`, error);
-            return NextResponse.json({ error: 'Database Error', errorId }, { status: 500 });
+            // DEBUG: Returning details to client to help user debug
+            return NextResponse.json({ error: 'Database Error', details: error.message, errorId }, { status: 500 });
         }
 
         const qrUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/link?session=${data.id}`;

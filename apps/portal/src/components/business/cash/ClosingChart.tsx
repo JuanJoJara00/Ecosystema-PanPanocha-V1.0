@@ -77,11 +77,11 @@ export const ClosingChart = ({ currentData, prevData }: ClosingChartProps) => {
     const totals = useMemo(() => {
         return currentData.reduce((acc, item) => {
             // Cash Delivered = Final Count - Base (Pure cash generated)
-            const mysCash = (item.mys?.cash_audit_count || 0) - (item.mys?.base_cash || 0);
+            const mysCash = (item.panpanocha?.cash_audit_count || 0) - (item.panpanocha?.base_cash || 0);
             const siigoCash = (item.siigo?.cash_audit_count || 0) - (item.siigo?.base_cash || 0);
 
             // Expenses: Merge expenses + tips from both sources
-            const mysExp = (item.mys?.expenses_total || 0) + (item.mys?.tips_total || 0);
+            const mysExp = (item.panpanocha?.expenses_total || 0) + (item.panpanocha?.tips_total || 0);
             const siigoExp = (item.siigo?.expenses_total || 0) + (item.siigo?.tips_total || 0);
 
             return {
@@ -104,13 +104,13 @@ export const ClosingChart = ({ currentData, prevData }: ClosingChartProps) => {
 
                 if (activeMetric === 'panpanocha') {
                     // Cash Delivered
-                    val = (item.mys?.cash_audit_count || 0) - (item.mys?.base_cash || 0);
+                    val = (item.panpanocha?.cash_audit_count || 0) - (item.panpanocha?.base_cash || 0);
                 } else if (activeMetric === 'siigo') {
                     // Cash Delivered
                     val = (item.siigo?.cash_audit_count || 0) - (item.siigo?.base_cash || 0);
                 } else {
                     // Expenses
-                    const mysExp = (item.mys?.expenses_total || 0) + (item.mys?.tips_total || 0);
+                    const mysExp = (item.panpanocha?.expenses_total || 0) + (item.panpanocha?.tips_total || 0);
                     const siigoExp = (item.siigo?.expenses_total || 0) + (item.siigo?.tips_total || 0);
                     val = mysExp + siigoExp;
                 }

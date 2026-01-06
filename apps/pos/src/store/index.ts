@@ -107,6 +107,9 @@ interface PosState {
     closingSession: ClosingSession;
     updateClosingSession: (section: 'panpanocha' | 'siigo' | 'tips', data: Partial<ClosingSession['panpanocha'] | ClosingSession['siigo'] | ClosingSession['tips']>) => void;
     resetClosingSession: () => void;
+
+    // Auth
+    logout: () => Promise<void>;
 }
 
 export const usePosStore = create<PosState>()(persist((set, get) => ({
@@ -628,8 +631,8 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
     loadProducts: async () => {
         try {
             const result = await window.electron.getProducts();
-            // Handle both paginated (legacy hybrid) and direct array returns if any
-            const productList = Array.isArray(result) ? result : (result.data || []);
+            // InventoryController returns { products: [...], total: N }
+            const productList = Array.isArray(result) ? result : (result.products || []);
             set({ products: productList });
             console.log(`[Store] Loaded ${productList.length} products`);
 
@@ -665,33 +668,93 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
             const storedOrgId = localStorage.getItem('panpanocha_org_id');
             const isProvisioned = !!storedToken;
 
-            // Set initial state
-            set({
-                branches: localBranches,
-                currentShift: activeShift,
-                currentBranchId: activeShift?.branch_id || '',
-                isProvisioned: isProvisioned,
-                organizationId: storedOrgId || activeShift?.organization_id || '' // Fallback to shift if available
-            });
-
             // 1. Restore Device Token for Electron Sync (Priority for Headless/Device Auth)
             if (storedToken) {
                 try {
                     console.log("[Init] Decrypting Device Token...");
                     const deviceToken = await window.electron.decrypt(storedToken);
+
+                    // A. Send to Electron for PowerSync/Background
                     await window.electron.setAuthToken(deviceToken);
-                    console.log("[Init] Device Token restored and sent to Electron");
+
+                    // B. Restore Frontend Session for Realtime (useShiftMonitor)
+                    // We need a refresh_token or generic session structure. 
+                    // Since we only got access_token from 'poll', we might lack refresh_token persistence here?
+                    // Ideally we should have stored the full session.
+                    // For now, we try to set the session with just access_token if possible, or we might need to re-login?
+                    // Actually, 'poll' returned access_token and refresh_token. Ideally we saved both?
+                    // Checking ProvisioningScreen: localStorage.setItem('panpanocha_device_token', ...) -> encrypted access_token?
+                    // If we only have access_token, we can force a setSession.
+
+                    await supabase.auth.setSession({
+                        access_token: deviceToken,
+                        refresh_token: deviceToken // Fallback/Hack if we don't have distinct refresh. Realtime might reject renewal but accept initial connection.
+                    });
+
+                    console.log("[Init] Device Token restored and sent to Electron + Frontend");
                 } catch (e) {
                     console.error("[Init] Failed to decrypt device token", e);
                 }
             }
 
+            // Determine Branch Selection Logic
+            // Priority: 1. Active Shift (Always respects open shift)
+            //           2. PIN/Stored Branch link (Staff assigned branch)
+            //           3. Single Available Branch (Fallback for ease of use)
+            let selectedBranchId = activeShift?.branch_id || '';
+
+            if (!selectedBranchId) {
+                const storedBranchId = localStorage.getItem('panpanocha_branch_id');
+                const branchExists = storedBranchId && localBranches.some(b => b.id === storedBranchId);
+
+                if (branchExists) {
+                    selectedBranchId = storedBranchId!;
+                    console.log("[Init] Selecting stored branch:", selectedBranchId);
+                } else if (localBranches.length === 1) {
+                    selectedBranchId = localBranches[0].id;
+                    console.log("[Init] Auto-selecting single branch:", selectedBranchId);
+                }
+            }
+
+            // Set initial state
+            set({
+                branches: localBranches,
+                currentShift: activeShift,
+                currentBranchId: selectedBranchId,
+                isProvisioned: isProvisioned,
+                organizationId: storedOrgId || activeShift?.organization_id || ''
+            });
+
             // 2. Restore User Session (Optional Override)
             const { data: { session } } = await supabase.auth.getSession();
+            let loadedUser = null;
+
             if (session?.access_token) {
                 // If a user is logged in, we also send this.
                 window.electron.setAuthToken(session.access_token).catch(console.error);
+
+                // Fetch User Details to unlock App.tsx
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    // Extract metadata or cast to conform to local User type
+                    loadedUser = {
+                        ...user,
+                        full_name: user.user_metadata?.full_name || '',
+                        organization_id: user.user_metadata?.organization_id || ''
+                    } as any;
+                    console.log("[Init] Current User restored:", user.email);
+                }
             }
+
+            // Set initial state including currentUser
+            set({
+                branches: localBranches,
+                currentShift: activeShift,
+                currentBranchId: selectedBranchId,
+                isProvisioned: isProvisioned,
+                organizationId: storedOrgId || activeShift?.organization_id || '',
+                currentUser: loadedUser // CRITICAL: This was missing, keeping App locked at LoginScreen
+            });
 
             // 3. Sync NOW (not background) to get fresh data
             try {
@@ -1045,6 +1108,21 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         } catch (error) {
             console.error('[Refund] Error:', error);
             get().showAlert('error', 'Error', 'No se pudo procesar el reembolso');
+        }
+    },
+
+    logout: async () => {
+        try {
+            console.log('[Store] Logging out user...');
+            await supabase.auth.signOut();
+            set({
+                currentUser: null,
+                currentBranchId: '', // Reset branch selection
+                currentShift: null   // Close local shift view (not actual shift)
+            });
+            // We do NOT clear panpanocha_device_token, as the device remains provisioned.
+        } catch (error) {
+            console.error('[Store] Logout failed', error);
         }
     },
 

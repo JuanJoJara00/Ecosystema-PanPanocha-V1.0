@@ -83,6 +83,7 @@ declare global {
             getPendingShifts: () => Promise<Shift[]>;
             markShiftSynced: (id: string) => Promise<void>;
             updateShift: (id: string, data: any) => Promise<void>;
+            updateShiftHeartbeat: (shiftId: string) => Promise<void>;
 
             // Stock
             updateProductStock: (id: string, delta: number) => Promise<void>;

@@ -11,7 +11,10 @@ import { LoadingSpinner } from './components/Loading';
 // import { useLiveQuery } from './hooks/useLiveQuery'; // Removed unused import to satisfy linter
 // import { powerSync } from './lib/powersync'; // DISABLED FOR PHASE 2 MIGRATION
 
+import { useShiftMonitor } from './hooks/useShiftMonitor';
+
 function App() {
+  useShiftMonitor(); // Start Monitoring
 
   const { initialize, currentUser, currentShift, isLoading, isProvisioned, refreshProductsTrigger, sync } = usePosStore();
 

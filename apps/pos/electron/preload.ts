@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld('electron', {
     getPendingShifts: () => ipcRenderer.invoke('db-get-pending-shifts'),
     markShiftSynced: (id: string) => ipcRenderer.invoke('db-mark-shift-synced', id),
     updateShift: (id: string, data: any) => ipcRenderer.invoke('db-update-shift', { id, data }),
+    updateShiftHeartbeat: (shiftId: string) => ipcRenderer.invoke('db-update-shift-heartbeat', shiftId),
     getAllShifts: (limit?: number) => ipcRenderer.invoke('db-get-all-shifts', limit),
     updateProductStock: (id: string, delta: number) => ipcRenderer.invoke('update-product-stock', id, delta),
     setProductStock: (id: string, newStock: number) => ipcRenderer.invoke('set-product-stock', id, newStock),

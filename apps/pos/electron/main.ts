@@ -651,6 +651,14 @@ function registerBottomHandlers() {
     ipcMain.handle('db-mark-shift-synced', (e, id) => shiftController.markSynced(id));
     ipcMain.handle('db-get-all-shifts', (e, limit) => shiftController.getAllShifts(limit));
     ipcMain.handle('db-update-shift', (e, { id, data }) => shiftController.updateShiftData(id, data));
+    ipcMain.handle('db-update-shift-heartbeat', async (e, shiftId) => {
+        const db = getDb();
+        const now = new Date().toISOString();
+        await db.update(shifts)
+            .set({ last_seen_at: now, synced: false })
+            .where(eq(shifts.id, shiftId));
+        return { success: true };
+    });
 
     // Expense IPC (Drizzle Controller Delegate)
     ipcMain.handle('db-create-expense', (e, expense) => shiftController.createExpense(expense)); // Moved to ShiftController

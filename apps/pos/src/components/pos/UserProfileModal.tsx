@@ -106,11 +106,20 @@ export function UserProfileModal({ isOpen, onClose }: Props) {
         return `${hours}h ${minutes}m`;
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         if (confirm('¿Seguro que deseas cerrar sesión?')) {
-            // Clear Persisted State
-            localStorage.removeItem('pos-storage');
-            window.location.reload();
+            try {
+                // Use the store's logout function which signs out from Supabase
+                await usePosStore.getState().logout();
+                // Clear Persisted State
+                localStorage.removeItem('pos-storage');
+                // Close Modal then Reload
+                onClose();
+                window.location.reload();
+            } catch (error) {
+                console.error('[Logout] Error:', error);
+                alert('Error al cerrar sesión');
+            }
         }
     };
 
@@ -153,6 +162,7 @@ export function UserProfileModal({ isOpen, onClose }: Props) {
 
                     <button
                         onClick={onClose}
+                        aria-label="Cerrar modal"
                         className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-20 backdrop-blur-sm"
                     >
                         <X size={20} />

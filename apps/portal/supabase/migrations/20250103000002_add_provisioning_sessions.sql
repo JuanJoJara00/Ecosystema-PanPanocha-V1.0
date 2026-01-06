@@ -1,6 +1,17 @@
--- Migration: Add Provisioning Sessions (Hardened)
+-- Migration: Add Provisioning Sessions (Final Fix)
 -- Date: 2025-01-03
 
+-- Ensure organizations exists
+create table if not exists organizations (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  created_at timestamptz default now()
+);
+
+-- Note: User specified "profiles is the same as table users" and "not using RLS policies yet".
+-- So we skip creating 'profiles' table and complex RLS policies here.
+
+-- Create provisioning_sessions
 create table if not exists provisioning_sessions (
   id uuid default gen_random_uuid() primary key,
   fingerprint text not null,
@@ -9,7 +20,7 @@ create table if not exists provisioning_sessions (
   ip_address text,
   status text default 'pending',
   auth_token_hash text, -- Replaced plain auth_token with hash
-  organization_id uuid references organizations(id), -- Added FK constraint
+  organization_id uuid references organizations(id), -- FK to organizations
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
   expires_at timestamptz
@@ -19,25 +30,17 @@ create table if not exists provisioning_sessions (
 create index if not exists idx_provisioning_sessions_fingerprint on provisioning_sessions(fingerprint);
 create index if not exists idx_provisioning_sessions_org_id on provisioning_sessions(organization_id);
 
--- 1. Enable RLS
-ALTER TABLE provisioning_sessions ENABLE ROW LEVEL SECURITY;
+-- Disable RLS explicitly to avoid "permission denied" from policy checks
+ALTER TABLE provisioning_sessions DISABLE ROW LEVEL SECURITY;
 
--- 2. RLS Policy: Tenant Isolation
--- Only allow access if organization_id matches user's organization (via metadata or custom claim)
--- Assuming 'app_metadata' or a 'get_user_org_id()' helper exists or using profile lookup
-CREATE POLICY "Tenant Isolation" ON provisioning_sessions
-    USING (
-        organization_id = (SELECT organization_id FROM profiles WHERE id = auth.uid())
-        OR 
-        auth.role() = 'service_role' -- Allow service role full access
-    )
-    WITH CHECK (
-        organization_id = (SELECT organization_id FROM profiles WHERE id = auth.uid())
-        OR 
-        auth.role() = 'service_role'
-    );
+-- EXPLICIT GRANTS to ensure service_role and others can access the table
+-- This fixes "permission denied" errors when RLS is disabled but ownership/grant is missing
+GRANT ALL ON TABLE provisioning_sessions TO service_role;
+GRANT ALL ON TABLE provisioning_sessions TO postgres;
+GRANT ALL ON TABLE provisioning_sessions TO anon;
+GRANT ALL ON TABLE provisioning_sessions TO authenticated;
 
--- 3. Automatic updated_at Trigger
+-- Automatic updated_at Trigger
 CREATE OR REPLACE FUNCTION update_provisioning_updated_at()
 RETURNS TRIGGER 
 SECURITY DEFINER

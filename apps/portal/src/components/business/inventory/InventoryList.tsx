@@ -291,7 +291,7 @@ export default function InventoryList() {
                 kpis={[
                     {
                         title: "Valor Total Inventario",
-                        value: `$${(items.reduce((acc, item) => acc + (item.unit_cost || 0) * (item.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0), 0) / 1000000).toFixed(1)}M`,
+                        value: `$${(items.reduce((acc, item) => acc + (item.unit_cost || 0) * (item.branch_ingredients?.reduce((sum, bi) => sum + bi.current_stock, 0) || 0), 0) / 1000000).toFixed(1)}M`,
                         icon: DollarSign,
                         theme: 'yellow',
                         trend: { value: 12, isPositive: true }
@@ -306,7 +306,7 @@ export default function InventoryList() {
                     {
                         title: "Stock Crítico",
                         value: items.filter(i => {
-                            const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
+                            const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.current_stock, 0) || 0
                             return totalStock <= i.min_stock_alert
                         }).length.toString(),
                         icon: AlertTriangle,
@@ -322,11 +322,11 @@ export default function InventoryList() {
                 ]}
                 widgets={{
                     criticalCount: items.filter(i => {
-                        const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
+                        const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.current_stock, 0) || 0
                         return totalStock <= i.min_stock_alert
                     }).length,
                     criticalNames: items.filter(i => {
-                        const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.quantity, 0) || 0
+                        const totalStock = i.branch_ingredients?.reduce((sum, bi) => sum + bi.current_stock, 0) || 0
                         return totalStock <= i.min_stock_alert
                     }).slice(0, 2).map(i => i.name).join(', '),
                     categoryCount: new Set(items.map((i, idx) => idx % 3)).size,  // TODO: Restore SKU-based categories
@@ -347,7 +347,7 @@ export default function InventoryList() {
                     {filteredItems.map((item: any) => {
                         // Find stock for the selected branch
                         const stockRecord = item.branch_ingredients?.find((bi: any) => bi.branch_id === selectedBranchId)
-                        const stock = stockRecord?.quantity || 0
+                        const stock = stockRecord?.current_stock || 0
                         const supplierName = item.suppliers?.name || '-'
                         const isLowStock = stock <= item.min_stock_alert
 

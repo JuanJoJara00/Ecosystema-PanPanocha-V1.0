@@ -144,6 +144,8 @@ export const shifts = sqliteTable('shifts', {
     closing_metadata: text('closing_metadata'),
     notes: text('notes'),
     pending_tips: real('pending_tips').default(0),
+    last_seen_at: text('last_seen_at'),
+    closed_by_method: text('closed_by_method'),
     synced: integer('synced', { mode: 'boolean' }).default(false),
     deleted_at: text('deleted_at')
 });
@@ -445,6 +447,8 @@ export const AppSchema = new Schema({
         closing_metadata: column.text,
         notes: column.text,
         pending_tips: column.real,
+        last_seen_at: column.text,
+        closed_by_method: column.text,
         synced: column.integer,
         deleted_at: column.text
     }),

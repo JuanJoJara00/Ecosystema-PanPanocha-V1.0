@@ -23,6 +23,9 @@ export interface Shift extends TenantEntity {
     observations?: string;
     closing_metadata?: any; // JSON containing siigo/mys data
 
+    last_seen_at?: ISODateString | null;
+    closed_by_method?: 'pos' | 'remote' | null;
+
     created_at: ISODateString;
     updated_at: ISODateString;
     synced: boolean;

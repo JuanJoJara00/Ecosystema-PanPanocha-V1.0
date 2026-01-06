@@ -35,6 +35,20 @@ export const OpenShiftScreen: React.FC = () => {
 
         try {
             await openShift(selectedBranch, numValue);
+
+            // Feedback requested by user: Confirm Device Link
+            const branchName = branches.find(b => b.id === selectedBranch)?.name || 'Sede';
+            // We use a window alert or store alert? store alert is better but might be cleared on navigation?
+            // Actually OpenShiftScreen closes/unmounts after openShift succeeds (App.tsx switches to PosLayout).
+            // So we need to ensure the alert persists or is shown via a Global Toast.
+            // The store's `showAlert` sets a global state that `App.tsx` or layout should render.
+            // Assuming `App.tsx` or `PosLayout` renders the Alert component.
+            // If `openShift` triggers a re-render of App, the state persists in Zustand.
+
+            // Use window.electron.showNotification if available? Or just store alert.
+            // Attempting store alert:
+            usePosStore.getState().showAlert('success', 'Dispositivo Vinculado', `Dispositivo vinculado exitosamente a ${branchName}`);
+
         } catch (err) {
             console.error(err);
             setError('Error al abrir el turno. Intenta nuevamente.');
