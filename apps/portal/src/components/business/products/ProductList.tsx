@@ -53,6 +53,11 @@ interface BranchProduct {
     price_override?: number
 }
 
+interface StockResult {
+    product_id: string
+    stock: number
+}
+
 export default function ProductList() {
     const [products, setProducts] = useState<Product[]>([])
     const [categories, setCategories] = useState<Category[]>([])
@@ -143,11 +148,11 @@ export default function ProductList() {
             const stocks: Record<string, number> = {}
             const promises = branches.map(async (b) => {
                 const { data } = await supabase.rpc('get_branch_products_stock', { p_branch_id: b.id })
-                return data || []
+                return (data as unknown as StockResult[]) || []
             })
 
             const results = await Promise.all(promises)
-            results.flat().forEach((item: any) => {
+            results.flat().forEach((item) => {
                 stocks[item.product_id] = (stocks[item.product_id] || 0) + item.stock
             })
             setProductStocks(stocks)
@@ -155,7 +160,8 @@ export default function ProductList() {
             const { data } = await supabase.rpc('get_branch_products_stock', { p_branch_id: branchId })
             if (data) {
                 const map: Record<string, number> = {}
-                data.forEach((item: any) => map[item.product_id] = item.stock)
+                const typedData = data as unknown as StockResult[]
+                typedData.forEach((item) => map[item.product_id] = item.stock)
                 setProductStocks(map)
             }
         }

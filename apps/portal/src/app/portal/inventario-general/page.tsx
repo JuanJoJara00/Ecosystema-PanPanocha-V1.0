@@ -31,7 +31,7 @@ export default function InventarioHubPage() {
 
                     <div className="relative z-10 text-center">
                         <h2 className="text-2xl font-bold text-gray-800 font-display uppercase mb-2">
-                            Inventario
+                            Materia prima & Insumos
                         </h2>
                         <p className="text-sm text-gray-500 font-medium px-8">
                             Gestión de insumos, stock y materia prima

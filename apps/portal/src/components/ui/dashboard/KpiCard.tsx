@@ -20,53 +20,53 @@ interface KpiCardProps {
 
 const THEME_STYLES = {
     yellow: {
-        active: 'bg-white dark:bg-slate-800 border-yellow-400 shadow-md',
-        inactive: 'bg-white dark:bg-slate-800 border-transparent shadow-sm hover:border-yellow-200 dark:hover:border-yellow-500/30',
+        active: 'bg-white border-yellow-400 shadow-lg scale-[1.02]',
+        inactive: 'bg-white border-transparent shadow-sm hover:border-yellow-200',
         iconBg: 'bg-yellow-100 text-yellow-700',
-        iconBgInactive: 'bg-gray-100 text-gray-400',
+        iconBgInactive: 'bg-gray-50 text-gray-400',
         title: 'text-yellow-600',
-        text: 'text-gray-800 dark:text-white',
-        textInactive: 'text-gray-600 dark:text-gray-400',
+        text: 'text-gray-900',
+        textInactive: 'text-gray-500',
         decoration: 'bg-yellow-400/10'
     },
     blue: {
-        active: 'bg-white dark:bg-slate-800 border-blue-400 shadow-md',
-        inactive: 'bg-white dark:bg-slate-800 border-transparent shadow-sm hover:border-blue-200 dark:hover:border-blue-500/30',
+        active: 'bg-white border-blue-400 shadow-lg scale-[1.02]',
+        inactive: 'bg-white border-transparent shadow-sm hover:border-blue-200',
         iconBg: 'bg-blue-100 text-blue-700',
-        iconBgInactive: 'bg-gray-100 text-gray-400',
+        iconBgInactive: 'bg-gray-50 text-gray-400',
         title: 'text-blue-600',
-        text: 'text-gray-800 dark:text-white',
-        textInactive: 'text-gray-600 dark:text-gray-400',
+        text: 'text-gray-900',
+        textInactive: 'text-gray-500',
         decoration: 'bg-blue-400/10'
     },
     red: {
-        active: 'bg-white dark:bg-slate-800 border-red-400 shadow-md',
-        inactive: 'bg-white dark:bg-slate-800 border-transparent shadow-sm hover:border-red-200 dark:hover:border-red-500/30',
+        active: 'bg-white border-red-400 shadow-lg scale-[1.02]',
+        inactive: 'bg-white border-transparent shadow-sm hover:border-red-200',
         iconBg: 'bg-red-100 text-red-700',
-        iconBgInactive: 'bg-gray-100 text-gray-400',
+        iconBgInactive: 'bg-gray-50 text-gray-400',
         title: 'text-red-600',
-        text: 'text-gray-800 dark:text-white',
-        textInactive: 'text-gray-600 dark:text-gray-400',
+        text: 'text-gray-900',
+        textInactive: 'text-gray-500',
         decoration: 'bg-red-400/10'
     },
     green: {
-        active: 'bg-white dark:bg-slate-800 border-green-400 shadow-md',
-        inactive: 'bg-white dark:bg-slate-800 border-transparent shadow-sm hover:border-green-200 dark:hover:border-green-500/30',
+        active: 'bg-white border-green-400 shadow-lg scale-[1.02]',
+        inactive: 'bg-white border-transparent shadow-sm hover:border-green-200',
         iconBg: 'bg-green-100 text-green-700',
-        iconBgInactive: 'bg-gray-100 text-gray-400',
+        iconBgInactive: 'bg-gray-50 text-gray-400',
         title: 'text-green-600',
-        text: 'text-gray-800 dark:text-white',
-        textInactive: 'text-gray-600 dark:text-gray-400',
+        text: 'text-gray-900',
+        textInactive: 'text-gray-500',
         decoration: 'bg-green-400/10'
     },
     purple: {
-        active: 'bg-white dark:bg-slate-800 border-purple-400 shadow-md',
-        inactive: 'bg-white dark:bg-slate-800 border-transparent shadow-sm hover:border-purple-200 dark:hover:border-purple-500/30',
+        active: 'bg-white border-purple-400 shadow-lg scale-[1.02]',
+        inactive: 'bg-white border-transparent shadow-sm hover:border-purple-200',
         iconBg: 'bg-purple-100 text-purple-700',
-        iconBgInactive: 'bg-gray-100 text-gray-400',
+        iconBgInactive: 'bg-gray-50 text-gray-400',
         title: 'text-purple-600',
-        text: 'text-gray-800 dark:text-white',
-        textInactive: 'text-gray-600 dark:text-gray-400',
+        text: 'text-gray-900',
+        textInactive: 'text-gray-500',
         decoration: 'bg-purple-400/10'
     }
 }
@@ -105,7 +105,7 @@ export default function KpiCard({
                 className
             )}
         >
-            {/* Decoration Circle */}
+            {/* Decoration Circle - Restored per user request, matching Cash Closing style */}
             <div className={twMerge("absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110", styles.decoration)} />
 
             <div className="relative z-10">
@@ -127,7 +127,8 @@ export default function KpiCard({
                 <div className="flex items-end gap-2 justify-between">
                     <p className={twMerge(
                         "text-2xl font-black tracking-tight",
-                        (isActive || !isInteractive) ? styles.text : styles.textInactive
+                        /* Force solid text colors, no opacity/gray-600 for active state */
+                        (isActive || !isInteractive) ? "text-black dark:text-white" : styles.textInactive
                     )}>
                         {value}
                     </p>

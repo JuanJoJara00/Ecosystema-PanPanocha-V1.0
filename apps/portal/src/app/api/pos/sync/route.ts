@@ -62,6 +62,7 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const branchId = searchParams.get('branch_id');
+        const lastSyncedAt = searchParams.get('last_synced_at'); // Cursor: ISO Timestamp
         const authHeader = request.headers.get('authorization');
 
         if (!authHeader) {
@@ -109,14 +110,28 @@ export async function GET(request: Request) {
                 ? supabase.from('tables').select('*').eq('branch_id', branchId)
                 : Promise.resolve({ data: [] }),
 
-            // 5. Recent Expenses (Last 60 days)
-            supabase.from('expenses').select('*').order('created_at', { ascending: false }).limit(500),
+            // 5. Recent Expenses (Last 90 days, limit 1000)
+            supabase.from('expenses').select('*').order('created_at', { ascending: false }).limit(1000),
 
-            // 6. Recent Sales (Last 60 days, with Items)
-            supabase.from('sales')
-                .select('*, items:sale_items(*)')
-                .order('created_at', { ascending: false })
-                .limit(200)
+            // 6. Sales Sync (Cursor-based)
+            (async () => {
+                let query = supabase.from('sales')
+                    .select('*, items:sale_items(*)');
+
+                if (lastSyncedAt) {
+                    // Incremental Sync
+                    // Use updated_at usually, or created_at if updated not trustworthy
+                    query = query.gt('created_at', lastSyncedAt)
+                        .order('created_at', { ascending: true }) // Oldest first (FIFO)
+                        .limit(500); // Batch size
+                } else {
+                    // Initial Load (Snapshot)
+                    query = query.order('created_at', { ascending: false })
+                        .limit(500);
+                }
+                const { data } = await query;
+                return { data };
+            })()
         ]);
 
         return NextResponse.json({
@@ -220,31 +235,37 @@ export async function POST(request: Request) {
         }
 
         if (cleanSales.length > 0) {
-            // 5a. Upsert Headers (Batch)
-            const { error } = await supabase.from('sales').upsert(cleanSales);
-            if (error) {
-                results.sales.failed = cleanSales.length;
-                results.sales.errors.push(error);
-                console.error("Sync Sales Error (Header):", error);
-            } else {
-                // 5b. Upsert Items (Per Sale to isolate failures)
-                results.sales.success = cleanSales.length;
+            // 5a. Atomic Batch RPC (New Method)
+            try {
+                const { data: rpcData, error: rpcError } = await supabase.rpc('upsert_sales_batch', {
+                    payload: cleanSales.map(s => ({
+                        ...s,
+                        items: saleItemsMap[s.id] || []
+                    }))
+                });
 
-                // TODO: Future improvement: Create a server-side RPC that wraps header+items in a DB transaction for a future atomic solution.
-                for (const sale of cleanSales) {
-                    const items = saleItemsMap[sale.id];
-                    if (items && items.length > 0) {
-                        try {
-                            await upsertWithRetry(supabase, 'sale_items', items);
-                        } catch (itemsError: any) {
-                            console.error(`Sync Sales Item Error (Sale ${sale.id}):`, itemsError);
-                            results.sales.partialFailed.push({
-                                sale_id: sale.id,
-                                error: itemsError.message || itemsError
-                            });
-                        }
-                    }
+                if (rpcError) {
+                    throw rpcError;
                 }
+
+                // Map RPC results to response format
+                // rpcData structure: { success_count, error_count, errors: [] }
+                const batchResult = rpcData as any;
+                results.sales.success = batchResult.success_count;
+                results.sales.failed = batchResult.error_count;
+
+                if (batchResult.errors && Array.isArray(batchResult.errors)) {
+                    results.sales.errors.push(...batchResult.errors);
+                }
+
+            } catch (error: any) {
+                console.error("Sync Sales Atomic RPC Error:", error);
+
+                // Fallback to legacy sequential method? 
+                // No, enforcing atomicity means we should report failure if transaction fails.
+                // However, the RPC handles row-level exceptions internally for the loop.
+                results.sales.failed = cleanSales.length; // Worst case assumption if RPC fails fatal
+                results.sales.errors.push(error);
             }
         }
 

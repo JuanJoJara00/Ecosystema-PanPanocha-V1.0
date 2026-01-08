@@ -6,7 +6,19 @@ import { usePathname } from 'next/navigation'
 import { brandConfig } from '@panpanocha/config'
 import { BrandBackground } from '@/components/ui/BrandBackground'
 
-import { SidebarProvider } from '@/context/SidebarContext'
+import { SidebarProvider, useSidebar } from '@/context/SidebarContext'
+
+function MainContent({ children, isLoginPage }: { children: React.ReactNode, isLoginPage: boolean }) {
+    const { isCollapsed } = useSidebar()
+
+    return (
+        <main className={`flex-grow ${!isLoginPage ? 'p-4 md:p-8' : ''} overflow-x-hidden relative z-10 h-screen overflow-y-auto transition-all duration-300 ${!isLoginPage ? (isCollapsed ? 'md:ml-20' : 'md:ml-72') : ''}`}>
+            <div className={`${!isLoginPage ? 'max-w-7xl mx-auto' : 'w-full'} text-gray-800`}>
+                {children}
+            </div>
+        </main>
+    )
+}
 
 export default function PortalLayout({
     children,
@@ -25,12 +37,10 @@ export default function PortalLayout({
                 {/* Sidebar (Fixed Drawer) */}
                 {!isLoginPage && <Sidebar />}
 
-                {/* Content */}
-                <main className={`flex-grow ${!isLoginPage ? 'p-4 md:p-8' : ''} overflow-x-hidden relative z-10 h-screen overflow-y-auto`}>
-                    <div className={`${!isLoginPage ? 'max-w-7xl mx-auto' : 'w-full'} text-gray-800`}>
-                        {children}
-                    </div>
-                </main>
+                {/* Content Wrapper */}
+                <MainContent isLoginPage={isLoginPage}>
+                    {children}
+                </MainContent>
             </div>
         </SidebarProvider>
     )

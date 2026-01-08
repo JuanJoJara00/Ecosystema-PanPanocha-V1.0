@@ -101,7 +101,7 @@ export default function ActiveShifts() {
     // if (shifts.length === 0) return null; // REMOVED: Always show section
 
     return (
-        <div className="mb-8">
+        <div className="">
             <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
                 <Monitor className="w-5 h-5 text-green-500" />
                 Monitoreo en Vivo ({shifts.length})

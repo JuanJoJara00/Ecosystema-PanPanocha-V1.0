@@ -18,6 +18,8 @@ import {
     ShoppingBag,
     ClipboardList,
     BarChart3,
+    ChevronLeft,
+    ChevronRight,
     LogOut,
     Users,
     MapPin,
@@ -33,7 +35,7 @@ import Modal from '@/components/ui/Modal'
 export default function Sidebar() {
     const pathname = usePathname()
     const router = useRouter()
-    const { isOpen, closeSidebar } = useSidebar() // Use Context
+    const { isOpen, closeSidebar, isCollapsed, toggleCollapse } = useSidebar() // Use Context with Collapse
     const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
     const [isAccountModalOpen, setIsAccountModalOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -92,12 +94,20 @@ export default function Sidebar() {
             {/* Sidebar Drawer */}
             <aside
                 className={twMerge(
-                    "fixed inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-white/5 flex flex-col h-screen overflow-y-auto z-50 shadow-2xl transition-transform duration-300 ease-in-out transform",
-                    isOpen ? "translate-x-0" : "-translate-x-full"
+                    "fixed inset-y-0 left-0 bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-white/5 flex flex-col h-screen z-50 shadow-2xl transition-all duration-300 ease-in-out transform",
+                    isOpen ? "translate-x-0" : "-translate-x-full", // Mobile: Drawer behavior
+                    "md:translate-x-0", // Desktop: Always visible
+                    isCollapsed ? "w-20" : "w-72" // Width logic
                 )}
             >
-                <div className="p-6 flex flex-col items-center justify-center text-center gap-4 border-b border-gray-50/50 dark:border-white/5">
-                    <div className="relative h-24 w-24 shrink-0 transition-transform hover:scale-105 duration-300">
+                <div className={twMerge(
+                    "p-6 flex flex-col items-center justify-center text-center gap-4 border-b border-gray-50/50 dark:border-white/5 transition-all",
+                    isCollapsed ? "p-4 gap-2" : "p-6"
+                )}>
+                    <div className={twMerge(
+                        "relative shrink-0 transition-transform hover:scale-105 duration-300",
+                        isCollapsed ? "h-10 w-10" : "h-24 w-24"
+                    )}>
                         <Image
                             src={appConfig.company.logoUrl}
                             alt={`Portal ${appConfig.company.name}`}
@@ -106,14 +116,16 @@ export default function Sidebar() {
                             priority
                         />
                     </div>
-                    <div>
-                        <Link href={appConfig.routes.home} className="block text-lg font-extrabold text-pp-brown dark:text-white font-display uppercase tracking-widest leading-tight hover:opacity-80 transition-opacity">
-                            PORTAL <br /><span className="text-pp-gold dark:text-amber-400 text-xl">{appConfig.company.name}</span>
-                        </Link>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="animate-in fade-in duration-300">
+                            <Link href={appConfig.routes.home} className="block text-lg font-extrabold text-pp-brown dark:text-white font-display uppercase tracking-widest leading-tight hover:opacity-80 transition-opacity">
+                                PORTAL <br /><span className="text-pp-gold dark:text-amber-400 text-xl">{appConfig.company.name}</span>
+                            </Link>
+                        </div>
+                    )}
                 </div>
 
-                <nav className="flex-1 px-4 space-y-2 mt-4">
+                <nav className="flex-1 px-3 space-y-2 mt-4 overflow-x-hidden">
                     {navigation.map((item) => {
                         const isActive = pathname.startsWith(item.href) && item.href !== '/portal/dashboard' || pathname === item.href
                         return (
@@ -121,54 +133,83 @@ export default function Sidebar() {
                                 key={item.name}
                                 href={item.href}
                                 className={twMerge(
-                                    'relative flex items-center gap-3 px-4 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group font-display uppercase tracking-wide overflow-hidden',
+                                    'relative flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group font-display uppercase tracking-wide whitespace-nowrap',
                                     isActive
                                         ? 'bg-pp-gold/15 dark:bg-amber-500/10 text-pp-brown dark:text-amber-400 shadow-sm ring-1 ring-pp-gold/50 dark:ring-amber-500/20'
-                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-pp-brown dark:hover:text-amber-400'
+                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-pp-brown dark:hover:text-amber-400',
+                                    isCollapsed ? 'justify-center' : ''
                                 )}
+                                title={isCollapsed ? item.name : undefined}
                             >
-                                {isActive && (
+                                {isActive && !isCollapsed && (
                                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-pp-gold rounded-l-full" />
                                 )}
                                 <item.icon className={twMerge(
-                                    "h-5 w-5 transition-colors z-10",
+                                    "transition-colors z-10 shrink-0",
+                                    isCollapsed ? "w-6 h-6" : "h-5 w-5",
                                     isActive ? "text-pp-brown dark:text-amber-400" : "text-gray-400 dark:text-gray-500 group-hover:text-pp-gold dark:group-hover:text-amber-400"
                                 )} />
-                                <span className="z-10">{item.name}</span>
+                                {!isCollapsed && (
+                                    <span className="z-10 animate-in fade-in slide-in-from-left-2 duration-200">{item.name}</span>
+                                )}
                             </Link>
                         )
                     })}
                 </nav>
 
                 {/* Footer Actions */}
-                <div className="p-4 border-t border-gray-100 dark:border-white/5 space-y-3 bg-gray-50/50 dark:bg-slate-900/50">
+                <div className="p-3 border-t border-gray-100 dark:border-white/5 space-y-2 bg-gray-50/50 dark:bg-slate-900/50">
+
+                    {/* Access & User (Only visible if expanded) */}
+                    {!isCollapsed && (
+                        <>
+                            <button
+                                onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                                className="flex items-center gap-3 px-4 py-3 w-full text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-full hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-pp-brown dark:hover:text-amber-400 transition-all font-display uppercase tracking-wide shadow-sm group"
+                            >
+                                <div className="p-1 bg-gray-100 dark:bg-slate-700 rounded-full group-hover:bg-pp-gold/10 dark:group-hover:bg-amber-500/20 transition-colors">
+                                    {mounted && resolvedTheme === 'dark' ? <Moon className="h-4 w-4 text-purple-400" /> : <Sun className="h-4 w-4 text-orange-400" />}
+                                </div>
+                                {mounted && resolvedTheme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}
+                            </button>
+                            <button
+                                onClick={() => setIsAccountModalOpen(true)}
+                                className="flex items-center gap-3 px-4 py-3 w-full text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-full hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-pp-brown dark:hover:text-amber-400 transition-all font-display uppercase tracking-wide shadow-sm group"
+                            >
+                                <div className="p-1 bg-gray-100 dark:bg-slate-700 rounded-full group-hover:bg-pp-gold/10 dark:group-hover:bg-amber-500/20 transition-colors">
+                                    <Users className="h-4 w-4" />
+                                </div>
+                                Gestionar Cuentas
+                            </button>
+                        </>
+                    )}
+
+                    {/* Collapse Button (Desktop Only) */}
                     <button
-                        onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-                        className="flex items-center gap-3 px-4 py-3 w-full text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-full hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-pp-brown dark:hover:text-amber-400 hover:border-pp-gold/50 dark:hover:border-amber-500/30 transition-all font-display uppercase tracking-wide shadow-sm group"
+                        onClick={toggleCollapse}
+                        className="hidden md:flex items-center justify-center w-full py-2 hover:bg-gray-200/50 dark:hover:bg-slate-700 rounded-xl transition-colors text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     >
-                        <div className="p-1 bg-gray-100 dark:bg-slate-700 rounded-full group-hover:bg-pp-gold/10 dark:group-hover:bg-amber-500/20 transition-colors">
-                            {mounted && resolvedTheme === 'dark' ? <Moon className="h-4 w-4 text-purple-400" /> : <Sun className="h-4 w-4 text-orange-400" />}
-                        </div>
-                        {mounted && resolvedTheme === 'dark' ? 'Modo Oscuro' : 'Modo Claro'}
-                    </button>
-                    <button
-                        onClick={() => setIsAccountModalOpen(true)}
-                        className="flex items-center gap-3 px-4 py-3 w-full text-sm font-bold text-gray-600 dark:text-gray-300 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-full hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-pp-brown dark:hover:text-amber-400 hover:border-pp-gold/50 dark:hover:border-amber-500/30 transition-all font-display uppercase tracking-wide shadow-sm group"
-                    >
-                        <div className="p-1 bg-gray-100 dark:bg-slate-700 rounded-full group-hover:bg-pp-gold/10 dark:group-hover:bg-amber-500/20 transition-colors">
-                            <Users className="h-4 w-4" />
-                        </div>
-                        Gestionar Cuentas
+                        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                     </button>
 
                     <button
                         onClick={() => setIsLogoutModalOpen(true)}
-                        className="flex items-center gap-3 px-4 py-3 w-full text-sm font-bold text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors font-display uppercase tracking-wide shadow-sm"
+                        className={twMerge(
+                            "flex items-center gap-3 px-4 py-3 w-full text-sm font-bold text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors font-display uppercase tracking-wide shadow-sm",
+                            isCollapsed ? "justify-center px-0 w-10 h-10 mx-auto rounded-xl" : ""
+                        )}
+                        title="Cerrar Sesión"
                     >
-                        <div className="p-1 bg-white/20 rounded-full">
+                        {isCollapsed ? (
                             <LogOut className="h-4 w-4" />
-                        </div>
-                        Cerrar Sesión
+                        ) : (
+                            <>
+                                <div className="p-1 bg-white/20 rounded-full">
+                                    <LogOut className="h-4 w-4" />
+                                </div>
+                                Cerrar Sesión
+                            </>
+                        )}
                     </button>
                 </div>
 

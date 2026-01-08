@@ -12,8 +12,12 @@ import DateRangeFilter from '@/components/ui/DateRangeFilter'
 import { Calendar, Store, Eye, X, FileText, Search, AlertTriangle, Clock, CreditCard, Receipt, Check, Edit2, TrendingDown, DollarSign, ArrowLeft } from 'lucide-react'
 import { ClosingChart } from './ClosingChart'
 import ActiveShifts from './ActiveShifts'
+import PanPanochaDetailModal from './PanPanochaDetailModal'
+import SiigoDetailModal from './SiigoDetailModal'
 
 import { config } from '@/config/brands/pan-panocha/config'
+import { appConfig } from '@/config/app-config'
+import Image from 'next/image'
 
 // Types
 import { Shift } from '@panpanocha/types'
@@ -40,6 +44,8 @@ export default function ClosingHistory() {
 
     // Filters
     const [selectedBranch, setSelectedBranch] = useState<string>('all')
+    const [activeType, setActiveType] = useState<'all' | 'panpanocha' | 'siigo'>('all')
+    const [searchTerm, setSearchTerm] = useState<string>('')
 
     // Date Range State (Default: Current Month)
     const [startDate, setStartDate] = useState<string>(() => {
@@ -523,9 +529,27 @@ export default function ClosingHistory() {
     const tabOptions = branches.map(b => ({ id: b.id, label: b.name }))
 
     // Client-side branch filtering (applied to BOTH periods)
-    const filteredClosings = selectedBranch === 'all'
+    // Apply Branch Filter
+    const branchFilteredClosings = selectedBranch === 'all'
         ? unifiedClosings
         : unifiedClosings.filter(c => c.branch_id === selectedBranch)
+
+    // Apply Type Filter (only show closings that have the relevant data)
+    const typeFilteredClosings = activeType === 'all'
+        ? branchFilteredClosings
+        : branchFilteredClosings.filter(c => {
+            if (activeType === 'panpanocha') return c.panpanocha !== undefined
+            if (activeType === 'siigo') return c.siigo !== undefined
+            return true
+        })
+
+    // Apply Search Filter
+    const filteredClosings = searchTerm.trim() === ''
+        ? typeFilteredClosings
+        : typeFilteredClosings.filter(c =>
+            c.branch_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            c.shift?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
 
     const filteredPrevious = selectedBranch === 'all'
         ? previousClosings
@@ -542,31 +566,112 @@ export default function ClosingHistory() {
     )
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-                <PageHeader
-                    title="Cierre de Caja y Conciliación"
-                    subtitle="Gestión de efectivo operativo y contable"
-                    className="!mb-0"
-                />
-                <DateRangeFilter
-                    startDate={startDate}
-                    endDate={endDate}
-                    onStartDateChange={setStartDate}
-                    onEndDateChange={setEndDate}
-                    onFilter={fetchData}
-                    loading={loading}
-                />
+        <div className="space-y-8">
+            {/* Unified Header Block */}
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-gray-100/50 dark:border-white/5 relative overflow-hidden">
+                {/* Row 1: Brand, Type Filter, Date Filter */}
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
+
+                    {/* Brand & Title Section */}
+                    <div className="flex items-center gap-4">
+                        <div className="relative h-14 w-14 shrink-0 bg-pp-gold/10 rounded-2xl overflow-hidden flex items-center justify-center p-2">
+                            <Image
+                                src={appConfig.company.logoUrl}
+                                alt={appConfig.company.name}
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-black text-gray-900 dark:text-white font-display uppercase tracking-tight">
+                                Cierre de Caja y Conciliación
+                            </h1>
+                            <p className="text-gray-500 font-medium text-sm">
+                                Gestión de efectivo operativo y contable
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Type Filter */}
+                    <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-xl">
+                        <button
+                            onClick={() => setActiveType('all')}
+                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'all' ? 'bg-white dark:bg-slate-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setActiveType('panpanocha')}
+                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'panpanocha' ? 'bg-white dark:bg-slate-700 shadow-sm text-pp-brown' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        >
+                            PanPanocha
+                        </button>
+                        <button
+                            onClick={() => setActiveType('siigo')}
+                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'siigo' ? 'bg-white dark:bg-slate-700 shadow-sm text-pp-brown' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        >
+                            Siigo
+                        </button>
+                    </div>
+
+                    {/* Date Filter */}
+                    <DateRangeFilter
+                        startDate={startDate}
+                        endDate={endDate}
+                        onStartDateChange={setStartDate}
+                        onEndDateChange={setEndDate}
+                        onFilter={fetchData}
+                        loading={loading}
+                    />
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-gray-100 dark:bg-white/5 w-full my-6" />
+
+                {/* Row 2: Search & Actions */}
+                <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-6">
+                    {/* Search */}
+                    <div className="relative w-full lg:max-w-xl group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-pp-gold transition-colors">
+                            <Search className="h-5 w-5" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Buscar cierre por sede, operador..."
+                            className="pl-12 pr-4 py-3.5 w-full bg-gray-50 dark:bg-slate-800 border border-transparent focus:bg-white dark:focus:bg-slate-700 border-gray-100 dark:border-white/5 rounded-2xl focus:ring-4 focus:ring-pp-gold/10 focus:border-pp-gold outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:placeholder:text-gray-500 dark:text-white"
+                            value={searchTerm || ''}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 w-full lg:w-auto">
+                        <Button
+                            variant="secondary"
+                            onClick={() => selectedUnified && handleExportPDF(selectedUnified)}
+                            startIcon={<FileText className="h-5 w-5" />}
+                            className="py-3.5 px-6 h-auto font-bold rounded-xl border-gray-200 hover:bg-gray-50 text-gray-600"
+                        >
+                            Generar Reporte
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Row 3: Branch Tabs */}
+                <div className="border-t border-gray-100 dark:border-white/5 pt-2">
+                    <ModuleTabs
+                        tabs={tabOptions}
+                        activeTabId={selectedBranch}
+                        onTabChange={setSelectedBranch}
+                        labelAll="Todos"
+                    />
+                </div>
+
+                {/* Live Monitoring Section (Integrated) */}
+                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-white/5">
+                    <ActiveShifts />
+                </div>
             </div>
-
-            <ModuleTabs
-                tabs={tabOptions}
-                activeTabId={selectedBranch}
-                onTabChange={setSelectedBranch}
-                labelAll="Todas las Sedes"
-            />
-
-            <ActiveShifts />
 
 
 
@@ -594,24 +699,163 @@ export default function ClosingHistory() {
 
                                 <div className="p-4 space-y-4">
                                     {closings.map(unified => {
-                                        const mysTotal = unified.panpanocha ? ((unified.panpanocha.sales_cash || 0) + (unified.panpanocha.sales_card || 0) + (unified.panpanocha.sales_transfer || 0)) : 0
-                                        const siigoTotal = unified.siigo ? ((unified.siigo.sales_cash || 0) + (unified.siigo.sales_card || 0) + (unified.siigo.sales_transfer || 0)) : 0
-                                        const combinedTotal = mysTotal + siigoTotal
+                                        // Calculate type-specific values
+                                        const ppData = unified.panpanocha
+                                        const sgData = unified.siigo
 
-                                        // Combined Difference Calculation
-                                        const mysDiff = unified.panpanocha ? (unified.panpanocha.cash_audit_count - (unified.panpanocha.base_cash + unified.panpanocha.sales_cash - unified.panpanocha.expenses_total - unified.panpanocha.tips_total)) : 0
-                                        const siigoDiff = unified.siigo ? (unified.siigo.cash_audit_count - (unified.siigo.base_cash + unified.siigo.sales_cash - unified.siigo.expenses_total - unified.siigo.tips_total)) : 0
-                                        const totalDiff = mysDiff + siigoDiff
+                                        // PanPanocha calculations
+                                        const ppCash = ppData?.sales_cash || 0
+                                        const ppCard = ppData?.sales_card || 0
+                                        const ppTransfer = ppData?.sales_transfer || 0
+                                        const ppExpenses = (ppData?.expenses_total || 0) + (ppData?.tips_total || 0)
+                                        const ppTotal = ppCash + ppCard + ppTransfer
+                                        const ppDiff = ppData ? (ppData.cash_audit_count - (ppData.base_cash + ppData.sales_cash - ppData.expenses_total - ppData.tips_total)) : 0
 
-                                        // Strict Completeness Check: Siigo Data + Both Attachments
-                                        const hasSiigo = !!unified.siigo
-                                        const hasAttachments = !!(unified.siigo?.dataphone_voucher_url && unified.siigo?.pos_invoice_url)
+                                        // Siigo calculations
+                                        const sgCash = sgData?.sales_cash || 0
+                                        const sgCard = sgData?.sales_card || 0
+                                        const sgTransfer = sgData?.sales_transfer || 0
+                                        const sgExpenses = (sgData?.expenses_total || 0) + (sgData?.tips_total || 0)
+                                        const sgTotal = sgCash + sgCard + sgTransfer
+                                        const sgDiff = sgData ? (sgData.cash_audit_count - (sgData.base_cash + sgData.sales_cash - sgData.expenses_total - sgData.tips_total)) : 0
+
+                                        // Combined for "all" view
+                                        const combinedTotal = ppTotal + sgTotal
+                                        const totalDiff = ppDiff + sgDiff
+
+                                        // Completeness check
+                                        const hasSiigo = !!sgData
+                                        const hasAttachments = !!(sgData?.dataphone_voucher_url && sgData?.pos_invoice_url)
                                         const isFullyComplete = hasSiigo && hasAttachments
 
-                                        // Coffee (Amber-800/900) for Partial, Green (Emerald-500) for Complete
-                                        // "cafe si esta parcial osea algo le falta... verde cuando esta todo completo"
-                                        const borderColor = isFullyComplete ? 'border-emerald-500' : 'border-[#5D4037]' // Custom coffee hex or generic brown
+                                        // PANPANOCHA CARD (When filtered by panpanocha)
+                                        if (activeType === 'panpanocha' && ppData) {
+                                            return (
+                                                <div key={unified.id}
+                                                    onClick={() => setSelectedUnified(unified)}
+                                                    className="bg-white dark:bg-slate-800 border dark:border-white/5 rounded-xl p-0 hover:shadow-lg transition-all cursor-pointer overflow-hidden border-l-[6px] border-orange-500"
+                                                >
+                                                    <div className="p-5">
+                                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-sm">
+                                                                    <span className="opacity-50">#</span>
+                                                                    {unified.id.slice(0, 8)}
+                                                                </div>
+                                                                <h5 className="font-bold text-lg text-gray-800 dark:text-white">{unified.branch_name}</h5>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="bg-orange-100 text-orange-700 border border-orange-300 text-xs px-3 py-1.5 rounded-lg font-bold uppercase tracking-wider">PanPanocha</span>
+                                                            </div>
+                                                        </div>
 
+                                                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 md:gap-4 pt-4 border-t border-orange-100 dark:border-orange-500/20">
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-orange-400 dark:text-orange-500 mb-1 tracking-wider">Hora</p>
+                                                                <p className="font-medium text-gray-600 dark:text-gray-300 text-sm flex items-center gap-2">
+                                                                    <Clock className="w-3 h-3 text-orange-300 dark:text-orange-600" />
+                                                                    {formatDateTime(unified.date).split(',')[1]}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-orange-400 dark:text-orange-500 mb-1 tracking-wider">Efectivo</p>
+                                                                <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">{formatCurrency(ppCash)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-orange-400 dark:text-orange-500 mb-1 tracking-wider">Tarjeta</p>
+                                                                <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">{formatCurrency(ppCard)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-orange-400 dark:text-orange-500 mb-1 tracking-wider">Transf.</p>
+                                                                <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">{formatCurrency(ppTransfer)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-red-300 dark:text-red-400 mb-1 tracking-wider">Gastos</p>
+                                                                <p className="font-bold text-red-500 dark:text-red-400 text-sm">{formatCurrency(ppExpenses)}</p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-[10px] uppercase font-bold text-orange-400 dark:text-orange-500 mb-1 tracking-wider">Diferencia</p>
+                                                                <p className={`font-black text-sm flex items-center justify-end gap-1 ${ppDiff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                                    {ppDiff !== 0 && (ppDiff > 0 ? <span className="text-xs">▲</span> : <span className="text-xs">▼</span>)}
+                                                                    {formatCurrency(ppDiff)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        }
+
+                                        // SIIGO CARD (When filtered by siigo)
+                                        if (activeType === 'siigo' && sgData) {
+                                            const isSiigoComplete = !!(sgData.dataphone_voucher_url && sgData.pos_invoice_url)
+                                            return (
+                                                <div key={unified.id}
+                                                    onClick={() => setSelectedUnified(unified)}
+                                                    className={`bg-white dark:bg-slate-800 border dark:border-white/5 rounded-xl p-0 hover:shadow-lg transition-all cursor-pointer overflow-hidden border-l-[6px] ${isSiigoComplete ? 'border-emerald-500' : 'border-blue-500'}`}
+                                                >
+                                                    <div className="p-5">
+                                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-sm">
+                                                                    <span className="opacity-50">#</span>
+                                                                    {unified.id.slice(0, 8)}
+                                                                </div>
+                                                                <h5 className="font-bold text-lg text-gray-800 dark:text-white">{unified.branch_name}</h5>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="bg-blue-100 text-blue-700 border border-blue-300 text-xs px-3 py-1.5 rounded-lg font-bold uppercase tracking-wider">SIIGO</span>
+                                                                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1 ${isSiigoComplete ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                                    <div className={`w-2 h-2 rounded-full ${isSiigoComplete ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                                                                    {isSiigoComplete ? 'Completo' : 'Pendiente'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 md:gap-4 pt-4 border-t border-blue-100 dark:border-blue-500/20">
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-blue-400 dark:text-blue-500 mb-1 tracking-wider">Hora</p>
+                                                                <p className="font-medium text-gray-600 dark:text-gray-300 text-sm flex items-center gap-2">
+                                                                    <Clock className="w-3 h-3 text-blue-300 dark:text-blue-600" />
+                                                                    {formatDateTime(unified.date).split(',')[1]}
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-blue-400 dark:text-blue-500 mb-1 tracking-wider">Efectivo</p>
+                                                                <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">{formatCurrency(sgCash)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-blue-400 dark:text-blue-500 mb-1 tracking-wider">Tarjeta</p>
+                                                                <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">{formatCurrency(sgCard)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-blue-400 dark:text-blue-500 mb-1 tracking-wider">Transf.</p>
+                                                                <p className="font-bold text-gray-700 dark:text-gray-200 text-sm">{formatCurrency(sgTransfer)}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[10px] uppercase font-bold text-red-300 dark:text-red-400 mb-1 tracking-wider">Gastos</p>
+                                                                <p className="font-bold text-red-500 dark:text-red-400 text-sm">{formatCurrency(sgExpenses)}</p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-[10px] uppercase font-bold text-blue-400 dark:text-blue-500 mb-1 tracking-wider">Diferencia</p>
+                                                                <p className={`font-black text-sm flex items-center justify-end gap-1 ${sgDiff >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                                    {sgDiff !== 0 && (sgDiff > 0 ? <span className="text-xs">▲</span> : <span className="text-xs">▼</span>)}
+                                                                    {formatCurrency(sgDiff)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        }
+
+                                        // UNIFIED CARD (Default "Todos" view - only when no type filter is active)
+                                        if (activeType !== 'all') {
+                                            // If a type filter is active but we didn't match above, skip this card
+                                            return null
+                                        }
+
+                                        const borderColor = isFullyComplete ? 'border-emerald-500' : 'border-[#5D4037]'
                                         return (
                                             <div key={unified.id}
                                                 onClick={() => setSelectedUnified(unified)}
@@ -691,9 +935,9 @@ export default function ClosingHistory() {
                 )
             }
 
-            {/* DETAIL MODAL */}
+            {/* DETAIL MODAL (Only show for "Todos" filter) */}
             {
-                selectedUnified && (
+                selectedUnified && activeType === 'all' && (
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
                         <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
                             <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b dark:border-white/10 px-6 py-4 flex justify-between items-center z-10">
@@ -1140,6 +1384,52 @@ export default function ClosingHistory() {
                     </div >
                 )
             }
-        </div >
+
+            {/* TYPE-SPECIFIC DETAIL MODALS */}
+            {selectedUnified && activeType === 'panpanocha' && (
+                <PanPanochaDetailModal
+                    closing={selectedUnified}
+                    onClose={() => setSelectedUnified(null)}
+                    onExportPDF={() => handleExportPDF(selectedUnified)}
+                    onUploadInvoice={() => {
+                        if (selectedUnified.panpanocha?.panpanocha_invoice_url) {
+                            window.open(selectedUnified.panpanocha.panpanocha_invoice_url, '_blank')
+                        } else {
+                            panpanochaInvoiceInputRef.current?.click()
+                        }
+                    }}
+                    uploadingInvoice={uploadingType === 'panpanocha_invoice'}
+                    invoiceInputRef={panpanochaInvoiceInputRef as React.RefObject<HTMLInputElement>}
+                    handleFileUpload={handleFileUpload}
+                />
+            )}
+
+            {selectedUnified && activeType === 'siigo' && (
+                <SiigoDetailModal
+                    closing={selectedUnified}
+                    onClose={() => setSelectedUnified(null)}
+                    onExportPDF={() => handleExportPDF(selectedUnified)}
+                    onUploadDataphone={() => {
+                        if (selectedUnified.siigo?.dataphone_voucher_url) {
+                            window.open(selectedUnified.siigo.dataphone_voucher_url, '_blank')
+                        } else {
+                            dataphoneInputRef.current?.click()
+                        }
+                    }}
+                    onUploadInvoice={() => {
+                        if (selectedUnified.siigo?.pos_invoice_url) {
+                            window.open(selectedUnified.siigo.pos_invoice_url, '_blank')
+                        } else {
+                            invoiceInputRef.current?.click()
+                        }
+                    }}
+                    uploadingDataphone={uploadingType === 'dataphone'}
+                    uploadingInvoice={uploadingType === 'invoice'}
+                    dataphoneInputRef={dataphoneInputRef as React.RefObject<HTMLInputElement>}
+                    invoiceInputRef={invoiceInputRef as React.RefObject<HTMLInputElement>}
+                    handleFileUpload={handleFileUpload}
+                />
+            )}
+        </div>
     )
 }

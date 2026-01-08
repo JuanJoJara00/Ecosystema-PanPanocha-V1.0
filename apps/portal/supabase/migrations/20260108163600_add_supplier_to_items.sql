@@ -1,0 +1,2 @@
+ALTER TABLE inventory_items 
+ADD COLUMN IF NOT EXISTS supplier_id UUID REFERENCES suppliers(id) ON DELETE SET NULL;
