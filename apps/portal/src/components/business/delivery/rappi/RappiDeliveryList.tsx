@@ -181,37 +181,25 @@ export default function RappiDeliveryList() {
                 ))}
             </div>
 
-            <Modal
-                isOpen={isDetailOpen}
-                onClose={() => setIsDetailOpen(false)}
-                title=""
-                maxWidth="max-w-2xl"
-                hideHeader={true}
-            >
-                {selectedDelivery && (
-                    <RappiDeliveryDetail
-                        delivery={selectedDelivery}
-                        onClose={() => setIsDetailOpen(false)}
-                        onUpdate={fetchData}
-                        onEdit={() => {
-                            setIsDetailOpen(false)
-                            handleEdit(selectedDelivery)
-                        }}
-                    />
-                )}
-            </Modal>
-
-            <Modal
-                isOpen={isFormOpen}
-                onClose={() => setIsFormOpen(false)}
-                title={editingDelivery ? "Editar Pedido Rappi" : "Nuevo Pedido Rappi"}
-            >
-                <RappiDeliveryForm
-                    initialData={editingDelivery}
-                    onSuccess={handleSuccess}
-                    onCancel={() => setIsFormOpen(false)}
+            {isDetailOpen && selectedDelivery && (
+                <RappiDeliveryDetail
+                    isOpen={isDetailOpen}
+                    delivery={selectedDelivery}
+                    onClose={() => setIsDetailOpen(false)}
+                    onUpdate={fetchData}
+                    onEdit={() => {
+                        setIsDetailOpen(false)
+                        handleEdit(selectedDelivery)
+                    }}
                 />
-            </Modal>
+            )}
+
+            <RappiDeliveryForm
+                isOpen={isFormOpen}
+                onCancel={() => setIsFormOpen(false)}
+                initialData={editingDelivery}
+                onSuccess={handleSuccess}
+            />
         </div>
     )
 }

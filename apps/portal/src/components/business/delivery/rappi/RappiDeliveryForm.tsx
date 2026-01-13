@@ -2,8 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { X, Upload, Plus, Trash2, ShoppingBag } from 'lucide-react'
+import {
+    X,
+    Upload,
+    Plus,
+    Trash2,
+    ShoppingBag,
+    Truck,
+    Calendar,
+    MapPin,
+    Info,
+    DollarSign,
+    CheckCircle2,
+    Clock,
+    Camera,
+    ChevronRight,
+    Search,
+    AlertCircle
+} from 'lucide-react'
 import Button from '@/components/ui/Button'
+import Badge from '@/components/ui/Badge'
 
 import { RappiDelivery } from '@panpanocha/types'
 
@@ -11,19 +29,22 @@ interface RappiDeliveryFormProps {
     initialData?: RappiDelivery | null
     onSuccess: () => void
     onCancel: () => void
+    isOpen: boolean
 }
 
-export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: RappiDeliveryFormProps) {
+export default function RappiDeliveryForm({ initialData, onSuccess, onCancel, isOpen }: RappiDeliveryFormProps) {
     const [loading, setLoading] = useState(false)
     const [branches, setBranches] = useState<any[]>([])
     const [products, setProducts] = useState<any[]>([])
+    const [searchProduct, setSearchProduct] = useState('')
 
     // Form Data
     const [formData, setFormData] = useState({
         rappi_order_id: initialData?.rappi_order_id || '',
         branch_id: initialData?.branch_id || '',
         status: initialData?.status || 'pending',
-        notes: initialData?.notes || ''
+        notes: initialData?.notes || '',
+        customer_name: initialData?.customer_name || ''
     })
 
     // Product Cart: { productId: quantity }
@@ -37,16 +58,17 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
     const [orderReadyProofUrl, setOrderReadyProofUrl] = useState(initialData?.order_ready_url || '')
 
     useEffect(() => {
-        fetchInitialData()
-    }, [])
+        if (isOpen) fetchInitialData()
+    }, [isOpen])
 
     useEffect(() => {
-        if (initialData) {
+        if (initialData && isOpen) {
             setFormData({
                 rappi_order_id: initialData.rappi_order_id || '',
                 branch_id: initialData.branch_id || '',
                 status: initialData.status || 'pending',
-                notes: initialData.notes || ''
+                notes: initialData.notes || '',
+                customer_name: initialData.customer_name || ''
             })
             setTicketProofUrl(initialData.ticket_url || '')
             setOrderReadyProofUrl(initialData.order_ready_url || '')
@@ -70,14 +92,26 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
             } else {
                 setCart({})
             }
+        } else if (isOpen) {
+            // Reset for new entry
+            setFormData({
+                rappi_order_id: '',
+                branch_id: '',
+                status: 'pending',
+                notes: '',
+                customer_name: ''
+            })
+            setCart({})
+            setTicketProofUrl('')
+            setOrderReadyProofUrl('')
         }
-    }, [initialData])
+    }, [initialData, isOpen])
 
     const fetchInitialData = async () => {
         const { data: br } = await supabase.from('branches').select('id, name').eq('is_active', true)
         if (br) setBranches(br)
 
-        const { data: pr } = await supabase.from('products').select('id, name, price').eq('is_active', true).order('name')
+        const { data: pr } = await supabase.from('products').select('id, name, price, category').eq('is_active', true).order('name')
         if (pr) setProducts(pr)
     }
 
@@ -99,7 +133,6 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
         const fileName = `rappi_${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
         const filePath = `${fileName}`
 
-        // Using 'receipts' bucket
         const { error: uploadError } = await supabase.storage
             .from('receipts')
             .upload(filePath, file)
@@ -147,6 +180,10 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (Object.keys(cart).length === 0) {
+            alert('Debes agregar al menos un producto.')
+            return
+        }
         setLoading(true)
 
         try {
@@ -208,157 +245,296 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel }: 
         }
     }
 
-    const inputClassName = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FF441F] focus:border-[#FF441F] outline-none transition-all font-sans"
-    const labelClassName = "block text-sm font-bold text-gray-700 mb-1 font-display uppercase tracking-wide"
+    if (!isOpen) return null
+
+    const filteredProducts = products.filter(p =>
+        p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+        p.category?.toLowerCase().includes(searchProduct.toLowerCase())
+    )
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className={labelClassName}>ID Pedido Rappi *</label>
-                    <input
-                        type="text"
-                        required
-                        value={formData.rappi_order_id}
-                        onChange={(e) => setFormData({ ...formData, rappi_order_id: e.target.value })}
-                        className={inputClassName}
-                        placeholder="# Orden Rappi"
-                    />
-                </div>
-                <div>
-                    <label className={labelClassName}>Sede de Salida *</label>
-                    <select
-                        required
-                        value={formData.branch_id}
-                        aria-label="Seleccionar Sede"
-                        onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
-                        className={inputClassName}
-                    >
-                        <option value="">Seleccionar Sede</option>
-                        {branches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/20">
 
-            <div className="border-t border-gray-100 pt-4">
-                <label className={labelClassName}>Productos *</label>
-                <div className="flex gap-2 mb-4">
-                    <select
-                        className={inputClassName}
-                        aria-label="Agregar producto"
-                        onChange={(e) => {
-                            if (e.target.value) {
-                                addToCart(e.target.value)
-                                e.target.value = ''
-                            }
-                        }}
-                    >
-                        <option value="">Agregar producto...</option>
-                        {products.map(p => (
-                            <option key={p.id} value={p.id}>{p.name} - ${p.price}</option>
-                        ))}
-                    </select>
-                </div>
+                {/* Left Panel: Primary Data & Cart (3/5) */}
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar border-r border-gray-100 dark:border-white/5 bg-white dark:bg-slate-900 flex flex-col">
 
-                <div className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-200">
-                    {Object.keys(cart).length === 0 && (
-                        <div className="text-center text-gray-400 py-4 text-sm">
-                            No hay productos seleccionados
+                    {/* Header */}
+                    <div className="p-10 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-slate-800/20 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
+                        <div className="flex items-center gap-5">
+                            <div className="h-16 w-16 rounded-2xl bg-[#FF441F] flex items-center justify-center text-white shadow-lg shadow-[#FF441F]/20">
+                                <ShoppingBag size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter font-display leading-none">
+                                    {initialData ? 'Editar Pedido Rappi' : 'Nuevo Pedido Rappi'}
+                                </h2>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1.5 flex items-center gap-2">
+                                    <Truck size={14} className="text-[#FF441F]" /> Plataforma Rappi Marketplace
+                                </p>
+                            </div>
                         </div>
-                    )}
-                    {Object.entries(cart).map(([id, qty]) => {
-                        const prod = products.find(p => p.id === id)
-                        if (!prod) return null
-                        return (
-                            <div key={id} className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
-                                <div>
-                                    <span className="font-medium text-gray-700">{prod.name}</span>
-                                    <p className="text-xs text-gray-400">${prod.price} c/u</p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center border rounded-lg overflow-hidden">
-                                        <button type="button" onClick={() => updateQuantity(id, qty - 1)} className="px-2 py-1 hover:bg-gray-100 text-gray-600 font-bold">-</button>
-                                        <span className="px-2 py-1 bg-white font-mono text-sm w-8 text-center">{qty}</span>
-                                        <button type="button" onClick={() => updateQuantity(id, qty + 1)} className="px-2 py-1 hover:bg-gray-100 text-gray-600 font-bold">+</button>
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            title="Cerrar formulario"
+                            className="p-3 hover:bg-white dark:hover:bg-slate-800 rounded-full text-gray-400 transition-all border border-transparent hover:border-gray-100 dark:hover:border-white/5"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+
+                    <div className="p-10 space-y-12 flex-1">
+
+                        {/* Section 1: Basic Info */}
+                        <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">ID Orden Rappi</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#FF441F] transition-colors">
+                                        <Info size={18} />
                                     </div>
-                                    <button type="button" onClick={() => removeFromCart(id)} className="text-red-400 hover:text-red-600" aria-label="Eliminar producto"><Trash2 className="h-4 w-4" /></button>
+                                    <input
+                                        required
+                                        type="text"
+                                        title="ID de Orden Rappi"
+                                        value={formData.rappi_order_id}
+                                        onChange={e => setFormData({ ...formData, rappi_order_id: e.target.value })}
+                                        placeholder="Ej: #1234567"
+                                        className="w-full pl-12 pr-5 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-white/5 rounded-2xl font-black text-gray-900 dark:text-white uppercase tracking-wider focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-[#FF441F]/10 focus:border-[#FF441F]/30 outline-none transition-all"
+                                    />
                                 </div>
                             </div>
-                        )
-                    })}
-                    {Object.keys(cart).length > 0 && (
-                        <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200 text-sm">
-                            <span className="font-bold text-gray-500">Valor Productos:</span>
-                            <span className="font-bold text-gray-800">${calculateProductTotal().toLocaleString()}</span>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Sede de Despacho</label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#FF441F] transition-colors">
+                                        <MapPin size={18} />
+                                    </div>
+                                    <select
+                                        required
+                                        title="Sede de Despacho"
+                                        value={formData.branch_id}
+                                        onChange={e => setFormData({ ...formData, branch_id: e.target.value })}
+                                        className="w-full pl-12 pr-5 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-white/5 rounded-2xl font-black text-gray-900 dark:text-white uppercase tracking-wider focus:bg-white dark:focus:bg-slate-800 focus:ring-4 focus:ring-[#FF441F]/10 focus:border-[#FF441F]/30 outline-none appearance-none cursor-pointer transition-all"
+                                    >
+                                        <option value="">Seleccionar Sede</option>
+                                        {branches.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                    )}
-                </div>
-            </div>
 
-            {/* Proofs Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-                {/* Comanda */}
-                <div>
-                    <label className={labelClassName}>Foto Comanda *</label>
-                    <div className="mt-2">
-                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                                <p className="text-xs text-center text-gray-500 font-sans">Subir Comanda</p>
+                        {/* Section 2: Product Selection (Mini POS Style) */}
+                        <div className="space-y-6">
+                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Plus size={16} className="text-[#FF441F]" /> Selección de Productos
+                            </h3>
+
+                            <div className="relative mb-6 group">
+                                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-[#FF441F] transition-colors">
+                                    <Search size={18} />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={searchProduct}
+                                    onChange={e => setSearchProduct(e.target.value)}
+                                    placeholder="Buscar producto a agregar..."
+                                    className="w-full pl-12 pr-5 py-4 bg-gray-100/50 dark:bg-slate-800/80 border-none rounded-2xl font-bold text-gray-900 dark:text-white outline-none focus:ring-4 focus:ring-[#FF441F]/10 transition-all"
+                                />
                             </div>
-                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'ticket')} />
-                        </label>
-                        {ticketProofUrl && (
-                            <div className="mt-2 relative h-20 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <img src={ticketProofUrl} alt="Prueba de comanda" className="w-full h-full object-cover" />
-                                <button type="button" onClick={() => { setTicketProof(null); setTicketProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1" aria-label="Eliminar comanda"><X className="h-3 w-3" /></button>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-64 overflow-y-auto custom-scrollbar p-1">
+                                {filteredProducts.map(p => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        onClick={() => addToCart(p.id)}
+                                        className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-white/5 flex flex-col items-start text-left hover:scale-[1.02] hover:shadow-lg hover:border-[#FF441F]/20 transition-all group"
+                                    >
+                                        <span className="text-[10px] font-black text-gray-400 uppercase mb-1 tracking-widest">{p.category || 'Varios'}</span>
+                                        <span className="text-sm font-black text-gray-900 dark:text-white uppercase leading-tight line-clamp-2">{p.name}</span>
+                                        <span className="mt-2 text-xs font-bold text-[#FF441F] italic">${p.price.toLocaleString()}</span>
+                                    </button>
+                                ))}
                             </div>
-                        )}
+                        </div>
+
+                        {/* Section 3: Notes & Meta */}
+                        <div className="space-y-6">
+                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <AlertCircle size={16} className="text-[#FF441F]" /> Información Adicional
+                            </h3>
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Nombre Cliente (Opcional)</label>
+                                    <input
+                                        type="text"
+                                        value={formData.customer_name}
+                                        onChange={e => setFormData({ ...formData, customer_name: e.target.value })}
+                                        placeholder="Ej: Juan Perez"
+                                        className="w-full px-5 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-white/5 rounded-2xl font-bold text-gray-900 dark:text-white outline-none focus:bg-white transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Notas Especiales</label>
+                                    <input
+                                        type="text"
+                                        value={formData.notes}
+                                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                                        placeholder="Ej: Sin cebolla, extra salsa..."
+                                        className="w-full px-5 py-4 bg-gray-50 dark:bg-slate-800/50 border border-gray-100 dark:border-white/5 rounded-2xl font-bold text-gray-900 dark:text-white outline-none focus:bg-white transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="p-8 border-t border-gray-100 dark:border-white/5 flex gap-4 bg-white dark:bg-slate-900/80 backdrop-blur-md sticky bottom-0">
+                        <Button
+                            type="button"
+                            onClick={onCancel}
+                            variant="ghost"
+                            className="flex-1 h-14 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="flex-[2] h-14 rounded-2xl bg-[#FF441F] text-white font-black uppercase tracking-widest shadow-xl shadow-[#FF441F]/20 flex items-center justify-center gap-3 hover:scale-[1.02] transition-all"
+                        >
+                            {loading ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={24} /> {initialData ? 'Actualizar Orden' : 'Publicar Orden'}</>}
+                        </Button>
+                    </div>
+                </form>
+
+                {/* Right Panel: Cart Summary & Evidence (2/5) */}
+                <div className="w-full md:w-[450px] bg-gray-50/50 dark:bg-slate-800/10 p-10 flex flex-col justify-between">
+                    <div className="flex-1 space-y-10 custom-scrollbar overflow-y-auto pr-2">
+
+                        {/* Summary Card */}
+                        <div className="space-y-6">
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center justify-between">
+                                <span>Resumen del Pedido</span>
+                                <ShoppingBag size={14} className="opacity-40" />
+                            </h3>
+
+                            <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-8 opacity-5 text-white -translate-y-4 translate-x-4">
+                                    <DollarSign size={80} />
+                                </div>
+
+                                <div className="relative z-10 space-y-8">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Valor Total Bruto</p>
+                                        <p className="text-5xl font-black font-display italic text-[#FF441F] tracking-tighter">
+                                            ${calculateProductTotal().toLocaleString()}
+                                        </p>
+                                    </div>
+
+                                    <div className="h-px bg-white/10 w-full" />
+
+                                    <div className="space-y-4 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                                        {Object.entries(cart).map(([id, qty]) => {
+                                            const prod = products.find(p => p.id === id)
+                                            if (!prod) return null
+                                            return (
+                                                <div key={id} className="flex items-center justify-between group/item">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center text-[10px] font-black">
+                                                            x{qty}
+                                                        </div>
+                                                        <span className="text-xs font-bold uppercase truncate max-w-[150px]">{prod.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-xs font-black text-white/60 font-mono">${(prod.price * qty).toLocaleString()}</span>
+                                                        <button
+                                                            type="button"
+                                                            title="Eliminar producto"
+                                                            onClick={() => removeFromCart(id)}
+                                                            className="text-white/20 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                        {Object.keys(cart).length === 0 && (
+                                            <p className="text-xs font-bold text-white/20 italic uppercase text-center py-4">Carrito Vacío</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Evidence Uploads */}
+                        <div className="space-y-6">
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center justify-between">
+                                <span>Evidencia de Operación</span>
+                                <Camera size={14} className="opacity-40" />
+                            </h3>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <label className="block group cursor-pointer">
+                                    <div className={`h-36 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all overflow-hidden ${ticketProofUrl ? 'border-[#FF441F]/30 bg-[#FF441F]/5' : 'border-gray-200 dark:border-white/5 hover:bg-gray-100'}`}>
+                                        {ticketProofUrl ? (
+                                            <img src={ticketProofUrl} className="w-full h-full object-cover" alt="Comanda" />
+                                        ) : (
+                                            <>
+                                                <Upload size={20} className="text-gray-400" />
+                                                <p className="text-[10px] font-black text-gray-400 uppercase">Comanda</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'ticket')} />
+                                </label>
+
+                                <label className="block group cursor-pointer">
+                                    <div className={`h-36 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all overflow-hidden ${orderReadyProofUrl ? 'border-[#FF441F]/30 bg-[#FF441F]/5' : 'border-gray-200 dark:border-white/5 hover:bg-gray-100'}`}>
+                                        {orderReadyProofUrl ? (
+                                            <img src={orderReadyProofUrl} className="w-full h-full object-cover" alt="Listo" />
+                                        ) : (
+                                            <>
+                                                <Upload size={20} className="text-gray-400" />
+                                                <p className="text-[10px] font-black text-gray-400 uppercase">Empaquetado</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'order_ready')} />
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="mt-10 p-6 rounded-[2rem] bg-white dark:bg-slate-800 shadow-xl border border-gray-100 dark:border-white/5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Estado de Lanzamiento</p>
+                            <Badge variant={formData.status === 'pending' ? 'warning' : 'success'} className="font-black uppercase text-[10px]">
+                                {formData.status === 'pending' ? 'Borrador Interno' : 'Publicado'}
+                            </Badge>
+                        </div>
+                        <div className={`h-12 w-12 rounded-full flex items-center justify-center ${formData.status === 'pending' ? 'bg-pp-gold/20 text-pp-brown' : 'bg-green-100 text-green-600'}`}>
+                            <Clock size={24} />
+                        </div>
                     </div>
                 </div>
-
-                {/* Pedido Listo */}
-                <div>
-                    <label className={labelClassName}>Foto Pedido Listo *</label>
-                    <div className="mt-2">
-                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <Upload className="w-8 h-8 mb-2 text-gray-400" />
-                                <p className="text-xs text-center text-gray-500 font-sans">Subir Pedido Empacado</p>
-                            </div>
-                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'order_ready')} />
-                        </label>
-                        {orderReadyProofUrl && (
-                            <div className="mt-2 relative h-20 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <img src={orderReadyProofUrl} alt="Prueba de pedido listo" className="w-full h-full object-cover" />
-                                <button type="button" onClick={() => { setOrderReadyProof(null); setOrderReadyProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1" aria-label="Eliminar foto pedido"><X className="h-3 w-3" /></button>
-                            </div>
-                        )}
-                    </div>
-                </div>
             </div>
+        </div>
+    )
+}
 
-            {/* Notes */}
-            <div>
-                <label className={labelClassName}>Notas</label>
-                <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className={`${inputClassName} min-h-[80px]`}
-                    placeholder="Notas adicionales..."
-                />
-            </div>
-
-            <div className="flex gap-3 pt-6 border-t mt-2">
-                <Button onClick={onCancel} variant="ghost" className="flex-1">
-                    Cancelar
-                </Button>
-                <Button type="submit" disabled={loading} className="flex-1 bg-[#FF441F] text-white hover:bg-[#FF441F]/90">
-                    {loading ? 'Guardando...' : 'Guardar Pedido Rappi'}
-                </Button>
-            </div>
-        </form>
+function Loader2({ className }: { className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
     )
 }

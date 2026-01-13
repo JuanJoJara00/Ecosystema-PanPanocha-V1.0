@@ -42,6 +42,7 @@ export function PinCodeModal({ onClose, onSubmit, title = "Código Maestro", sub
                 <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-white p-6 relative">
                     <button
                         onClick={onClose}
+                        aria-label="Cerrar"
                         className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
                     >
                         <X size={24} />

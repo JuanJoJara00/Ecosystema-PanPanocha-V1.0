@@ -102,18 +102,22 @@ export default function ActiveShifts() {
 
     return (
         <div className="">
-            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                <Monitor className="w-5 h-5 text-green-500" />
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2 text-sm">
+                <Monitor className="w-4 h-4 text-green-500" />
                 Monitoreo en Vivo ({shifts.length})
             </h3>
 
             {shifts.length === 0 ? (
-                <div className="bg-gray-50 dark:bg-slate-800 rounded-xl border border-dashed border-gray-200 dark:border-white/10 p-8 text-center">
-                    <div className="bg-gray-100 dark:bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Monitor className="w-6 h-6 text-gray-400" />
+                <div className="bg-gray-50 dark:bg-slate-800 rounded-lg border border-dashed border-gray-200 dark:border-white/10 p-4 text-center">
+                    <div className="flex items-center justify-center gap-3">
+                        <div className="bg-gray-100 dark:bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center">
+                            <Monitor className="w-4 h-4 text-gray-400" />
+                        </div>
+                        <div className="text-left">
+                            <h4 className="font-bold text-gray-600 dark:text-gray-300 text-sm">No hay turnos activos</h4>
+                            <p className="text-xs text-gray-400">Los turnos abiertos aparecerán aquí en tiempo real.</p>
+                        </div>
                     </div>
-                    <h4 className="font-bold text-gray-600 dark:text-gray-300">No hay turnos activos</h4>
-                    <p className="text-sm text-gray-400 mt-1">Los turnos abiertos aparecerán aquí en tiempo real.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

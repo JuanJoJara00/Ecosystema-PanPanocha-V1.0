@@ -11,7 +11,7 @@ import ModuleHeader from '@/components/ui/ModuleHeader'
 import ModuleTabs from '@/components/ui/ModuleTabs'
 import PageHeader from '@/components/ui/PageHeader'
 import Modal from '@/components/ui/Modal'
-import SupplierForm from './SupplierForm'
+import SupplierFormModal from './SupplierFormModal'
 import SupplierCSVImporter from './SupplierCSVImporter'
 import SupplierDetail from './SupplierDetail'
 
@@ -260,17 +260,36 @@ export default function SupplierList({ initialSuppliers, initialStats }: Supplie
             )}
 
             {/* Modals */}
-            <Modal
+            <SupplierFormModal
                 isOpen={isFormModalOpen}
                 onClose={() => setIsFormModalOpen(false)}
-                title={editingSupplier ? "Editar Proveedor" : "Nuevo Proveedor"}
-            >
-                <SupplierForm
-                    initialSupplier={editingSupplier}
-                    onSuccess={handleFormSuccess}
-                    onCancel={() => setIsFormModalOpen(false)}
-                />
-            </Modal>
+                editingSupplier={editingSupplier}
+                onSubmit={async (data) => {
+                    setLoading(true)
+                    try {
+                        let error
+                        if (editingSupplier) {
+                            const { error: updateError } = await supabase
+                                .from('suppliers')
+                                .update({ ...data, updated_at: new Date().toISOString() })
+                                .eq('id', editingSupplier.id)
+                            error = updateError
+                        } else {
+                            const { error: insertError } = await supabase
+                                .from('suppliers')
+                                .insert([{ ...data, active: true }])
+                            error = insertError
+                        }
+
+                        if (error) throw error
+                        handleFormSuccess()
+                    } catch (error) {
+                        console.error('Error saving supplier:', error)
+                    } finally {
+                        setLoading(false)
+                    }
+                }}
+            />
 
             <Modal
                 isOpen={isImportModalOpen}
@@ -290,7 +309,10 @@ export default function SupplierList({ initialSuppliers, initialStats }: Supplie
             <SupplierDetail
                 isOpen={!!selectedSupplierForDetails}
                 onClose={() => setSelectedSupplierForDetails(null)}
-                supplier={selectedSupplierForDetails}
+                supplier={selectedSupplierForDetails ? {
+                    ...selectedSupplierForDetails,
+                    stats: supplierStats[selectedSupplierForDetails.id]
+                } : null}
             />
         </div>
     )

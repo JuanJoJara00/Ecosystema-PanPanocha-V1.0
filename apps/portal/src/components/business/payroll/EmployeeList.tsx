@@ -10,7 +10,7 @@ import ModuleHeader from '@/components/ui/ModuleHeader'
 import ModuleTabs from '@/components/ui/ModuleTabs'
 import PageHeader from '@/components/ui/PageHeader'
 import Modal from '@/components/ui/Modal'
-import EmployeeForm from './EmployeeForm'
+import EmployeeFormModal from './EmployeeFormModal'
 import EmployeeCSVImporter from './EmployeeCSVImporter'
 import PayrollForm from './PayrollForm'
 import EmployeeDetail from './EmployeeDetail'
@@ -286,53 +286,87 @@ export default function EmployeeList() {
             }
 
             {/* Modals */}
-            <Modal
+            <EmployeeDetail
                 isOpen={isDetailModalOpen}
+                employee={viewingEmployee!}
                 onClose={() => {
                     setIsDetailModalOpen(false)
                     setViewingEmployee(null)
                 }}
-                title="Detalles del Empleado"
-            >
-                {viewingEmployee && (
-                    <EmployeeDetail
-                        employee={viewingEmployee}
-                        onClose={() => {
-                            setIsDetailModalOpen(false)
-                            setViewingEmployee(null)
-                        }}
-                        onEdit={() => {
-                            setEditingEmployee(viewingEmployee)
-                            setIsDetailModalOpen(false) // Close detail
-                            setViewingEmployee(null)
-                            setIsFormModalOpen(true) // Open form
-                        }}
-                        onRegisterPayment={() => {
-                            setSelectedEmployeeForPayroll(viewingEmployee);
-                            setIsDetailModalOpen(false);
-                            setIsPayrollModalOpen(true);
-                        }}
-                    />
-                )}
-            </Modal>
+                onEdit={() => {
+                    setEditingEmployee(viewingEmployee)
+                    setIsDetailModalOpen(false)
+                    setIsFormModalOpen(true)
+                }}
+                onRegisterPayment={() => {
+                    setSelectedEmployeeForPayroll(viewingEmployee)
+                    setIsDetailModalOpen(false)
+                    setIsPayrollModalOpen(true)
+                }}
+            />
 
-            <Modal
+            <EmployeeFormModal
                 isOpen={isFormModalOpen}
                 onClose={() => {
                     setIsFormModalOpen(false)
                     setEditingEmployee(null)
                 }}
-                title={editingEmployee ? "Editar Empleado" : "Nuevo Empleado"}
-            >
-                <EmployeeForm
-                    onSuccess={handleFormSuccess}
-                    onCancel={() => {
-                        setIsFormModalOpen(false)
-                        setEditingEmployee(null)
-                    }}
-                    initialData={editingEmployee}
-                />
-            </Modal>
+                editingEmployee={editingEmployee}
+                branches={branches}
+                onSubmit={async (formData, authParams) => {
+                    setLoading(true)
+                    try {
+                        const dataToSave = {
+                            ...formData,
+                            base_salary: parseFloat(formData.base_salary)
+                        }
+
+                        let employeeId = editingEmployee?.id
+
+                        if (editingEmployee) {
+                            const { error } = await supabase
+                                .from('employees')
+                                .update(dataToSave)
+                                .eq('id', editingEmployee.id)
+                            if (error) throw error
+                        } else {
+                            const { data: newEmployee, error } = await supabase
+                                .from('employees')
+                                .insert([dataToSave])
+                                .select()
+                                .single()
+                            if (error) throw error
+                            employeeId = newEmployee.id
+                        }
+
+                        if (authParams?.createPortalAccess && formData.email && employeeId) {
+                            const { data, error } = await supabase.functions.invoke('create-employee-user', {
+                                body: {
+                                    employeeId,
+                                    email: formData.email,
+                                    fullName: formData.full_name,
+                                    role: formData.position,
+                                    branchId: formData.branch_id,
+                                    sendInvitation: authParams.sendInvitation
+                                }
+                            })
+
+                            if (error) throw error
+
+                            if (data.success && !authParams.sendInvitation) {
+                                alert(`✅ Acceso Creado. Contraseña temporal: ${data.tempPassword}`)
+                            }
+                        }
+
+                        handleFormSuccess()
+                    } catch (error: any) {
+                        console.error('Error saving employee:', error)
+                        alert('Error al guardar: ' + error.message)
+                    } finally {
+                        setLoading(false)
+                    }
+                }}
+            />
 
             <Modal
                 isOpen={isImportModalOpen}

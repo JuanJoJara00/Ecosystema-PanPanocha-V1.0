@@ -71,7 +71,7 @@ export class ProductService {
                 organization_id, // Identity Injection
                 name: productData.name,
                 price: productData.price || 0,
-                category: productData.category,
+                category_id: productData.category_id, // Updated to use FK
                 active: productData.active ?? true,
                 description: productData.description
             } as any)

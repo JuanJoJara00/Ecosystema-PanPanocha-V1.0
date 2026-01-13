@@ -566,126 +566,131 @@ export default function ClosingHistory() {
     )
 
     return (
-        <div className="space-y-8">
-            {/* Unified Header Block */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-gray-100/50 dark:border-white/5 relative overflow-hidden">
-                {/* Row 1: Brand, Type Filter, Date Filter */}
-                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
+        <div className="flex gap-2 w-full h-[calc(100vh-4rem)]">
+            {/* LEFT PANEL - Static (no scroll) */}
+            <div className="w-1/2 flex-shrink-0 flex flex-col gap-3 overflow-y-auto">
+                {/* Unified Header Block */}
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-gray-100/50 dark:border-white/5 relative overflow-hidden">
+                    {/* Row 1: Brand, Type Filter, Date Filter */}
+                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
 
-                    {/* Brand & Title Section */}
-                    <div className="flex items-center gap-4">
-                        <div className="relative h-14 w-14 shrink-0 bg-pp-gold/10 rounded-2xl overflow-hidden flex items-center justify-center p-2">
-                            <Image
-                                src={appConfig.company.logoUrl}
-                                alt={appConfig.company.name}
-                                fill
-                                className="object-contain"
-                            />
+                        {/* Brand & Title Section */}
+                        <div className="flex items-center gap-4">
+                            <div className="relative h-14 w-14 shrink-0 bg-pp-gold/10 rounded-2xl overflow-hidden flex items-center justify-center p-2">
+                                <Image
+                                    src={appConfig.company.logoUrl}
+                                    alt={appConfig.company.name}
+                                    fill
+                                    className="object-contain"
+                                />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-black text-gray-900 dark:text-white font-display uppercase tracking-tight">
+                                    Cierre de Caja y Conciliación
+                                </h1>
+                                <p className="text-gray-500 font-medium text-sm">
+                                    Gestión de efectivo operativo y contable
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-black text-gray-900 dark:text-white font-display uppercase tracking-tight">
-                                Cierre de Caja y Conciliación
-                            </h1>
-                            <p className="text-gray-500 font-medium text-sm">
-                                Gestión de efectivo operativo y contable
-                            </p>
+
+                        {/* Type Filter */}
+                        <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-xl">
+                            <button
+                                onClick={() => setActiveType('all')}
+                                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'all' ? 'bg-white dark:bg-slate-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                            >
+                                Todos
+                            </button>
+                            <button
+                                onClick={() => setActiveType('panpanocha')}
+                                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'panpanocha' ? 'bg-white dark:bg-slate-700 shadow-sm text-pp-brown' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                            >
+                                PanPanocha
+                            </button>
+                            <button
+                                onClick={() => setActiveType('siigo')}
+                                className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'siigo' ? 'bg-white dark:bg-slate-700 shadow-sm text-pp-brown' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                            >
+                                Siigo
+                            </button>
                         </div>
-                    </div>
 
-                    {/* Type Filter */}
-                    <div className="flex items-center gap-2 bg-gray-100 dark:bg-slate-800 p-1.5 rounded-xl">
-                        <button
-                            onClick={() => setActiveType('all')}
-                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'all' ? 'bg-white dark:bg-slate-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >
-                            Todos
-                        </button>
-                        <button
-                            onClick={() => setActiveType('panpanocha')}
-                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'panpanocha' ? 'bg-white dark:bg-slate-700 shadow-sm text-pp-brown' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >
-                            PanPanocha
-                        </button>
-                        <button
-                            onClick={() => setActiveType('siigo')}
-                            className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${activeType === 'siigo' ? 'bg-white dark:bg-slate-700 shadow-sm text-pp-brown' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-                        >
-                            Siigo
-                        </button>
-                    </div>
-
-                    {/* Date Filter */}
-                    <DateRangeFilter
-                        startDate={startDate}
-                        endDate={endDate}
-                        onStartDateChange={setStartDate}
-                        onEndDateChange={setEndDate}
-                        onFilter={fetchData}
-                        loading={loading}
-                    />
-                </div>
-
-                {/* Divider */}
-                <div className="h-px bg-gray-100 dark:bg-white/5 w-full my-6" />
-
-                {/* Row 2: Search & Actions */}
-                <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-6">
-                    {/* Search */}
-                    <div className="relative w-full lg:max-w-xl group">
-                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-pp-gold transition-colors">
-                            <Search className="h-5 w-5" />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Buscar cierre por sede, operador..."
-                            className="pl-12 pr-4 py-3.5 w-full bg-gray-50 dark:bg-slate-800 border border-transparent focus:bg-white dark:focus:bg-slate-700 border-gray-100 dark:border-white/5 rounded-2xl focus:ring-4 focus:ring-pp-gold/10 focus:border-pp-gold outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:placeholder:text-gray-500 dark:text-white"
-                            value={searchTerm || ''}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                        {/* Date Filter */}
+                        <DateRangeFilter
+                            startDate={startDate}
+                            endDate={endDate}
+                            onStartDateChange={setStartDate}
+                            onEndDateChange={setEndDate}
+                            onFilter={fetchData}
+                            loading={loading}
                         />
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-3 w-full lg:w-auto">
-                        <Button
-                            variant="secondary"
-                            onClick={() => selectedUnified && handleExportPDF(selectedUnified)}
-                            startIcon={<FileText className="h-5 w-5" />}
-                            className="py-3.5 px-6 h-auto font-bold rounded-xl border-gray-200 hover:bg-gray-50 text-gray-600"
-                        >
-                            Generar Reporte
-                        </Button>
+                    {/* Divider */}
+                    <div className="h-px bg-gray-100 dark:bg-white/5 w-full my-6" />
+
+                    {/* Row 2: Search & Actions */}
+                    <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-6">
+                        {/* Search */}
+                        <div className="relative w-full lg:max-w-xl group">
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-pp-gold transition-colors">
+                                <Search className="h-5 w-5" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Buscar cierre por sede, operador..."
+                                className="pl-12 pr-4 py-3.5 w-full bg-gray-50 dark:bg-slate-800 border border-transparent focus:bg-white dark:focus:bg-slate-700 border-gray-100 dark:border-white/5 rounded-2xl focus:ring-4 focus:ring-pp-gold/10 focus:border-pp-gold outline-none transition-all text-sm font-bold placeholder:text-gray-400 dark:placeholder:text-gray-500 dark:text-white"
+                                value={searchTerm || ''}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3 w-full lg:w-auto">
+                            <Button
+                                variant="secondary"
+                                onClick={() => selectedUnified && handleExportPDF(selectedUnified)}
+                                startIcon={<FileText className="h-5 w-5" />}
+                                className="py-3.5 px-6 h-auto font-bold rounded-xl border-gray-200 hover:bg-gray-50 text-gray-600"
+                            >
+                                Generar Reporte
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Row 3: Branch Tabs */}
+                    <div className="border-t border-gray-100 dark:border-white/5 pt-2">
+                        <ModuleTabs
+                            tabs={tabOptions}
+                            activeTabId={selectedBranch}
+                            onTabChange={setSelectedBranch}
+                            labelAll="Todos"
+                        />
+                    </div>
+
+                    {/* Live Monitoring Section (Integrated) */}
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-white/5">
+                        <ActiveShifts />
                     </div>
                 </div>
 
-                {/* Row 3: Branch Tabs */}
-                <div className="border-t border-gray-100 dark:border-white/5 pt-2">
-                    <ModuleTabs
-                        tabs={tabOptions}
-                        activeTabId={selectedBranch}
-                        onTabChange={setSelectedBranch}
-                        labelAll="Todos"
-                    />
-                </div>
-
-                {/* Live Monitoring Section (Integrated) */}
-                <div className="mt-6 pt-6 border-t border-gray-100 dark:border-white/5">
-                    <ActiveShifts />
-                </div>
+                {/* Charts Section - in left panel */}
+                {!loading && groupedClosings.length > 0 && (
+                    <ClosingChart currentData={filteredClosings} prevData={filteredPrevious} />
+                )}
             </div>
 
-
-
-            {
-                loading ? (
+            {/* RIGHT PANEL - Scrollable Cards */}
+            <div className="w-1/2 overflow-y-auto">
+                {loading ? (
                     <div className="text-center py-10 text-gray-400">Cargando historial unificado...</div>
                 ) : groupedClosings.length === 0 ? (
                     <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed">
                         No hay cierres registrados para este periodo.
                     </div>
                 ) : (
-                    <div className="space-y-8">
-                        {/* Comparison Chart */}
-                        <ClosingChart currentData={filteredClosings} prevData={filteredPrevious} />
+                    <div className="space-y-6">
 
                         {groupedClosings.map(([dateLabel, closings]) => (
                             <div key={dateLabel} className="bg-gray-50/50 dark:bg-slate-900/50 rounded-xl border border-gray-200/60 dark:border-white/5 overflow-hidden shadow-sm">
@@ -933,64 +938,210 @@ export default function ClosingHistory() {
                         ))}
                     </div>
                 )
-            }
+                }
 
-            {/* DETAIL MODAL (Only show for "Todos" filter) */}
-            {
-                selectedUnified && activeType === 'all' && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
-                            <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b dark:border-white/10 px-6 py-4 flex justify-between items-center z-10">
-                                <div>
-                                    <h3 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Cierre Unificado del Turno</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{formatDate(selectedUnified.date)} - {selectedUnified.branch_name}</p>
+                {/* DETAIL MODAL (Only show for "Todos" filter) */}
+                {
+                    selectedUnified && activeType === 'all' && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
+                                <div className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b dark:border-white/10 px-6 py-4 flex justify-between items-center z-10">
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Cierre Unificado del Turno</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{formatDate(selectedUnified.date)} - {selectedUnified.branch_name}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => handleExportPDF(selectedUnified)}
+                                            className="hidden md:flex bg-white hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-gray-200 dark:border-white/10"
+                                        >
+                                            <FileText className="w-4 h-4 mr-2" /> Exportar PDF
+                                        </Button>
+                                        <button
+                                            onClick={() => setSelectedUnified(null)}
+                                            className="p-2 hover:bg-orange-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                                            aria-label="Cerrar detalle"
+                                        >
+                                            <X className="w-6 h-6 text-gray-400 hover:text-orange-500" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => handleExportPDF(selectedUnified)}
-                                        className="hidden md:flex bg-white hover:bg-gray-50 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-gray-200 dark:border-white/10"
-                                    >
-                                        <FileText className="w-4 h-4 mr-2" /> Exportar PDF
-                                    </Button>
-                                    <button
-                                        onClick={() => setSelectedUnified(null)}
-                                        className="p-2 hover:bg-orange-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                                        aria-label="Cerrar detalle"
-                                    >
-                                        <X className="w-6 h-6 text-gray-400 hover:text-orange-500" />
-                                    </button>
-                                </div>
-                            </div>
 
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                                {/* PANPANOCHA SIDE */}
-                                <div className={`p-5 rounded-3xl border-2 transition-all ${selectedUnified.panpanocha ? 'border-orange-200 dark:border-orange-500/30 bg-white dark:bg-slate-900 shadow-sm' : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-slate-800 opacity-60'}`}>
-                                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-orange-100 dark:border-orange-500/20">
-                                        <div className="bg-orange-100 dark:bg-orange-500/20 p-2 rounded-xl text-orange-600 dark:text-orange-400 shadow-sm"><Store className="w-5 h-5" /></div>
-                                        <h4 className="font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Cierre Panpanocha</h4>
+                                    {/* PANPANOCHA SIDE */}
+                                    <div className={`p-5 rounded-3xl border-2 transition-all ${selectedUnified.panpanocha ? 'border-orange-200 dark:border-orange-500/30 bg-white dark:bg-slate-900 shadow-sm' : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-slate-800 opacity-60'}`}>
+                                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-orange-100 dark:border-orange-500/20">
+                                            <div className="bg-orange-100 dark:bg-orange-500/20 p-2 rounded-xl text-orange-600 dark:text-orange-400 shadow-sm"><Store className="w-5 h-5" /></div>
+                                            <h4 className="font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Cierre Panpanocha</h4>
+                                        </div>
+
+                                        {selectedUnified.panpanocha ? (
+                                            (() => {
+                                                const exp = selectedUnified.panpanocha.base_cash + selectedUnified.panpanocha.sales_cash - selectedUnified.panpanocha.expenses_total - selectedUnified.panpanocha.tips_total
+                                                const real = selectedUnified.panpanocha.cash_audit_count
+                                                const diff = real - exp
+                                                const hasDiff = Math.abs(diff) > 50
+
+                                                // MERGED EXPENSES DISPLAY
+                                                const displayExpenses = (selectedUnified.panpanocha.expenses_total || 0) + (selectedUnified.panpanocha.tips_total || 0)
+
+                                                return (
+                                                    <div className="space-y-6">
+                                                        <div className="space-y-3 text-sm">
+                                                            <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Base Inicial</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.base_cash)}</span></div>
+                                                            <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Efectivo</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.sales_cash)}</span></div>
+
+                                                            {/* NEW: Card & Transfer */}
+                                                            <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Tarjeta</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.sales_card || 0)}</span></div>
+                                                            <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Transferencia</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.sales_transfer || 0)}</span></div>
+
+                                                            <div className="flex justify-between items-center p-2 hover:bg-red-50/50 dark:hover:bg-red-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Gastos</span> <span className="font-bold text-red-500 dark:text-red-400">-{formatCurrency(displayExpenses)}</span></div>
+
+                                                            <div className="my-2 border-t border-dashed border-gray-200" />
+
+                                                            <div className="flex justify-between font-bold text-gray-600 dark:text-gray-400 px-2">
+                                                                <span>Esperado (Efectivo):</span>
+                                                                <span>{formatCurrency(exp)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between font-black text-orange-900 dark:text-orange-200 bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl border border-orange-100 dark:border-orange-500/20">
+                                                                <span>Real (Efectivo):</span>
+                                                                <span>{formatCurrency(real)}</span>
+                                                            </div>
+
+                                                            {hasDiff && (
+                                                                <div className={`p-3 rounded-xl text-center font-bold flex items-center justify-center gap-2 border ${diff > 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                                                                    <AlertTriangle className="w-4 h-4" />
+                                                                    {diff > 0 ? `Sobrante: ${formatCurrency(diff)}` : `Faltante: ${formatCurrency(diff)}`}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
+                                                            <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Total Ventas Registradas</h5>
+                                                            <div className="flex justify-between items-end">
+                                                                <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Global</span>
+                                                                <span className="font-black text-xl text-gray-800 dark:text-white">{formatCurrency((selectedUnified.panpanocha.sales_cash || 0) + (selectedUnified.panpanocha.sales_card || 0) + (selectedUnified.panpanocha.sales_transfer || 0))}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Attachments Section - PanPanocha */}
+                                                        <div className="mt-6 border-t border-gray-100 pt-4">
+                                                            <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 mb-3">Soporte del Cierre</h5>
+
+                                                            <input
+                                                                type="file"
+                                                                ref={panpanochaInvoiceInputRef}
+                                                                className="hidden"
+                                                                accept="image/*"
+                                                                aria-label="Subir factura PanPanocha"
+                                                                onChange={(e) => handleFileUpload(e, 'panpanocha_invoice')}
+                                                            />
+
+                                                            <div
+                                                                onClick={() => {
+                                                                    if (selectedUnified.panpanocha?.panpanocha_invoice_url) {
+                                                                        window.open(selectedUnified.panpanocha.panpanocha_invoice_url, '_blank')
+                                                                    } else {
+                                                                        panpanochaInvoiceInputRef.current?.click()
+                                                                    }
+                                                                }}
+                                                                className={`w-full border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group relative overflow-hidden
+                                                                ${selectedUnified.panpanocha?.panpanocha_invoice_url
+                                                                        ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-500/30 hover:bg-orange-100 dark:hover:bg-orange-900/30'
+                                                                        : 'bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-orange-200 dark:hover:border-orange-500/50 hover:shadow-sm'
+                                                                    }`}
+                                                            >
+                                                                {uploadingType === 'panpanocha_invoice' ? (
+                                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-600"></div>
+                                                                ) : (
+                                                                    <>
+                                                                        <div className={`p-2 rounded-full transition-colors ${selectedUnified.panpanocha?.panpanocha_invoice_url ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-orange-500 group-hover:border-orange-100'}`}>
+                                                                            {selectedUnified.panpanocha?.panpanocha_invoice_url ? <Check className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
+                                                                        </div>
+                                                                        <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnified.panpanocha?.panpanocha_invoice_url ? 'text-orange-700 dark:text-orange-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600'}`}>
+                                                                            {selectedUnified.panpanocha?.panpanocha_invoice_url ? 'Factura Cargada' : 'Factura POS PanPanocha'}
+                                                                        </span>
+
+                                                                        {selectedUnified.panpanocha?.panpanocha_invoice_url && (
+                                                                            <div
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation()
+                                                                                    panpanochaInvoiceInputRef.current?.click()
+                                                                                }}
+                                                                                className="absolute top-1 right-1 p-1 text-orange-400 hover:text-orange-600 bg-white/50 rounded-full hover:bg-white"
+                                                                                title="Cambiar archivo"
+                                                                            >
+                                                                                <Edit2 className="w-3 h-3" />
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })()
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                                                <Store className="w-8 h-8 mb-2 opacity-20" />
+                                                <p className="text-sm">No se ha registrado cierre</p>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {selectedUnified.panpanocha ? (
-                                        (() => {
-                                            const exp = selectedUnified.panpanocha.base_cash + selectedUnified.panpanocha.sales_cash - selectedUnified.panpanocha.expenses_total - selectedUnified.panpanocha.tips_total
-                                            const real = selectedUnified.panpanocha.cash_audit_count
+                                    {/* SIIGO SIDE */}
+                                    <div className={`p-5 rounded-3xl border-2 transition-all ${selectedUnified.siigo ? 'border-blue-200 dark:border-blue-500/30 bg-white dark:bg-slate-900 shadow-sm' : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-slate-800 opacity-60'}`}>
+                                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-blue-100 dark:border-blue-500/20">
+                                            <div className="bg-blue-100 dark:bg-blue-500/20 p-2 rounded-xl text-blue-600 dark:text-blue-400 shadow-sm"><FileText className="w-5 h-5" /></div>
+                                            <h4 className="font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Cierre Siigo</h4>
+                                        </div>
+
+                                        {(() => {
+                                            // 1. Safe Data Access (Default to 0s)
+                                            const siigoData = selectedUnified.siigo || {
+                                                base_cash: 0,
+                                                sales_cash: 0,
+                                                expenses_total: 0,
+                                                tips_total: 0,
+                                                cash_audit_count: 0,
+                                                sales_card: 0,
+                                                sales_transfer: 0
+                                            }
+
+                                            // Check if it's truly empty (all zeros or null)
+                                            const isSiigoEmpty = !selectedUnified.siigo || (
+                                                !selectedUnified.siigo.base_cash &&
+                                                !selectedUnified.siigo.sales_cash &&
+                                                !selectedUnified.siigo.cash_audit_count
+                                            )
+
+                                            const exp = (siigoData.base_cash || 0) + (siigoData.sales_cash || 0) - (siigoData.expenses_total || 0) - (siigoData.tips_total || 0)
+                                            const real = siigoData.cash_audit_count || 0
                                             const diff = real - exp
                                             const hasDiff = Math.abs(diff) > 50
 
                                             // MERGED EXPENSES DISPLAY
-                                            const displayExpenses = (selectedUnified.panpanocha.expenses_total || 0) + (selectedUnified.panpanocha.tips_total || 0)
+                                            const displayExpenses = (siigoData.expenses_total || 0) + (siigoData.tips_total || 0)
 
                                             return (
                                                 <div className="space-y-6">
+                                                    {/* Missing Data Warning */}
+                                                    {isSiigoEmpty && (
+                                                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 px-4 py-3 rounded-xl mb-4 text-sm font-medium animate-pulse">
+                                                            <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                                                            <span>No se ha registrado cierre Siigo</span>
+                                                        </div>
+                                                    )}
+
                                                     <div className="space-y-3 text-sm">
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Base Inicial</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.base_cash)}</span></div>
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Efectivo</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.sales_cash)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Base Inicial</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.base_cash || 0)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Efectivo</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.sales_cash || 0)}</span></div>
 
                                                         {/* NEW: Card & Transfer */}
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Tarjeta</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.sales_card || 0)}</span></div>
-                                                        <div className="flex justify-between items-center p-2 hover:bg-orange-50/50 dark:hover:bg-orange-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Transferencia</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(selectedUnified.panpanocha.sales_transfer || 0)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Tarjeta</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.sales_card || 0)}</span></div>
+                                                        <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Transferencia</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.sales_transfer || 0)}</span></div>
 
                                                         <div className="flex justify-between items-center p-2 hover:bg-red-50/50 dark:hover:bg-red-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Gastos</span> <span className="font-bold text-red-500 dark:text-red-400">-{formatCurrency(displayExpenses)}</span></div>
 
@@ -1000,7 +1151,7 @@ export default function ClosingHistory() {
                                                             <span>Esperado (Efectivo):</span>
                                                             <span>{formatCurrency(exp)}</span>
                                                         </div>
-                                                        <div className="flex justify-between font-black text-orange-900 dark:text-orange-200 bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl border border-orange-100 dark:border-orange-500/20">
+                                                        <div className="flex justify-between font-black text-blue-900 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-500/20">
                                                             <span>Real (Efectivo):</span>
                                                             <span>{formatCurrency(real)}</span>
                                                         </div>
@@ -1014,422 +1165,278 @@ export default function ClosingHistory() {
                                                     </div>
 
                                                     <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
-                                                        <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Total Ventas Registradas</h5>
+                                                        <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Total Ventas Siigo</h5>
                                                         <div className="flex justify-between items-end">
                                                             <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Global</span>
-                                                            <span className="font-black text-xl text-gray-800 dark:text-white">{formatCurrency((selectedUnified.panpanocha.sales_cash || 0) + (selectedUnified.panpanocha.sales_card || 0) + (selectedUnified.panpanocha.sales_transfer || 0))}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Attachments Section - PanPanocha */}
-                                                    <div className="mt-6 border-t border-gray-100 pt-4">
-                                                        <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 mb-3">Soporte del Cierre</h5>
-
-                                                        <input
-                                                            type="file"
-                                                            ref={panpanochaInvoiceInputRef}
-                                                            className="hidden"
-                                                            accept="image/*"
-                                                            aria-label="Subir factura PanPanocha"
-                                                            onChange={(e) => handleFileUpload(e, 'panpanocha_invoice')}
-                                                        />
-
-                                                        <div
-                                                            onClick={() => {
-                                                                if (selectedUnified.panpanocha?.panpanocha_invoice_url) {
-                                                                    window.open(selectedUnified.panpanocha.panpanocha_invoice_url, '_blank')
-                                                                } else {
-                                                                    panpanochaInvoiceInputRef.current?.click()
-                                                                }
-                                                            }}
-                                                            className={`w-full border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group relative overflow-hidden
-                                                                ${selectedUnified.panpanocha?.panpanocha_invoice_url
-                                                                    ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-500/30 hover:bg-orange-100 dark:hover:bg-orange-900/30'
-                                                                    : 'bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-orange-200 dark:hover:border-orange-500/50 hover:shadow-sm'
-                                                                }`}
-                                                        >
-                                                            {uploadingType === 'panpanocha_invoice' ? (
-                                                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-600"></div>
-                                                            ) : (
-                                                                <>
-                                                                    <div className={`p-2 rounded-full transition-colors ${selectedUnified.panpanocha?.panpanocha_invoice_url ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-orange-500 group-hover:border-orange-100'}`}>
-                                                                        {selectedUnified.panpanocha?.panpanocha_invoice_url ? <Check className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
-                                                                    </div>
-                                                                    <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnified.panpanocha?.panpanocha_invoice_url ? 'text-orange-700 dark:text-orange-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600'}`}>
-                                                                        {selectedUnified.panpanocha?.panpanocha_invoice_url ? 'Factura Cargada' : 'Factura POS PanPanocha'}
-                                                                    </span>
-
-                                                                    {selectedUnified.panpanocha?.panpanocha_invoice_url && (
-                                                                        <div
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation()
-                                                                                panpanochaInvoiceInputRef.current?.click()
-                                                                            }}
-                                                                            className="absolute top-1 right-1 p-1 text-orange-400 hover:text-orange-600 bg-white/50 rounded-full hover:bg-white"
-                                                                            title="Cambiar archivo"
-                                                                        >
-                                                                            <Edit2 className="w-3 h-3" />
-                                                                        </div>
-                                                                    )}
-                                                                </>
-                                                            )}
+                                                            <span className="font-black text-xl text-gray-800 dark:text-white">{formatCurrency((siigoData.sales_cash || 0) + (siigoData.sales_card || 0) + (siigoData.sales_transfer || 0))}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             )
-                                        })()
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-40 text-gray-400 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
-                                            <Store className="w-8 h-8 mb-2 opacity-20" />
-                                            <p className="text-sm">No se ha registrado cierre</p>
-                                        </div>
-                                    )}
-                                </div>
+                                        })()}
 
-                                {/* SIIGO SIDE */}
-                                <div className={`p-5 rounded-3xl border-2 transition-all ${selectedUnified.siigo ? 'border-blue-200 dark:border-blue-500/30 bg-white dark:bg-slate-900 shadow-sm' : 'border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-slate-800 opacity-60'}`}>
-                                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-blue-100 dark:border-blue-500/20">
-                                        <div className="bg-blue-100 dark:bg-blue-500/20 p-2 rounded-xl text-blue-600 dark:text-blue-400 shadow-sm"><FileText className="w-5 h-5" /></div>
-                                        <h4 className="font-extrabold text-gray-800 dark:text-gray-100 uppercase tracking-wide">Cierre Siigo</h4>
-                                    </div>
+                                        {/* Attachments Section - Always Visible */}
+                                        <div className="mt-6 border-t border-gray-100 pt-4">
+                                            <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 mb-3">Soportes del Cierre</h5>
+                                            <div className="flex gap-3">
+                                                {/* Hidden Inputs */}
+                                                <input
+                                                    type="file"
+                                                    ref={dataphoneInputRef}
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    aria-label="Subir voucher datáfono"
+                                                    onChange={(e) => handleFileUpload(e, 'dataphone')}
+                                                />
+                                                <input
+                                                    type="file"
+                                                    ref={invoiceInputRef}
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    aria-label="Subir factura POS"
+                                                    onChange={(e) => handleFileUpload(e, 'invoice')}
+                                                />
 
-                                    {(() => {
-                                        // 1. Safe Data Access (Default to 0s)
-                                        const siigoData = selectedUnified.siigo || {
-                                            base_cash: 0,
-                                            sales_cash: 0,
-                                            expenses_total: 0,
-                                            tips_total: 0,
-                                            cash_audit_count: 0,
-                                            sales_card: 0,
-                                            sales_transfer: 0
-                                        }
+                                                {/* Dataphone Card */}
+                                                <div
+                                                    onClick={() => {
+                                                        if (selectedUnified.siigo?.dataphone_voucher_url) {
+                                                            window.open(selectedUnified.siigo.dataphone_voucher_url, '_blank')
+                                                        } else {
+                                                            dataphoneInputRef.current?.click()
+                                                        }
+                                                    }}
+                                                    className={`flex-1 border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group relative overflow-hidden
+                                                    ${selectedUnified.siigo?.dataphone_voucher_url
+                                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                                                            : 'bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-500/50 hover:shadow-sm'
+                                                        }`}
+                                                >
+                                                    {uploadingType === 'dataphone' ? (
+                                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                                    ) : (
+                                                        <>
+                                                            <div className={`p-2 rounded-full transition-colors ${selectedUnified.siigo?.dataphone_voucher_url ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
+                                                                {selectedUnified.siigo?.dataphone_voucher_url ? <Check className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
+                                                            </div>
+                                                            <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnified.siigo?.dataphone_voucher_url ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600'}`}>
+                                                                {selectedUnified.siigo?.dataphone_voucher_url ? 'Soporte Cargado' : 'Cierre Datáfono'}
+                                                            </span>
 
-                                        // Check if it's truly empty (all zeros or null)
-                                        const isSiigoEmpty = !selectedUnified.siigo || (
-                                            !selectedUnified.siigo.base_cash &&
-                                            !selectedUnified.siigo.sales_cash &&
-                                            !selectedUnified.siigo.cash_audit_count
-                                        )
-
-                                        const exp = (siigoData.base_cash || 0) + (siigoData.sales_cash || 0) - (siigoData.expenses_total || 0) - (siigoData.tips_total || 0)
-                                        const real = siigoData.cash_audit_count || 0
-                                        const diff = real - exp
-                                        const hasDiff = Math.abs(diff) > 50
-
-                                        // MERGED EXPENSES DISPLAY
-                                        const displayExpenses = (siigoData.expenses_total || 0) + (siigoData.tips_total || 0)
-
-                                        return (
-                                            <div className="space-y-6">
-                                                {/* Missing Data Warning */}
-                                                {isSiigoEmpty && (
-                                                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-gray-400 px-4 py-3 rounded-xl mb-4 text-sm font-medium animate-pulse">
-                                                        <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                                                        <span>No se ha registrado cierre Siigo</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="space-y-3 text-sm">
-                                                    <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Base Inicial</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.base_cash || 0)}</span></div>
-                                                    <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Efectivo</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.sales_cash || 0)}</span></div>
-
-                                                    {/* NEW: Card & Transfer */}
-                                                    <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Tarjeta</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.sales_card || 0)}</span></div>
-                                                    <div className="flex justify-between items-center p-2 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Venta Transferencia</span> <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(siigoData.sales_transfer || 0)}</span></div>
-
-                                                    <div className="flex justify-between items-center p-2 hover:bg-red-50/50 dark:hover:bg-red-900/10 rounded-lg transition-colors"><span className="text-gray-500 dark:text-gray-400 font-medium">Gastos</span> <span className="font-bold text-red-500 dark:text-red-400">-{formatCurrency(displayExpenses)}</span></div>
-
-                                                    <div className="my-2 border-t border-dashed border-gray-200" />
-
-                                                    <div className="flex justify-between font-bold text-gray-600 dark:text-gray-400 px-2">
-                                                        <span>Esperado (Efectivo):</span>
-                                                        <span>{formatCurrency(exp)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between font-black text-blue-900 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-500/20">
-                                                        <span>Real (Efectivo):</span>
-                                                        <span>{formatCurrency(real)}</span>
-                                                    </div>
-
-                                                    {hasDiff && (
-                                                        <div className={`p-3 rounded-xl text-center font-bold flex items-center justify-center gap-2 border ${diff > 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                                            <AlertTriangle className="w-4 h-4" />
-                                                            {diff > 0 ? `Sobrante: ${formatCurrency(diff)}` : `Faltante: ${formatCurrency(diff)}`}
-                                                        </div>
+                                                            {selectedUnified.siigo?.dataphone_voucher_url && (
+                                                                <div
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        dataphoneInputRef.current?.click()
+                                                                    }}
+                                                                    className="absolute top-1 right-1 p-1 text-blue-400 hover:text-blue-600 bg-white/50 rounded-full hover:bg-white"
+                                                                    title="Cambiar archivo"
+                                                                >
+                                                                    <Edit2 className="w-3 h-3" />
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
                                                 </div>
 
-                                                <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-white/5">
-                                                    <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Total Ventas Siigo</h5>
-                                                    <div className="flex justify-between items-end">
-                                                        <span className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Global</span>
-                                                        <span className="font-black text-xl text-gray-800 dark:text-white">{formatCurrency((siigoData.sales_cash || 0) + (siigoData.sales_card || 0) + (siigoData.sales_transfer || 0))}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )
-                                    })()}
-
-                                    {/* Attachments Section - Always Visible */}
-                                    <div className="mt-6 border-t border-gray-100 pt-4">
-                                        <h5 className="font-bold text-[10px] uppercase tracking-wider text-gray-400 mb-3">Soportes del Cierre</h5>
-                                        <div className="flex gap-3">
-                                            {/* Hidden Inputs */}
-                                            <input
-                                                type="file"
-                                                ref={dataphoneInputRef}
-                                                className="hidden"
-                                                accept="image/*"
-                                                aria-label="Subir voucher datáfono"
-                                                onChange={(e) => handleFileUpload(e, 'dataphone')}
-                                            />
-                                            <input
-                                                type="file"
-                                                ref={invoiceInputRef}
-                                                className="hidden"
-                                                accept="image/*"
-                                                aria-label="Subir factura POS"
-                                                onChange={(e) => handleFileUpload(e, 'invoice')}
-                                            />
-
-                                            {/* Dataphone Card */}
-                                            <div
-                                                onClick={() => {
-                                                    if (selectedUnified.siigo?.dataphone_voucher_url) {
-                                                        window.open(selectedUnified.siigo.dataphone_voucher_url, '_blank')
-                                                    } else {
-                                                        dataphoneInputRef.current?.click()
-                                                    }
-                                                }}
-                                                className={`flex-1 border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group relative overflow-hidden
-                                                    ${selectedUnified.siigo?.dataphone_voucher_url
-                                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                                                        : 'bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-500/50 hover:shadow-sm'
-                                                    }`}
-                                            >
-                                                {uploadingType === 'dataphone' ? (
-                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                                                ) : (
-                                                    <>
-                                                        <div className={`p-2 rounded-full transition-colors ${selectedUnified.siigo?.dataphone_voucher_url ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
-                                                            {selectedUnified.siigo?.dataphone_voucher_url ? <Check className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
-                                                        </div>
-                                                        <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnified.siigo?.dataphone_voucher_url ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600'}`}>
-                                                            {selectedUnified.siigo?.dataphone_voucher_url ? 'Soporte Cargado' : 'Cierre Datáfono'}
-                                                        </span>
-
-                                                        {selectedUnified.siigo?.dataphone_voucher_url && (
-                                                            <div
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation()
-                                                                    dataphoneInputRef.current?.click()
-                                                                }}
-                                                                className="absolute top-1 right-1 p-1 text-blue-400 hover:text-blue-600 bg-white/50 rounded-full hover:bg-white"
-                                                                title="Cambiar archivo"
-                                                            >
-                                                                <Edit2 className="w-3 h-3" />
-                                                            </div>
-                                                        )}
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            {/* Invoice Card */}
-                                            <div
-                                                onClick={() => {
-                                                    if (selectedUnified.siigo?.pos_invoice_url) {
-                                                        window.open(selectedUnified.siigo.pos_invoice_url, '_blank')
-                                                    } else {
-                                                        invoiceInputRef.current?.click()
-                                                    }
-                                                }}
-                                                className={`flex-1 border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group relative overflow-hidden
+                                                {/* Invoice Card */}
+                                                <div
+                                                    onClick={() => {
+                                                        if (selectedUnified.siigo?.pos_invoice_url) {
+                                                            window.open(selectedUnified.siigo.pos_invoice_url, '_blank')
+                                                        } else {
+                                                            invoiceInputRef.current?.click()
+                                                        }
+                                                    }}
+                                                    className={`flex-1 border rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group relative overflow-hidden
                                                     ${selectedUnified.siigo?.pos_invoice_url
-                                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                                                        : 'bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-500/50 hover:shadow-sm'
-                                                    }`}
-                                            >
-                                                {uploadingType === 'invoice' ? (
-                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                                                ) : (
-                                                    <>
-                                                        <div className={`p-2 rounded-full transition-colors ${selectedUnified.siigo?.pos_invoice_url ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
-                                                            {selectedUnified.siigo?.pos_invoice_url ? <Check className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
-                                                        </div>
-                                                        <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnified.siigo?.pos_invoice_url ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600'}`}>
-                                                            {selectedUnified.siigo?.pos_invoice_url ? 'Factura Cargada' : 'Factura POS Siigo'}
-                                                        </span>
-
-                                                        {selectedUnified.siigo?.pos_invoice_url && (
-                                                            <div
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation()
-                                                                    invoiceInputRef.current?.click()
-                                                                }}
-                                                                className="absolute top-1 right-1 p-1 text-blue-400 hover:text-blue-600 bg-white/50 rounded-full hover:bg-white"
-                                                                title="Cambiar archivo"
-                                                            >
-                                                                <Edit2 className="w-3 h-3" />
+                                                            ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-500/30 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                                                            : 'bg-gray-50 dark:bg-slate-800 border-gray-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-blue-200 dark:hover:border-blue-500/50 hover:shadow-sm'
+                                                        }`}
+                                                >
+                                                    {uploadingType === 'invoice' ? (
+                                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                                    ) : (
+                                                        <>
+                                                            <div className={`p-2 rounded-full transition-colors ${selectedUnified.siigo?.pos_invoice_url ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-slate-700 border border-gray-100 dark:border-white/5 text-gray-400 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
+                                                                {selectedUnified.siigo?.pos_invoice_url ? <Check className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
                                                             </div>
-                                                        )}
-                                                    </>
-                                                )}
+                                                            <span className={`text-[10px] font-bold text-center leading-tight ${selectedUnified.siigo?.pos_invoice_url ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600'}`}>
+                                                                {selectedUnified.siigo?.pos_invoice_url ? 'Factura Cargada' : 'Factura POS Siigo'}
+                                                            </span>
+
+                                                            {selectedUnified.siigo?.pos_invoice_url && (
+                                                                <div
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        invoiceInputRef.current?.click()
+                                                                    }}
+                                                                    className="absolute top-1 right-1 p-1 text-blue-400 hover:text-blue-600 bg-white/50 rounded-full hover:bg-white"
+                                                                    title="Cambiar archivo"
+                                                                >
+                                                                    <Edit2 className="w-3 h-3" />
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div >
+
+                                {/* UNIFIED SUMMARY FOOTER - Redesigned */}
+                                < div className="mx-6 mb-6" >
+                                    <div className="bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+                                        {/* Header Tab */}
+                                        <div className="border-b border-white/5 px-6 py-3 flex items-center gap-3 relative z-10 rounded-t-[2.5rem]">
+                                            <div className="bg-emerald-500/20 p-1.5 rounded-lg text-emerald-400">
+                                                <Check className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black uppercase tracking-widest text-white">Resumen Unificado</h4>
+                                                <p className="text-[10px] text-slate-400 font-medium leading-none mt-0.5">Consolidado Total del Turno (Panpanocha + Siigo)</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 relative z-10">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {/* Total Ventas Box */}
+                                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div className="bg-white/10 p-2 rounded-lg text-slate-300">
+                                                            <Store className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Total Ventas</p>
+                                                            <p className="text-xl font-black text-white leading-none">
+                                                                {formatCurrency(
+                                                                    ((selectedUnified.panpanocha?.sales_cash || 0) + (selectedUnified.panpanocha?.sales_card || 0) + (selectedUnified.panpanocha?.sales_transfer || 0)) +
+                                                                    ((selectedUnified.siigo?.sales_cash || 0) + (selectedUnified.siigo?.sales_card || 0) + (selectedUnified.siigo?.sales_transfer || 0))
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    {/* Breakdown */}
+                                                    <div className="grid grid-cols-3 gap-2 text-[10px] font-medium border-t border-white/10 pt-3 text-slate-300">
+                                                        <div className="flex flex-col">
+                                                            <span className="opacity-40 text-[9px] uppercase mb-0.5">Efectivo</span>
+                                                            <span className="font-bold">{formatCurrency((selectedUnified.panpanocha?.sales_cash || 0) + (selectedUnified.siigo?.sales_cash || 0))}</span>
+                                                        </div>
+                                                        <div className="flex flex-col border-l border-white/10 pl-2">
+                                                            <span className="opacity-40 text-[9px] uppercase mb-0.5">Tarjeta</span>
+                                                            <span className="font-bold">{formatCurrency((selectedUnified.panpanocha?.sales_card || 0) + (selectedUnified.siigo?.sales_card || 0))}</span>
+                                                        </div>
+                                                        <div className="flex flex-col border-l border-white/10 pl-2">
+                                                            <span className="opacity-40 text-[9px] uppercase mb-0.5">Transf.</span>
+                                                            <span className="font-bold">{formatCurrency((selectedUnified.panpanocha?.sales_transfer || 0) + (selectedUnified.siigo?.sales_transfer || 0))}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Total Gastos Box */}
+                                                <div className="bg-red-500/10 rounded-2xl p-4 border border-red-500/20 backdrop-blur-sm flex flex-col justify-between hover:bg-red-500/20 transition-colors group">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="bg-red-500/20 p-2 rounded-lg text-red-400 group-hover:text-red-300 transition-colors">
+                                                            <TrendingDown className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] uppercase tracking-widest font-bold text-red-300/70 mb-1">Total Gastos</p>
+                                                            <p className="text-xl font-black text-red-300 group-hover:text-red-200 transition-colors leading-none">
+                                                                {formatCurrency(
+                                                                    ((selectedUnified.panpanocha?.expenses_total || 0) + (selectedUnified.panpanocha?.tips_total || 0)) +
+                                                                    ((selectedUnified.siigo?.expenses_total || 0) + (selectedUnified.siigo?.tips_total || 0))
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3 text-right">
+                                                        <span className="inline-block px-2 py-1 rounded bg-red-500/20 text-[10px] text-red-300 font-bold uppercase tracking-wider">
+                                                            Descontable
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Total a Entregar Box */}
+                                                <div className="bg-emerald-500/20 rounded-2xl p-4 border border-emerald-500/30 backdrop-blur-sm flex flex-col justify-between hover:bg-emerald-500/30 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.1)] group">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="bg-emerald-500/30 p-2 rounded-lg text-emerald-300 group-hover:text-white transition-colors">
+                                                            <DollarSign className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-[10px] uppercase tracking-widest font-black text-emerald-400/80 mb-1">Total a Entregar</p>
+                                                            <p className="text-2xl font-black text-emerald-400 group-hover:text-emerald-300 transition-colors leading-none">
+                                                                {formatCurrency(
+                                                                    ((selectedUnified.panpanocha?.cash_audit_count || 0) - (selectedUnified.panpanocha?.base_cash || 0)) +
+                                                                    ((selectedUnified.siigo?.cash_audit_count || 0) - (selectedUnified.siigo?.base_cash || 0))
+                                                                )}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3 text-right">
+                                                        <span className="inline-block px-2 py-1 rounded bg-emerald-500/30 text-[10px] text-emerald-300 font-bold uppercase tracking-wider">
+                                                            Neto Final
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div >
+
+
                             </div >
-
-                            {/* UNIFIED SUMMARY FOOTER - Redesigned */}
-                            < div className="mx-6 mb-6" >
-                                <div className="bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-                                    {/* Header Tab */}
-                                    <div className="border-b border-white/5 px-6 py-3 flex items-center gap-3 relative z-10 rounded-t-[2.5rem]">
-                                        <div className="bg-emerald-500/20 p-1.5 rounded-lg text-emerald-400">
-                                            <Check className="w-4 h-4" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-black uppercase tracking-widest text-white">Resumen Unificado</h4>
-                                            <p className="text-[10px] text-slate-400 font-medium leading-none mt-0.5">Consolidado Total del Turno (Panpanocha + Siigo)</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-6 relative z-10">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            {/* Total Ventas Box */}
-                                            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition-colors">
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div className="bg-white/10 p-2 rounded-lg text-slate-300">
-                                                        <Store className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">Total Ventas</p>
-                                                        <p className="text-xl font-black text-white leading-none">
-                                                            {formatCurrency(
-                                                                ((selectedUnified.panpanocha?.sales_cash || 0) + (selectedUnified.panpanocha?.sales_card || 0) + (selectedUnified.panpanocha?.sales_transfer || 0)) +
-                                                                ((selectedUnified.siigo?.sales_cash || 0) + (selectedUnified.siigo?.sales_card || 0) + (selectedUnified.siigo?.sales_transfer || 0))
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                {/* Breakdown */}
-                                                <div className="grid grid-cols-3 gap-2 text-[10px] font-medium border-t border-white/10 pt-3 text-slate-300">
-                                                    <div className="flex flex-col">
-                                                        <span className="opacity-40 text-[9px] uppercase mb-0.5">Efectivo</span>
-                                                        <span className="font-bold">{formatCurrency((selectedUnified.panpanocha?.sales_cash || 0) + (selectedUnified.siigo?.sales_cash || 0))}</span>
-                                                    </div>
-                                                    <div className="flex flex-col border-l border-white/10 pl-2">
-                                                        <span className="opacity-40 text-[9px] uppercase mb-0.5">Tarjeta</span>
-                                                        <span className="font-bold">{formatCurrency((selectedUnified.panpanocha?.sales_card || 0) + (selectedUnified.siigo?.sales_card || 0))}</span>
-                                                    </div>
-                                                    <div className="flex flex-col border-l border-white/10 pl-2">
-                                                        <span className="opacity-40 text-[9px] uppercase mb-0.5">Transf.</span>
-                                                        <span className="font-bold">{formatCurrency((selectedUnified.panpanocha?.sales_transfer || 0) + (selectedUnified.siigo?.sales_transfer || 0))}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Total Gastos Box */}
-                                            <div className="bg-red-500/10 rounded-2xl p-4 border border-red-500/20 backdrop-blur-sm flex flex-col justify-between hover:bg-red-500/20 transition-colors group">
-                                                <div className="flex justify-between items-start">
-                                                    <div className="bg-red-500/20 p-2 rounded-lg text-red-400 group-hover:text-red-300 transition-colors">
-                                                        <TrendingDown className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] uppercase tracking-widest font-bold text-red-300/70 mb-1">Total Gastos</p>
-                                                        <p className="text-xl font-black text-red-300 group-hover:text-red-200 transition-colors leading-none">
-                                                            {formatCurrency(
-                                                                ((selectedUnified.panpanocha?.expenses_total || 0) + (selectedUnified.panpanocha?.tips_total || 0)) +
-                                                                ((selectedUnified.siigo?.expenses_total || 0) + (selectedUnified.siigo?.tips_total || 0))
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 text-right">
-                                                    <span className="inline-block px-2 py-1 rounded bg-red-500/20 text-[10px] text-red-300 font-bold uppercase tracking-wider">
-                                                        Descontable
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            {/* Total a Entregar Box */}
-                                            <div className="bg-emerald-500/20 rounded-2xl p-4 border border-emerald-500/30 backdrop-blur-sm flex flex-col justify-between hover:bg-emerald-500/30 transition-colors shadow-[0_0_20px_rgba(16,185,129,0.1)] group">
-                                                <div className="flex justify-between items-start">
-                                                    <div className="bg-emerald-500/30 p-2 rounded-lg text-emerald-300 group-hover:text-white transition-colors">
-                                                        <DollarSign className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[10px] uppercase tracking-widest font-black text-emerald-400/80 mb-1">Total a Entregar</p>
-                                                        <p className="text-2xl font-black text-emerald-400 group-hover:text-emerald-300 transition-colors leading-none">
-                                                            {formatCurrency(
-                                                                ((selectedUnified.panpanocha?.cash_audit_count || 0) - (selectedUnified.panpanocha?.base_cash || 0)) +
-                                                                ((selectedUnified.siigo?.cash_audit_count || 0) - (selectedUnified.siigo?.base_cash || 0))
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 text-right">
-                                                    <span className="inline-block px-2 py-1 rounded bg-emerald-500/30 text-[10px] text-emerald-300 font-bold uppercase tracking-wider">
-                                                        Neto Final
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div >
-
-
                         </div >
-                    </div >
-                )
-            }
+                    )
+                }
 
-            {/* TYPE-SPECIFIC DETAIL MODALS */}
-            {selectedUnified && activeType === 'panpanocha' && (
-                <PanPanochaDetailModal
-                    closing={selectedUnified}
-                    onClose={() => setSelectedUnified(null)}
-                    onExportPDF={() => handleExportPDF(selectedUnified)}
-                    onUploadInvoice={() => {
-                        if (selectedUnified.panpanocha?.panpanocha_invoice_url) {
-                            window.open(selectedUnified.panpanocha.panpanocha_invoice_url, '_blank')
-                        } else {
-                            panpanochaInvoiceInputRef.current?.click()
-                        }
-                    }}
-                    uploadingInvoice={uploadingType === 'panpanocha_invoice'}
-                    invoiceInputRef={panpanochaInvoiceInputRef as React.RefObject<HTMLInputElement>}
-                    handleFileUpload={handleFileUpload}
-                />
-            )}
+                {/* TYPE-SPECIFIC DETAIL MODALS */}
+                {selectedUnified && activeType === 'panpanocha' && (
+                    <PanPanochaDetailModal
+                        closing={selectedUnified}
+                        onClose={() => setSelectedUnified(null)}
+                        onExportPDF={() => handleExportPDF(selectedUnified)}
+                        onUploadInvoice={() => {
+                            if (selectedUnified.panpanocha?.panpanocha_invoice_url) {
+                                window.open(selectedUnified.panpanocha.panpanocha_invoice_url, '_blank')
+                            } else {
+                                panpanochaInvoiceInputRef.current?.click()
+                            }
+                        }}
+                        uploadingInvoice={uploadingType === 'panpanocha_invoice'}
+                        invoiceInputRef={panpanochaInvoiceInputRef as React.RefObject<HTMLInputElement>}
+                        handleFileUpload={handleFileUpload}
+                    />
+                )}
 
-            {selectedUnified && activeType === 'siigo' && (
-                <SiigoDetailModal
-                    closing={selectedUnified}
-                    onClose={() => setSelectedUnified(null)}
-                    onExportPDF={() => handleExportPDF(selectedUnified)}
-                    onUploadDataphone={() => {
-                        if (selectedUnified.siigo?.dataphone_voucher_url) {
-                            window.open(selectedUnified.siigo.dataphone_voucher_url, '_blank')
-                        } else {
-                            dataphoneInputRef.current?.click()
-                        }
-                    }}
-                    onUploadInvoice={() => {
-                        if (selectedUnified.siigo?.pos_invoice_url) {
-                            window.open(selectedUnified.siigo.pos_invoice_url, '_blank')
-                        } else {
-                            invoiceInputRef.current?.click()
-                        }
-                    }}
-                    uploadingDataphone={uploadingType === 'dataphone'}
-                    uploadingInvoice={uploadingType === 'invoice'}
-                    dataphoneInputRef={dataphoneInputRef as React.RefObject<HTMLInputElement>}
-                    invoiceInputRef={invoiceInputRef as React.RefObject<HTMLInputElement>}
-                    handleFileUpload={handleFileUpload}
-                />
-            )}
+                {selectedUnified && activeType === 'siigo' && (
+                    <SiigoDetailModal
+                        closing={selectedUnified}
+                        onClose={() => setSelectedUnified(null)}
+                        onExportPDF={() => handleExportPDF(selectedUnified)}
+                        onUploadDataphone={() => {
+                            if (selectedUnified.siigo?.dataphone_voucher_url) {
+                                window.open(selectedUnified.siigo.dataphone_voucher_url, '_blank')
+                            } else {
+                                dataphoneInputRef.current?.click()
+                            }
+                        }}
+                        onUploadInvoice={() => {
+                            if (selectedUnified.siigo?.pos_invoice_url) {
+                                window.open(selectedUnified.siigo.pos_invoice_url, '_blank')
+                            } else {
+                                invoiceInputRef.current?.click()
+                            }
+                        }}
+                        uploadingDataphone={uploadingType === 'dataphone'}
+                        uploadingInvoice={uploadingType === 'invoice'}
+                        dataphoneInputRef={dataphoneInputRef as React.RefObject<HTMLInputElement>}
+                        invoiceInputRef={invoiceInputRef as React.RefObject<HTMLInputElement>}
+                        handleFileUpload={handleFileUpload}
+                    />
+                )}
+            </div>
         </div>
     )
 }
+

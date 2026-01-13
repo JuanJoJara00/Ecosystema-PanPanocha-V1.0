@@ -242,23 +242,15 @@ export default function OrdersList() {
                 />
             )}
 
-            <Modal
+            <OrderForm
                 isOpen={isModalOpen}
-                onClose={() => {
+                initialOrderId={editingOrderId}
+                onSuccess={handleFormSuccess}
+                onCancel={() => {
                     setIsModalOpen(false)
                     setEditingOrderId(null)
                 }}
-                title={editingOrderId ? "Editar Orden de Compra" : "Crear Nueva Orden de Compra"}
-            >
-                <OrderForm
-                    initialOrderId={editingOrderId}
-                    onSuccess={handleFormSuccess}
-                    onCancel={() => {
-                        setIsModalOpen(false)
-                        setEditingOrderId(null)
-                    }}
-                />
-            </Modal>
+            />
         </div>
     )
 }

@@ -1,12 +1,32 @@
 'use client'
 
-import { User, Phone, MapPin, DollarSign, Package, FileText, X, Edit2, Calendar, AlertCircle, CheckCircle, ShoppingBag } from 'lucide-react'
+import React, { useState } from 'react'
+import {
+    User,
+    Phone,
+    MapPin,
+    DollarSign,
+    Package,
+    FileText,
+    X,
+    Edit2,
+    Calendar,
+    AlertCircle,
+    CheckCircle,
+    ShoppingBag,
+    Truck,
+    Clock,
+    Camera,
+    Upload,
+    CheckCircle2,
+    ArrowRight,
+    ExternalLink,
+    Info
+} from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
-import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-
 import { RappiDelivery } from '@panpanocha/types'
 
 interface RappiDeliveryDetailProps {
@@ -14,26 +34,22 @@ interface RappiDeliveryDetailProps {
     onEdit: () => void
     onClose: () => void
     onUpdate?: () => void
+    isOpen: boolean
 }
 
-export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdate }: RappiDeliveryDetailProps) {
+export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdate, isOpen }: RappiDeliveryDetailProps) {
     const [isDelivering, setIsDelivering] = useState(false)
     const [loading, setLoading] = useState(false)
     const [uploadingTicket, setUploadingTicket] = useState(false)
     const [uploadingOrderReady, setUploadingOrderReady] = useState(false)
 
     // Initial State from Delivery
-    const [ticketUrl, setTicketUrl] = useState<string | null>(delivery.ticket_url || null)
-    const [orderReadyUrl, setOrderReadyUrl] = useState<string | null>(delivery.order_ready_url || null)
-
-    // NOTE: Rappi Deliveries now are just 'created' and 'tracked', they don't have a "confirm delivery" phase like internal ones necessarily,
-    // but we can keep the "Finalizar" flow if we want to confirm status change OR just use edit.
-    // Given the new fields are "Ticket" and "Order Ready", these are likely uploaded at creation.
-    // So "Finalizar" might just mean "Mark as Dispatched/Delivered". 
+    const [ticketUrl, setTicketUrl] = useState<string | null>(delivery?.ticket_url || null)
+    const [orderReadyUrl, setOrderReadyUrl] = useState<string | null>(delivery?.order_ready_url || null)
 
     const parseProducts = () => {
         try {
-            const details = delivery.product_details
+            const details = delivery?.product_details
             return typeof details === 'string' && details.startsWith('[')
                 ? JSON.parse(details)
                 : []
@@ -81,7 +97,6 @@ export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdat
     }
 
     const handleConfirmFinalization = async () => {
-        // Validation: Mandatory Proofs
         if (!ticketUrl || !orderReadyUrl) {
             alert('⚠️ Validación fallida:\nDebes adjuntar FOTO COMANDA y FOTO PEDIDO LISTO para finalizar.')
             return
@@ -91,7 +106,6 @@ export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdat
         try {
             const totalValue = products.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0)
 
-            // 1. Deduct Inventory (Only if we have a branch)
             if (delivery.branch_id) {
                 const { error: inventoryError } = await supabase.rpc('deduct_inventory', {
                     p_branch_id: delivery.branch_id,
@@ -104,7 +118,6 @@ export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdat
                 }
             }
 
-            // 2. Update Delivery Status
             const { error } = await supabase
                 .from('rappi_deliveries')
                 .update({
@@ -130,287 +143,313 @@ export default function RappiDeliveryDetail({ delivery, onEdit, onClose, onUpdat
         }
     }
 
+    if (!isOpen || !delivery) return null
+
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            minimumFractionDigits: 0
+            style: 'currency', currency: 'COP', minimumFractionDigits: 0
         }).format(amount)
     }
 
-    const getStatusLabel = (status: string) => {
-        const map: Record<string, string> = {
-            'pending': 'Pendiente',
-            'dispatched': 'Despachado',
-            'delivered': 'Finalizado',
-            'cancelled': 'Cancelado'
-        }
-        return map[status] || status
-    }
-
-    const getStatusVariant = (status: string) => {
-        const map: Record<string, any> = {
-            'pending': 'warning',
-            'dispatched': 'info',
-            'delivered': 'success',
-            'cancelled': 'error'
-        }
-        return map[status] || 'neutral'
-    }
-
-    const calculateTotalProducts = () => {
-        if (!Array.isArray(products)) return 0
-        return products.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0)
-    }
-
     return (
-        <div className="flex flex-col h-full max-h-[85vh]">
-            <div className="p-6 border-b flex justify-between items-center bg-gray-50/50 rounded-t-2xl shrink-0">
-                <div>
-                    <h3 className="text-xl font-bold text-gray-900 font-display uppercase flex items-center gap-2">
-                        {isDelivering ? 'Verificar y Finalizar' : 'Detalles Orden Rappi'}
-                        <span className="bg-[#FF441F]/10 text-[#FF441F] text-xs px-2 py-1 rounded-full border border-[#FF441F]/20">
-                            #{delivery.rappi_order_id}
-                        </span>
-                    </h3>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/20">
+
+                {/* Left Panel: Items & Verification (3/5) */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar border-r border-gray-100 dark:border-white/5 bg-white dark:bg-slate-900">
+
+                    {/* Header Banner */}
+                    <div className="p-10 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-slate-800/20 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
+                        <div className="flex items-center gap-5">
+                            <div className="h-16 w-16 rounded-2xl bg-[#FF441F] flex items-center justify-center text-white shadow-lg shadow-[#FF441F]/20">
+                                <ShoppingBag size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter font-display leading-none">
+                                    {isDelivering ? 'Verificar y Despachar' : 'Detalle Domicilio Rappi'}
+                                </h2>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                    <Badge className="bg-[#FF441F]/10 text-[#FF441F] border-none font-black text-[10px] uppercase px-3 py-1">
+                                        ID: #{delivery.rappi_order_id}
+                                    </Badge>
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">Marketplace Platform</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            title="Cerrar detalle"
+                            className="p-3 hover:bg-white dark:hover:bg-slate-800 rounded-full text-gray-400 transition-all border border-transparent hover:border-gray-100 dark:hover:border-white/5"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+
+                    <div className="p-10 space-y-12">
+
+                        {/* Section 1: Itemized Verification */}
+                        <div className="space-y-6">
+                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Package size={16} className="text-[#FF441F]" /> Lista de Productos a Validar
+                            </h3>
+
+                            <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-gray-100 dark:border-white/5 overflow-hidden shadow-xl">
+                                <table className="w-full text-sm text-left">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 dark:bg-slate-800/50 text-gray-400 font-medium">
+                                            <th className="px-8 py-5 font-black uppercase text-[10px] tracking-widest">Producto</th>
+                                            <th className="px-8 py-5 text-center font-black uppercase text-[10px] tracking-widest">Cantidad</th>
+                                            <th className="px-8 py-5 text-right font-black uppercase text-[10px] tracking-widest">Precio Unit.</th>
+                                            <th className="px-8 py-5 text-right font-black uppercase text-[10px] tracking-widest">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                                        {products.map((p, i) => (
+                                            <tr key={i} className="group hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
+                                                <td className="px-8 py-6">
+                                                    <p className="font-black text-gray-900 dark:text-white uppercase text-base italic">{p.name}</p>
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-1">{p.category || 'Categoría Rappi'}</p>
+                                                </td>
+                                                <td className="px-8 py-6 text-center">
+                                                    {isDelivering ? (
+                                                        <input
+                                                            type="number"
+                                                            title="Cantidad recibida"
+                                                            value={p.quantity}
+                                                            onChange={e => handleQuantityChange(i, parseInt(e.target.value) || 0)}
+                                                            className="w-16 bg-[#FF441F]/10 border-2 border-[#FF441F]/30 rounded-xl py-2 px-1 text-center font-black text-[#FF441F] text-lg outline-none focus:ring-4 focus:ring-[#FF441F]/10"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-xl font-black text-gray-900 dark:text-white font-display italic">x{p.quantity}</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <span className="text-xs font-black text-gray-400 uppercase font-mono tracking-tighter">{formatCurrency(p.price)}</span>
+                                                </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <span className="text-lg font-black text-gray-900 dark:text-white font-mono tracking-tighter italic">{formatCurrency(p.price * p.quantity)}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Section 2: Uploads / Evidence */}
+                        <div className="space-y-6">
+                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Camera size={16} className="text-[#FF441F]" /> Registro Fotográfico Obligatorio
+                            </h3>
+
+                            <div className="grid grid-cols-2 gap-8">
+                                {/* Ticket Proof */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-2">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase">1. Comanda POS</p>
+                                        {ticketUrl && <CheckCircle size={14} className="text-green-500" />}
+                                    </div>
+                                    <label className="block relative cursor-pointer group">
+                                        <div className={`h-48 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center transition-all overflow-hidden ${ticketUrl ? 'border-[#FF441F]/30 bg-[#FF441F]/5' : 'border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-slate-800'}`}>
+                                            {ticketUrl ? (
+                                                <img src={ticketUrl} className="w-full h-full object-cover" alt="Ticket" />
+                                            ) : (
+                                                <div className="text-center">
+                                                    <div className="h-12 w-12 rounded-2xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-400 dark:text-gray-500 mb-2 mx-auto group-hover:scale-110 transition-transform">
+                                                        <Upload size={24} />
+                                                    </div>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subir Comanda</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {isDelivering && (
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={async e => {
+                                                    const file = e.target.files?.[0]
+                                                    if (file) {
+                                                        const url = await handleFileUpload(file, 'ticket')
+                                                        if (url) setTicketUrl(url)
+                                                    }
+                                                }}
+                                            />
+                                        )}
+                                    </label>
+                                </div>
+
+                                {/* Order Ready Proof */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between px-2">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase">2. Pedido Empacado</p>
+                                        {orderReadyUrl && <CheckCircle size={14} className="text-green-500" />}
+                                    </div>
+                                    <label className="block relative cursor-pointer group">
+                                        <div className={`h-48 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center transition-all overflow-hidden ${orderReadyUrl ? 'border-[#FF441F]/30 bg-[#FF441F]/5' : 'border-gray-200 dark:border-white/5 hover:bg-gray-100 dark:hover:bg-slate-800'}`}>
+                                            {orderReadyUrl ? (
+                                                <img src={orderReadyUrl} className="w-full h-full object-cover" alt="Ready" />
+                                            ) : (
+                                                <div className="text-center">
+                                                    <div className="h-12 w-12 rounded-2xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-400 dark:text-gray-500 mb-2 mx-auto group-hover:scale-110 transition-transform">
+                                                        <Upload size={24} />
+                                                    </div>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subir Empaque</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {isDelivering && (
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                accept="image/*"
+                                                onChange={async e => {
+                                                    const file = e.target.files?.[0]
+                                                    if (file) {
+                                                        const url = await handleFileUpload(file, 'order_ready')
+                                                        if (url) setOrderReadyUrl(url)
+                                                    }
+                                                }}
+                                            />
+                                        )}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={onClose}>
-                    <X className="h-5 w-5" />
-                </Button>
-            </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Right Panel: Logistics Summary (2/5) */}
+                <div className="w-full md:w-[450px] bg-gray-50/50 dark:bg-slate-800/10 p-10 flex flex-col justify-between">
+                    <div className="flex-1 space-y-10">
 
-                {/* Info Grid - Hide in delivery mode to focus on task */}
-                {!isDelivering && (
-                    <div className="grid grid-cols-2 gap-6 text-sm">
-                        <div>
-                            <p className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1 font-display">Fecha Creación</p>
-                            <p className="font-medium text-gray-800">{new Date(delivery.created_at).toLocaleString()}</p>
+                        {/* Status Card */}
+                        <div className="bg-slate-900 p-8 rounded-[2.8rem] text-white shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-10 opacity-10 translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform duration-700">
+                                <Truck size={120} className="text-[#FF441F]" />
+                            </div>
+
+                            <div className="relative z-10 space-y-8">
+                                <div className="flex justify-between items-start">
+                                    <Badge className="bg-white/10 text-white border-white/10 font-black text-[10px] uppercase tracking-widest px-4 py-1">Logística Rappi</Badge>
+                                    <Badge variant={delivery.status === 'delivered' ? 'success' : delivery.status === 'pending' ? 'warning' : 'info'} className="font-black text-[10px] uppercase shadow-lg">
+                                        {delivery.status.toUpperCase()}
+                                    </Badge>
+                                </div>
+
+                                <div>
+                                    <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Total Liquidado</p>
+                                    <p className="text-5xl font-black font-display italic text-[#FF441F] tracking-tighter leading-none">
+                                        ${products.reduce((acc: number, p: any) => acc + (p.price * p.quantity), 0).toLocaleString()}
+                                    </p>
+                                </div>
+
+                                <div className="h-px bg-white/10 w-full" />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Móvil Repartidor</p>
+                                        <p className="text-sm font-black text-white uppercase tracking-wider">{delivery.assigned_driver || 'Sin Asignar'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Creación</p>
+                                        <p className="text-xs font-bold text-white/60">{new Date(delivery.created_at).toLocaleDateString()} {new Date(delivery.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1 font-display">Estado Actual</p>
-                            <Badge variant={getStatusVariant(delivery.status)}>
-                                {getStatusLabel(delivery.status)}
-                            </Badge>
+
+                        {/* Customer & Branch */}
+                        <div className="space-y-6">
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center justify-between">
+                                <span>Contexto de Distribución</span>
+                                <Info size={14} className="opacity-40" />
+                            </h3>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4 bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
+                                    <div className="h-10 w-10 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-400">
+                                        <User size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">Cliente Final</p>
+                                        <p className="text-sm font-black text-gray-900 dark:text-white uppercase truncate max-w-[200px]">{delivery.customer_name || 'Anónimo'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 bg-white dark:bg-slate-800 p-5 rounded-3xl border border-gray-100 dark:border-white/5 shadow-sm">
+                                    <div className="h-10 w-10 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-400">
+                                        <MapPin size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">Sede de Origen</p>
+                                        <p className="text-sm font-black text-gray-900 dark:text-white uppercase">Sede Central</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        {/* Notes Area */}
                         {delivery.notes && (
-                            <div className="col-span-2">
-                                <p className="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1 font-display">Notas</p>
-                                <p className="text-gray-600 bg-gray-50 p-2 rounded">{delivery.notes}</p>
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-gray-100 dark:border-white/5">
+                                <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Comentarios Operativos</h4>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed font-bold uppercase italic italic">
+                                    "{delivery.notes}"
+                                </p>
                             </div>
                         )}
                     </div>
-                )}
 
-                {/* Proofs Section - View Mode */}
-                {!isDelivering && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {ticketUrl ? (
-                            <Card className="p-4 bg-gray-50/50">
-                                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 font-display uppercase text-xs tracking-wide">
-                                    <FileText className="h-4 w-4 text-gray-500" /> Foto Comanda
-                                </h4>
-                                <div
-                                    onClick={() => window.open(ticketUrl || '', '_blank')}
-                                    className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 cursor-pointer group"
-                                >
-                                    <img src={ticketUrl} alt="Comanda" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
-                                </div>
-                            </Card>
-                        ) : null}
-
-                        {orderReadyUrl ? (
-                            <Card className="p-4 bg-gray-50/50">
-                                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 font-display uppercase text-xs tracking-wide">
-                                    <Package className="h-4 w-4 text-gray-500" /> Pedido Listo
-                                </h4>
-                                <div
-                                    onClick={() => window.open(orderReadyUrl || '', '_blank')}
-                                    className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200 cursor-pointer group"
-                                >
-                                    <img src={orderReadyUrl} alt="Pedido Listo" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" />
-                                </div>
-                            </Card>
-                        ) : null}
-                    </div>
-                )}
-
-                {/* Delivery Mode: Uploads */}
-                {isDelivering && (
-                    <div className="bg-[#FF441F]/5 rounded-2xl p-6 border border-[#FF441F]/20 mb-6">
-                        <h4 className="font-bold text-[#FF441F] mb-2 flex items-center gap-2 font-display uppercase">
-                            <CheckCircle className="h-5 w-5" />
-                            Finalizar Orden Rappi
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                            Verifica que los productos sean correctos y asegúrate de cargar los soportes obligatorios.
-                        </p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Comanda */}
-                            <div className="bg-white p-4 rounded-xl border border-[#FF441F]/20 shadow-sm">
-                                <label className="block text-sm font-bold text-gray-900 mb-2 font-display uppercase">
-                                    Foto Comanda <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        disabled={uploadingTicket}
-                                        aria-label="Subir foto de comanda"
-                                        onChange={async (e) => {
-                                            const file = e.target.files?.[0]
-                                            if (file) {
-                                                const url = await handleFileUpload(file, 'ticket')
-                                                if (url) setTicketUrl(url)
-                                            }
-                                        }}
-                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:uppercase file:bg-[#FF441F]/10 file:text-[#FF441F] hover:file:bg-[#FF441F]/20 cursor-pointer disabled:opacity-50"
-                                    />
-                                    {uploadingTicket && <span className="absolute top-2 right-2 text-xs text-[#FF441F] font-bold animate-pulse">Subiendo...</span>}
-                                </div>
-                                {ticketUrl && (
-                                    <div className="mt-3 relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200">
-                                        <img src={ticketUrl} alt="Comanda" className="object-cover w-full h-full" />
-                                    </div>
+                    {/* Action Block */}
+                    <div className="mt-10 pt-8 border-t border-gray-100 dark:border-white/5 flex flex-col gap-4 sticky bottom-0 bg-gray-50/50 dark:bg-slate-900/50 backdrop-blur-md">
+                        {isDelivering ? (
+                            <Button
+                                onClick={handleConfirmFinalization}
+                                disabled={loading || uploadingTicket || uploadingOrderReady || !ticketUrl || !orderReadyUrl}
+                                className="w-full h-16 rounded-[2rem] bg-[#FF441F] text-white font-black uppercase tracking-[0.15em] flex items-center justify-center gap-3 shadow-2xl shadow-[#FF441F]/20 hover:scale-[1.02] transition-all"
+                            >
+                                {loading ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={24} /> Confirmar Despacho</>}
+                            </Button>
+                        ) : (
+                            <>
+                                {delivery.status !== 'delivered' && delivery.status !== 'cancelled' && (
+                                    <Button
+                                        onClick={() => setIsDelivering(true)}
+                                        className="w-full h-16 rounded-[2rem] bg-[#FF441F] text-white font-black uppercase tracking-[0.15em] flex items-center justify-center gap-3 shadow-2xl shadow-[#FF441F]/20 hover:scale-[1.02] transition-all border-none"
+                                    >
+                                        <CheckCircle size={24} /> Finalizar Orden
+                                    </Button>
                                 )}
-                            </div>
-
-                            {/* Pedido Listo */}
-                            <div className="bg-white p-4 rounded-xl border border-[#FF441F]/20 shadow-sm">
-                                <label className="block text-sm font-bold text-gray-900 mb-2 font-display uppercase">
-                                    Foto Pedido Listo <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        disabled={uploadingOrderReady}
-                                        aria-label="Subir foto de pedido listo"
-                                        onChange={async (e) => {
-                                            const file = e.target.files?.[0]
-                                            if (file) {
-                                                const url = await handleFileUpload(file, 'order_ready')
-                                                if (url) setOrderReadyUrl(url)
-                                            }
-                                        }}
-                                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:uppercase file:bg-[#FF441F]/10 file:text-[#FF441F] hover:file:bg-[#FF441F]/20 cursor-pointer disabled:opacity-50"
-                                    />
-                                    {uploadingOrderReady && <span className="absolute top-2 right-2 text-xs text-[#FF441F] font-bold animate-pulse">Subiendo...</span>}
+                                <div className="grid grid-cols-2 gap-3">
+                                    {(delivery.status !== 'delivered' && delivery.status !== 'cancelled') && (
+                                        <Button
+                                            onClick={() => { onClose(); onEdit(); }}
+                                            variant="outline"
+                                            className="h-14 rounded-2xl text-xs font-black uppercase tracking-widest dark:border-white/10 dark:text-white"
+                                        >
+                                            <Edit2 size={16} className="mr-2" /> Editar Ficha
+                                        </Button>
+                                    )}
+                                    <Button
+                                        onClick={onClose}
+                                        variant="ghost"
+                                        className={`h-14 rounded-2xl text-xs font-black uppercase tracking-widest text-gray-400 ${delivery.status === 'delivered' ? 'col-span-2' : ''}`}
+                                    >
+                                        {isDelivering ? 'Atrás' : 'Cerrar'}
+                                    </Button>
                                 </div>
-                                {orderReadyUrl && (
-                                    <div className="mt-3 relative aspect-video w-full overflow-hidden rounded-lg border border-gray-200">
-                                        <img src={orderReadyUrl} alt="Pedido Listo" className="object-cover w-full h-full" />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                            </>
+                        )}
                     </div>
-                )}
-
-                <div>
-                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2 font-display uppercase text-sm tracking-wide">
-                        <ShoppingBag className="h-5 w-5 text-[#FF441F]" />
-                        {isDelivering ? 'Verificar Items' : 'Items Solicitados'}
-                    </h4>
-
-                    {Array.isArray(products) && products.length > 0 ? (
-                        <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 text-gray-500 font-medium">
-                                    <tr>
-                                        <th className="px-5 py-3 font-display uppercase text-xs tracking-wider">Producto</th>
-                                        <th className="px-5 py-3 text-center font-display uppercase text-xs tracking-wider">Cantidad</th>
-                                        <th className="px-5 py-3 text-right font-display uppercase text-xs tracking-wider">Precio</th>
-                                        <th className="px-5 py-3 text-right font-display uppercase text-xs tracking-wider">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {products.map((p: any, i: number) => (
-                                        <tr key={i}>
-                                            <td className="px-5 py-4 font-medium text-gray-900">{p.name}</td>
-                                            <td className="px-5 py-4 text-center font-bold text-gray-800">
-                                                {isDelivering ? (
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        value={p.quantity}
-                                                        aria-label={`Cantidad de ${p.name}`}
-                                                        onChange={(e) => handleQuantityChange(i, parseInt(e.target.value) || 0)}
-                                                        className="w-16 text-center border rounded p-1 outline-none focus:ring-2 focus:ring-[#FF441F]"
-                                                    />
-                                                ) : (
-                                                    `x${p.quantity}`
-                                                )}
-                                            </td>
-                                            <td className="px-5 py-4 text-right text-gray-600">{formatCurrency(p.price)}</td>
-                                            <td className="px-5 py-4 text-right font-medium text-gray-900">{formatCurrency(p.price * p.quantity)}</td>
-                                        </tr>
-                                    ))}
-                                    <tr className="bg-orange-50">
-                                        <td colSpan={3} className="px-5 py-4 text-right font-bold text-[#FF441F] uppercase text-xs tracking-wider">Total Orden</td>
-                                        <td className="px-5 py-4 text-right font-bold text-[#FF441F] text-lg font-mono">
-                                            {formatCurrency(calculateTotalProducts())}
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-gray-500 text-sm">
-                            {typeof delivery.product_details === 'string' ? delivery.product_details : 'No hay detalles.'}
-                        </div>
-                    )}
-
                 </div>
             </div>
-
-            <div className="p-6 border-t bg-gray-50/50 rounded-b-2xl flex justify-between gap-4 items-center shrink-0">
-
-                {isDelivering ? (
-                    <>
-                        <Button variant="ghost" onClick={() => setIsDelivering(false)}>Cancelar</Button>
-                        <Button
-                            onClick={handleConfirmFinalization}
-                            className={`text-white ${loading || uploadingTicket || uploadingOrderReady ? 'bg-gray-400' : 'bg-[#FF441F] hover:bg-[#FF441F]/90'}`}
-                            disabled={loading || uploadingTicket || uploadingOrderReady}
-                        >
-                            {loading ? 'Finalizando...' : 'Confirmar Rappi Finalizado'}
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        <div className="flex gap-3">
-                            <span className="text-xs text-gray-400 self-center">ID: {delivery.id}</span>
-                        </div>
-                        <div className="flex gap-3">
-                            <Button onClick={onClose} variant="ghost">Cerrar</Button>
-
-                            {delivery.status !== 'delivered' && delivery.status !== 'cancelled' && (
-                                <Button
-                                    onClick={() => setIsDelivering(true)}
-                                    className="bg-[#FF441F] hover:bg-[#FF441F]/90 text-white shadow-sm"
-                                    startIcon={<CheckCircle className="h-4 w-4" />}
-                                    disabled={loading}
-                                >
-                                    Marcar Finalizado
-                                </Button>
-                            )}
-
-                            {delivery.status !== 'delivered' && delivery.status !== 'cancelled' && (
-                                <Button
-                                    onClick={() => { onClose(); onEdit(); }}
-                                    className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm"
-                                    startIcon={<Edit2 className="h-4 w-4" />}
-                                >
-                                    Editar
-                                </Button>
-                            )}
-                        </div>
-                    </>
-                )}
-            </div>
         </div>
+    )
+}
+
+function Loader2({ className }: { className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}>
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
     )
 }

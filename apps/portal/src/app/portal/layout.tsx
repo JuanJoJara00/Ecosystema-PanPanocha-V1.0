@@ -12,8 +12,8 @@ function MainContent({ children, isLoginPage }: { children: React.ReactNode, isL
     const { isCollapsed } = useSidebar()
 
     return (
-        <main className={`flex-grow ${!isLoginPage ? 'p-4 md:p-8' : ''} overflow-x-hidden relative z-10 h-screen overflow-y-auto transition-all duration-300 ${!isLoginPage ? (isCollapsed ? 'md:ml-20' : 'md:ml-72') : ''}`}>
-            <div className={`${!isLoginPage ? 'max-w-7xl mx-auto' : 'w-full'} text-gray-800`}>
+        <main className={`flex-grow ${!isLoginPage ? 'p-2 md:p-3' : ''} overflow-x-hidden relative z-10 h-screen overflow-y-auto transition-all duration-300 ${!isLoginPage ? (isCollapsed ? 'md:ml-20' : 'md:ml-72') : ''}`}>
+            <div className={`${!isLoginPage ? 'w-full' : 'w-full'} text-gray-800`}>
                 {children}
             </div>
         </main>

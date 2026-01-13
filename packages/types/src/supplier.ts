@@ -20,6 +20,8 @@ export interface Supplier {
     notes?: string;
     order_day?: string;
     delivery_day?: string;
+    delivery_time_days?: number;
+    notes_delivery?: string;
 
     created_at?: ISODateString;
     updated_at?: ISODateString;

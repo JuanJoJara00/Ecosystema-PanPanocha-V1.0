@@ -276,10 +276,10 @@ export default function InventoryMetrics({
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 mb-8">
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
 
             {/* BLUE ZONE: KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {kpis.map((kpi, idx) => (
                     <KpiCard
                         key={idx}
@@ -429,7 +429,7 @@ export default function InventoryMetrics({
                             <div className="w-full bg-gray-100 dark:bg-gray-800 h-2 rounded-full overflow-hidden relative">
                                 <div
                                     className={`h-full rounded-full ${(parseFloat(widgets.daysOnHand || '0') < 5) ? 'bg-red-500' : 'bg-blue-500'}`}
-                                    style={{ width: `${Math.min((parseFloat(widgets.daysOnHand || '0') / 15) * 100, 100)}%` }}
+                                    style={{ ['--bar-width' as any]: `${Math.min((parseFloat(widgets.daysOnHand || '0') / 15) * 100, 100)}%`, width: 'var(--bar-width)' }}
                                 />
                             </div>
                             <p className="text-xs font-bold uppercase text-gray-400 tracking-wider mt-2 text-center">Cobertura</p>
