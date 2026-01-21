@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "prebuild": "pnpm --filter @panpanocha/config build",
+    "prebuild": "pnpm --filter @panpanocha/config --filter @panpanocha/types build",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
