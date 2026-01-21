@@ -26,11 +26,30 @@ import {
     Bike,
     Plus,
     Sun,
-    Moon
+    Moon,
+    Globe,
+    Calendar,
+    Smile,
+    LucideIcon
 } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
 import Image from 'next/image'
 import Modal from '@/components/ui/Modal'
+
+// Submodule type
+interface Submodule {
+    name: string
+    href: string
+    icon: LucideIcon
+    color: string
+}
+
+interface NavItem {
+    name: string
+    href: string
+    icon: LucideIcon
+    submodules?: Submodule[]
+}
 
 export default function Sidebar() {
     const pathname = usePathname()
@@ -41,6 +60,7 @@ export default function Sidebar() {
     const [isLoading, setIsLoading] = useState(false)
     const { theme, setTheme, resolvedTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
+    const [hoveredItem, setHoveredItem] = useState<string | null>(null)
 
     // Fix hydration mismatch properly
     // This effect only runs on the client, so we know we can safely show the UI
@@ -68,18 +88,63 @@ export default function Sidebar() {
         return null
     }
 
-    // Must match main dashboard options
-    // Must match main dashboard options
-    const navigation = [
+    // Navigation with submodules
+    const navigation: NavItem[] = [
         { name: 'Menú Principal', href: '/portal/dashboard', icon: LayoutDashboard },
         { name: 'Cierre de Caja', href: '/portal/cierre-caja', icon: DollarSign },
-        { name: 'Inventario', href: '/portal/inventario-general', icon: Package }, // Hub Inventory + Products 
-        { name: 'Pedidos', href: '/portal/compras', icon: Truck }, // Hub Orders + Supplier
-        { name: 'Gestión', href: '/portal/gestion', icon: BarChart3 }, // Hub Branches + Payroll + Schedule
-        { name: 'Domicilios', href: '/portal/domicilios', icon: Bike },
+        {
+            name: 'Inventario',
+            href: '/portal/inventario-general',
+            icon: Package,
+            submodules: [
+                { name: 'Materia Prima', href: '/portal/inventario', icon: Package, color: 'emerald' },
+                { name: 'Productos', href: '/portal/products', icon: ChefHat, color: 'slate' },
+                { name: 'Catálogos', href: '/portal/catalogos', icon: Globe, color: 'amber' }
+            ]
+        },
+        {
+            name: 'Pedidos',
+            href: '/portal/compras',
+            icon: Truck,
+            submodules: [
+                { name: 'Pedidos', href: '/portal/pedidos', icon: Truck, color: 'blue' },
+                { name: 'Proveedores', href: '/portal/proveedores', icon: Users, color: 'indigo' }
+            ]
+        },
+        {
+            name: 'Gestión',
+            href: '/portal/gestion',
+            icon: BarChart3,
+            submodules: [
+                { name: 'Sedes', href: '/portal/sedes', icon: MapPin, color: 'rose' },
+                { name: 'Nómina', href: '/portal/nomina', icon: Wallet, color: 'teal' }
+            ]
+        },
+        {
+            name: 'Domicilios',
+            href: '/portal/domicilios',
+            icon: Bike,
+            submodules: [
+                { name: 'PanPanocha', href: '/portal/domicilios', icon: Bike, color: 'amber' },
+                { name: 'Rappi', href: '/portal/rappi', icon: Smile, color: 'orange' }
+            ]
+        },
         { name: 'Manuales', href: '/portal/manuales', icon: ClipboardList },
         { name: 'Admin', href: '/portal/admin', icon: Users },
     ]
+
+    // Color map for submodule icons
+    const colorMap: Record<string, string> = {
+        emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
+        slate: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+        amber: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+        blue: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+        indigo: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+        rose: 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400',
+        teal: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
+        gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+        orange: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+    }
 
     return (
         <>
@@ -97,7 +162,7 @@ export default function Sidebar() {
                     "fixed inset-y-0 left-0 bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-white/5 flex flex-col h-screen z-50 shadow-2xl transition-all duration-300 ease-in-out transform",
                     isOpen ? "translate-x-0" : "-translate-x-full", // Mobile: Drawer behavior
                     "md:translate-x-0", // Desktop: Always visible
-                    isCollapsed ? "w-20" : "w-72" // Width logic
+                    isCollapsed ? "w-20 overflow-visible" : "w-72" // Width logic + overflow for flyout
                 )}
             >
                 <div className={twMerge(
@@ -125,34 +190,137 @@ export default function Sidebar() {
                     )}
                 </div>
 
-                <nav className="flex-1 px-3 space-y-2 mt-4 overflow-x-hidden">
+                <nav className={twMerge(
+                    "flex-1 px-3 space-y-1 mt-4",
+                    isCollapsed ? "overflow-visible" : "overflow-y-auto"
+                )}>
                     {navigation.map((item) => {
                         const isActive = pathname.startsWith(item.href) && item.href !== '/portal/dashboard' || pathname === item.href
+                        const hasSubmodules = item.submodules && item.submodules.length > 0
+                        const isExpanded = hoveredItem === item.name
+
                         return (
-                            <Link
+                            <div
                                 key={item.name}
-                                href={item.href}
-                                className={twMerge(
-                                    'relative flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group font-display uppercase tracking-wide whitespace-nowrap',
-                                    isActive
-                                        ? 'bg-pp-gold/15 dark:bg-amber-500/10 text-pp-brown dark:text-amber-400 shadow-sm ring-1 ring-pp-gold/50 dark:ring-amber-500/20'
-                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-pp-brown dark:hover:text-amber-400',
-                                    isCollapsed ? 'justify-center' : ''
-                                )}
-                                title={isCollapsed ? item.name : undefined}
+                                className="relative"
+                                onMouseEnter={() => hasSubmodules && setHoveredItem(item.name)}
+                                onMouseLeave={() => hasSubmodules && setHoveredItem(null)}
                             >
-                                {isActive && !isCollapsed && (
-                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-pp-gold rounded-l-full" />
+                                {/* Main Nav Item - hover to show dropdown */}
+                                {hasSubmodules ? (
+                                    <Link
+                                        href={item.href}
+                                        className={twMerge(
+                                            'w-full relative flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group font-display uppercase tracking-wide whitespace-nowrap',
+                                            isActive
+                                                ? 'bg-pp-gold/15 dark:bg-amber-500/10 text-pp-brown dark:text-amber-400 shadow-sm ring-1 ring-pp-gold/50 dark:ring-amber-500/20'
+                                                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-pp-brown dark:hover:text-amber-400',
+                                            isCollapsed ? 'justify-center' : ''
+                                        )}
+                                        title={isCollapsed ? item.name : undefined}
+                                    >
+                                        {isActive && !isCollapsed && (
+                                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-pp-gold rounded-l-full" />
+                                        )}
+                                        <item.icon className={twMerge(
+                                            "transition-colors z-10 shrink-0",
+                                            isCollapsed ? "w-6 h-6" : "h-5 w-5",
+                                            isActive ? "text-pp-brown dark:text-amber-400" : "text-gray-400 dark:text-gray-500 group-hover:text-pp-gold dark:group-hover:text-amber-400"
+                                        )} />
+                                        {!isCollapsed && (
+                                            <>
+                                                <span className="z-10 text-left flex-1">{item.name}</span>
+                                                <ChevronRight className={twMerge(
+                                                    "h-4 w-4 text-gray-300 transition-transform duration-200",
+                                                    isExpanded ? "rotate-90" : ""
+                                                )} />
+                                            </>
+                                        )}
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        href={item.href}
+                                        className={twMerge(
+                                            'relative flex items-center gap-3 px-3 py-3 text-sm font-bold rounded-2xl transition-all duration-200 group font-display uppercase tracking-wide whitespace-nowrap',
+                                            isActive
+                                                ? 'bg-pp-gold/15 dark:bg-amber-500/10 text-pp-brown dark:text-amber-400 shadow-sm ring-1 ring-pp-gold/50 dark:ring-amber-500/20'
+                                                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-pp-brown dark:hover:text-amber-400',
+                                            isCollapsed ? 'justify-center' : ''
+                                        )}
+                                        title={isCollapsed ? item.name : undefined}
+                                    >
+                                        {isActive && !isCollapsed && (
+                                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-pp-gold rounded-l-full" />
+                                        )}
+                                        <item.icon className={twMerge(
+                                            "transition-colors z-10 shrink-0",
+                                            isCollapsed ? "w-6 h-6" : "h-5 w-5",
+                                            isActive ? "text-pp-brown dark:text-amber-400" : "text-gray-400 dark:text-gray-500 group-hover:text-pp-gold dark:group-hover:text-amber-400"
+                                        )} />
+                                        {!isCollapsed && (
+                                            <span className="z-10">{item.name}</span>
+                                        )}
+                                    </Link>
                                 )}
-                                <item.icon className={twMerge(
-                                    "transition-colors z-10 shrink-0",
-                                    isCollapsed ? "w-6 h-6" : "h-5 w-5",
-                                    isActive ? "text-pp-brown dark:text-amber-400" : "text-gray-400 dark:text-gray-500 group-hover:text-pp-gold dark:group-hover:text-amber-400"
-                                )} />
-                                {!isCollapsed && (
-                                    <span className="z-10 animate-in fade-in slide-in-from-left-2 duration-200">{item.name}</span>
+
+                                {/* Dropdown Submodules - expands DOWN */}
+                                {hasSubmodules && isExpanded && !isCollapsed && (
+                                    <div className="mt-1 ml-4 pl-4 border-l-2 border-gray-100 dark:border-white/10 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                                        {item.submodules!.map((sub) => {
+                                            const isSubActive = pathname === sub.href
+                                            return (
+                                                <Link
+                                                    key={sub.href}
+                                                    href={sub.href}
+                                                    className={twMerge(
+                                                        "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors",
+                                                        isSubActive
+                                                            ? "bg-gray-100 dark:bg-slate-700"
+                                                            : "hover:bg-gray-50 dark:hover:bg-slate-800"
+                                                    )}
+                                                >
+                                                    <div className={twMerge(
+                                                        "p-1.5 rounded-lg",
+                                                        colorMap[sub.color]
+                                                    )}>
+                                                        <sub.icon className="h-3.5 w-3.5" />
+                                                    </div>
+                                                    <span className={twMerge(
+                                                        "text-xs font-bold uppercase tracking-wide",
+                                                        isSubActive ? "text-gray-900 dark:text-white" : "text-gray-600 dark:text-gray-300"
+                                                    )}>{sub.name}</span>
+                                                </Link>
+                                            )
+                                        })}
+                                    </div>
                                 )}
-                            </Link>
+
+                                {/* Collapsed mode: show tooltip with submodules on hover */}
+                                {hasSubmodules && isCollapsed && isExpanded && (
+                                    <>
+                                        {/* Invisible bridge to prevent hover gap */}
+                                        <div className="absolute left-full top-0 w-4 h-full" />
+                                        <div className="absolute left-full top-0 ml-2 z-[100] bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-white/10 py-2 w-48 animate-in fade-in slide-in-from-left-2 duration-200">
+                                            <div className="px-3 py-1.5 border-b border-gray-100 dark:border-white/10">
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.name}</span>
+                                            </div>
+                                            {item.submodules!.map((sub) => (
+                                                <Link
+                                                    key={sub.href}
+                                                    href={sub.href}
+                                                    className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                                    onClick={() => setHoveredItem(null)}
+                                                >
+                                                    <div className={twMerge("p-1 rounded-lg", colorMap[sub.color])}>
+                                                        <sub.icon className="h-3 w-3" />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{sub.name}</span>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         )
                     })}
                 </nav>

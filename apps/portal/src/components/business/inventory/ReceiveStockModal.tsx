@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { X, Truck, AlertTriangle } from 'lucide-react'
 import Input from '@/components/ui/Input'
+import NumericInput from '@/components/ui/NumericInput'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 
@@ -75,25 +76,19 @@ export default function ReceiveStockModal({ isOpen, onClose, item, branchId, onS
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                    <Input
+                    <NumericInput
                         label={`Cantidad Recibida (${item.buying_unit || 'Unid.'})`}
-                        type="number"
-                        min="0.01"
-                        step="0.01"
                         required
                         value={formData.quantity}
-                        onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) })}
+                        onChange={val => setFormData({ ...formData, quantity: val })}
                         autoFocus
                     />
-                    <Input
-                        label={`Precio Total Compra ($)`} // Asking for Total or Unit? Prompt said Unit Price per Presentation.
+                    <NumericInput
+                        label={`Precio Total Compra ($)`}
                         helperText={`Costo por ${item.buying_unit || 'Unidad'}`}
-                        type="number"
-                        min="0.01"
-                        step="0.01"
                         required
                         value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+                        onChange={val => setFormData({ ...formData, price: val })}
                     />
                 </div>
 

@@ -21,10 +21,13 @@ import {
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import NumericInput from '@/components/ui/NumericInput'
 import Select from '@/components/ui/Select'
 import ImageUpload from '@/components/ui/ImageUpload'
 import Badge from '@/components/ui/Badge'
 import { InventoryItem } from '@panpanocha/types'
+import { appConfig } from '@/config/app-config'
+import Image from 'next/image'
 
 interface InventoryFormModalProps {
     isOpen: boolean
@@ -88,7 +91,6 @@ export default function InventoryFormModal({
     useEffect(() => {
         if (isOpen) {
             if (editingItem) {
-                // Logic to parse existing buying_unit if needed, simplified for now
                 setFormData({
                     sku: editingItem.sku || '',
                     name: editingItem.name,
@@ -104,6 +106,17 @@ export default function InventoryFormModal({
                     usage_unit: editingItem.unit || 'unidad',
                     conversion_factor: editingItem.conversion_factor || 1
                 })
+
+                // Populate branch configs from existing branch_ingredients
+                const initialConfigs: Record<string, { stock: number, alert: number }> = {}
+                branches.forEach(b => {
+                    const bi = editingItem.branch_ingredients?.find(i => i.branch_id === b.id) as any
+                    initialConfigs[b.id] = {
+                        stock: bi ? (bi.current_stock || 0) / (editingItem.conversion_factor || 1) : 0,
+                        alert: bi ? (bi.min_stock_alert || 0) / (editingItem.conversion_factor || 1) : 0
+                    }
+                })
+                setBranchConfigs(initialConfigs)
             } else {
                 setFormData({
                     sku: '',
@@ -170,8 +183,14 @@ export default function InventoryFormModal({
                 {/* Header */}
                 <div className="p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-slate-800/20 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="bg-pp-brown h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg shadow-pp-brown/20 text-pp-gold">
-                            <Settings className="h-8 w-8" />
+                        <div className="h-16 w-16 relative flex items-center justify-center shrink-0">
+                            <Image
+                                src={appConfig.company.logoUrl}
+                                alt="Organization Logo"
+                                width={64}
+                                height={64}
+                                className="object-contain"
+                            />
                         </div>
                         <div>
                             <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter font-display leading-tight">
@@ -268,11 +287,10 @@ export default function InventoryFormModal({
                                     options={['Saco', 'Bulto', 'Caja', 'Paquete', 'Bolsa', 'Botella', 'Galón', 'Unidad', 'Manual'].map(o => ({ value: o, label: o }))}
                                     className="!rounded-2xl"
                                 />
-                                <Input
+                                <NumericInput
                                     label="Contenido"
-                                    type="number"
                                     value={formData.presentation_content}
-                                    onChange={e => setFormData({ ...formData, presentation_content: parseFloat(e.target.value) || 0 })}
+                                    onChange={val => setFormData({ ...formData, presentation_content: val })}
                                     className="!rounded-2xl"
                                 />
                                 <Select
@@ -290,11 +308,10 @@ export default function InventoryFormModal({
                                     ]}
                                     className="!rounded-2xl"
                                 />
-                                <Input
+                                <NumericInput
                                     label="Costo Empaque"
-                                    type="number"
                                     value={formData.presentation_cost}
-                                    onChange={e => setFormData({ ...formData, presentation_cost: parseFloat(e.target.value) || 0 })}
+                                    onChange={val => setFormData({ ...formData, presentation_cost: val })}
                                     startIcon={<DollarSign className="h-4 w-4 text-pp-gold" />}
                                     className="!rounded-2xl"
                                 />
@@ -332,31 +349,29 @@ export default function InventoryFormModal({
                                     <History size={16} className="text-pp-gold" />
                                     <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Saldos Iniciales por Sede</h3>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4">
                                     {branches.map(branch => (
                                         <div key={branch.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center justify-between">
                                             <span className="text-xs font-black text-gray-600 dark:text-gray-300 uppercase truncate max-w-[120px]">{branch.name}</span>
                                             <div className="flex gap-2">
-                                                <div className="relative w-20">
-                                                    <span className="absolute -top-1.5 left-2 bg-white dark:bg-slate-800 px-1 text-[8px] font-black text-gray-400 uppercase">Stock</span>
-                                                    <input
-                                                        type="number"
-                                                        className="w-full bg-gray-50 dark:bg-slate-900 border-none rounded-lg p-2 text-xs font-bold focus:ring-1 focus:ring-pp-gold outline-none"
+                                                <div className="relative w-24">
+                                                    <span className="absolute -top-1.5 left-2 bg-white dark:bg-slate-800 px-1 text-[8px] font-black text-gray-400 uppercase z-10">Stock</span>
+                                                    <NumericInput
+                                                        className="!rounded-lg !py-2 !text-xs !font-bold"
                                                         value={branchConfigs[branch.id]?.stock || 0}
-                                                        onChange={e => setBranchConfigs({ ...branchConfigs, [branch.id]: { ...branchConfigs[branch.id], stock: parseFloat(e.target.value) || 0 } })}
-                                                        title={`Stock inicial para ${branch.name}`}
+                                                        onChange={val => setBranchConfigs({ ...branchConfigs, [branch.id]: { ...branchConfigs[branch.id], stock: val } })}
                                                         placeholder="0"
+                                                        fullWidth
                                                     />
                                                 </div>
-                                                <div className="relative w-20">
-                                                    <span className="absolute -top-1.5 left-2 bg-white dark:bg-slate-800 px-1 text-[8px] font-black text-red-400 uppercase">Min</span>
-                                                    <input
-                                                        type="number"
-                                                        className="w-full bg-gray-50 dark:bg-slate-900 border-none rounded-lg p-2 text-xs font-bold focus:ring-1 focus:ring-red-300 outline-none"
+                                                <div className="relative w-24">
+                                                    <span className="absolute -top-1.5 left-2 bg-white dark:bg-slate-800 px-1 text-[8px] font-black text-red-400 uppercase z-10">Min</span>
+                                                    <NumericInput
+                                                        className="!rounded-lg !py-2 !text-xs !font-bold"
                                                         value={branchConfigs[branch.id]?.alert || 0}
-                                                        onChange={e => setBranchConfigs({ ...branchConfigs, [branch.id]: { ...branchConfigs[branch.id], alert: parseFloat(e.target.value) || 0 } })}
-                                                        title={`Alerta stock mínimo para ${branch.name}`}
+                                                        onChange={val => setBranchConfigs({ ...branchConfigs, [branch.id]: { ...branchConfigs[branch.id], alert: val } })}
                                                         placeholder="0"
+                                                        fullWidth
                                                     />
                                                 </div>
                                             </div>

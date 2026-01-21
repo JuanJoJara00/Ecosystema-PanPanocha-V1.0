@@ -27,6 +27,8 @@ import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Badge from '@/components/ui/Badge'
 import { Supplier } from '@panpanocha/types'
+import { appConfig } from '@/config/app-config'
+import Image from 'next/image'
 
 interface SupplierFormModalProps {
     isOpen: boolean
@@ -142,8 +144,15 @@ export default function SupplierFormModal({
                 {/* Header */}
                 <div className="p-8 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-slate-800/20 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-4">
-                        <div className="bg-pp-brown h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg shadow-pp-brown/20 text-pp-gold">
-                            <Truck className="h-8 w-8" />
+
+                        <div className="h-16 w-16 relative flex items-center justify-center shrink-0">
+                            <Image
+                                src={appConfig.company.logoUrl}
+                                alt="Organization Logo"
+                                width={64}
+                                height={64}
+                                className="object-contain"
+                            />
                         </div>
                         <div>
                             <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter font-display leading-tight">

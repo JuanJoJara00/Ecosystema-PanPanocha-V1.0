@@ -6,6 +6,7 @@ import { Loader2, Calculator, Wand2 } from 'lucide-react'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
+import NumericInput from '@/components/ui/NumericInput'
 import ImageUpload from '@/components/ui/ImageUpload'
 
 interface InventoryFormProps {
@@ -441,16 +442,10 @@ export default function InventoryForm({ onSuccess, onCancel, initialData, branch
                                 />
                             </div>
                             <div className="col-span-3">
-                                <Input
+                                <NumericInput
                                     label="Contenido"
-                                    type="text"
-                                    value={formData.presentation_content > 0 ? formData.presentation_content.toLocaleString('en-US') : ''}
-                                    onChange={(e) => {
-                                        const raw = e.target.value.replace(/[^0-9.]/g, '')
-                                        const clean = raw.replace(/,/g, '') // remove existing commas if any
-                                        const val = clean ? parseFloat(clean) : 0
-                                        setFormData({ ...formData, presentation_content: val })
-                                    }}
+                                    value={formData.presentation_content}
+                                    onChange={val => setFormData({ ...formData, presentation_content: val })}
                                     className="h-10 text-sm"
                                     placeholder="0"
                                 />
@@ -475,16 +470,11 @@ export default function InventoryForm({ onSuccess, onCancel, initialData, branch
                             </div>
 
                             <div className="col-span-3">
-                                <Input
+                                <NumericInput
                                     label="Costo Inicial ($)"
-                                    type="text"
-                                    value={formData.presentation_cost > 0 ? formData.presentation_cost.toLocaleString('en-US') : ''}
-                                    onChange={(e) => {
-                                        const raw = e.target.value.replace(/[^0-9]/g, '')
-                                        const val = raw ? parseInt(raw, 10) : 0
-                                        setFormData({ ...formData, presentation_cost: val })
-                                    }}
-                                    className="font-bold text-gray-900 h-10 text-base"
+                                    value={formData.presentation_cost}
+                                    onChange={val => setFormData({ ...formData, presentation_cost: val })}
+                                    className="font-bold text-gray-900 h-10 pill text-base"
                                     startIcon={<span className="text-gray-400 text-xs">$</span>}
                                     placeholder="0"
                                 />
@@ -535,19 +525,17 @@ export default function InventoryForm({ onSuccess, onCancel, initialData, branch
                                 </span>
 
                                 <div className="col-span-4 flex items-center justify-center gap-2">
-                                    <Input
-                                        type="number"
-                                        min="0"
+                                    <NumericInput
                                         placeholder="0"
-                                        value={branchConfigMap[branch.id]?.stock || ''}
-                                        onChange={(e) => setBranchConfigMap(prev => ({
+                                        value={branchConfigMap[branch.id]?.stock || 0}
+                                        onChange={val => setBranchConfigMap(prev => ({
                                             ...prev,
                                             [branch.id]: {
                                                 ...prev[branch.id],
-                                                stock: parseFloat(e.target.value) || 0
+                                                stock: val
                                             }
                                         }))}
-                                        className="text-center font-mono w-24 h-11 text-lg font-bold bg-white"
+                                        className="!text-center !font-mono !w-24 !h-11 !text-lg !font-bold !bg-white"
                                     />
                                     <span className="text-[10px] font-bold text-gray-400 uppercase hidden sm:inline-block">
                                         {formData.presentation_name || 'Unid'}
@@ -555,19 +543,17 @@ export default function InventoryForm({ onSuccess, onCancel, initialData, branch
                                 </div>
 
                                 <div className="col-span-4 flex items-center justify-center gap-2">
-                                    <Input
-                                        type="number"
-                                        min="0"
+                                    <NumericInput
                                         placeholder="0"
-                                        value={branchConfigMap[branch.id]?.alert || ''}
-                                        onChange={(e) => setBranchConfigMap(prev => ({
+                                        value={branchConfigMap[branch.id]?.alert || 0}
+                                        onChange={val => setBranchConfigMap(prev => ({
                                             ...prev,
                                             [branch.id]: {
                                                 ...prev[branch.id],
-                                                alert: parseFloat(e.target.value) || 0
+                                                alert: val
                                             }
                                         }))}
-                                        className="text-center font-mono w-24 h-11 text-lg font-bold border-red-100 focus:border-red-500 text-red-800 bg-white"
+                                        className="!text-center !font-mono !w-24 !h-11 !text-lg !font-bold !border-red-100 focus:!border-red-500 !text-red-800 !bg-white"
                                     />
                                     <span className="text-[10px] font-bold text-red-300 uppercase hidden sm:inline-block">Min</span>
                                 </div>

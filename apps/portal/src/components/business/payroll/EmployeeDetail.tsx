@@ -51,7 +51,7 @@ export default function EmployeeDetail({ employee, onEdit, onClose, onRegisterPa
     const canManagePermissions = permissions?.role === 'developer' || permissions?.role === 'administrator'
 
     useEffect(() => {
-        if (!isOpen) return
+        if (!isOpen || !employee) return
 
         const fetchTotalPaid = async () => {
             const { data, error } = await supabase
@@ -81,7 +81,7 @@ export default function EmployeeDetail({ employee, onEdit, onClose, onRegisterPa
 
         fetchTotalPaid()
         checkPortalAccess()
-    }, [employee.id, isOpen])
+    }, [employee?.id, isOpen])
 
     const calculateTenure = (dateString: string) => {
         const start = new Date(dateString)

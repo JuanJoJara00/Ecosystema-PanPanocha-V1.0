@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { X, Upload, Plus, Trash2, ShoppingBag } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
+import NumericInput from '@/components/ui/NumericInput'
 
 interface DeliveryFormProps {
     initialData?: any
@@ -263,6 +264,7 @@ export default function DeliveryForm({ initialData, onSuccess, onCancel }: Deliv
                 <div>
                     <label className={labelClassName}>Sede de Salida</label>
                     <select
+                        title="Sede de Salida"
                         value={formData.branch_id}
                         onChange={(e) => setFormData({ ...formData, branch_id: e.target.value })}
                         className={inputClassName}
@@ -291,6 +293,7 @@ export default function DeliveryForm({ initialData, onSuccess, onCancel }: Deliv
                 <label className={labelClassName}>Productos Vendidos *</label>
                 <div className="flex gap-2 mb-4">
                     <select
+                        title="Agregar producto"
                         className={inputClassName}
                         onChange={(e) => {
                             if (e.target.value) {
@@ -337,6 +340,7 @@ export default function DeliveryForm({ initialData, onSuccess, onCancel }: Deliv
                                         >+</button>
                                     </div>
                                     <button
+                                        title="Eliminar del carrito"
                                         type="button"
                                         onClick={() => removeFromCart(id)}
                                         className="text-red-400 hover:text-red-600"
@@ -361,13 +365,10 @@ export default function DeliveryForm({ initialData, onSuccess, onCancel }: Deliv
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                 <div>
                     <label className={labelClassName}>Costo Domicilio (COP) *</label>
-                    <input
-                        type="number"
+                    <NumericInput
                         required
-                        min="0"
-                        step="100"
                         value={formData.delivery_fee}
-                        onChange={(e) => setFormData({ ...formData, delivery_fee: parseFloat(e.target.value) || 0 })}
+                        onChange={val => setFormData({ ...formData, delivery_fee: val })}
                         className={inputClassName}
                     />
                 </div>
@@ -411,8 +412,8 @@ export default function DeliveryForm({ initialData, onSuccess, onCancel }: Deliv
                         </div>
                         {clientProofUrl && (
                             <div className="mt-2 relative h-20 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <img src={clientProofUrl} className="w-full h-full object-cover" />
-                                <button type="button" onClick={() => { setClientProof(null); setClientProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
+                                <img title="Comprobante de pago" alt="Comprobante de pago del cliente" src={clientProofUrl} className="w-full h-full object-cover" />
+                                <button title="Quitar imagen" type="button" onClick={() => { setClientProof(null); setClientProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
                             </div>
                         )}
                     </div>
@@ -433,8 +434,8 @@ export default function DeliveryForm({ initialData, onSuccess, onCancel }: Deliv
                         </div>
                         {receiptProofUrl && (
                             <div className="mt-2 relative h-20 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                                <img src={receiptProofUrl} className="w-full h-full object-cover" />
-                                <button type="button" onClick={() => { setReceiptProof(null); setReceiptProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
+                                <img title="Recibo de caja" alt="Recibo de caja menor" src={receiptProofUrl} className="w-full h-full object-cover" />
+                                <button title="Quitar imagen" type="button" onClick={() => { setReceiptProof(null); setReceiptProofUrl('') }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1"><X className="h-3 w-3" /></button>
                             </div>
                         )}
                     </div>

@@ -6,6 +6,7 @@ import { Plus, X, CheckCircle, Clock, AlertCircle, Calendar, Download } from 'lu
 import { generatePaymentPeriods, getPeriodLabel, PaymentPeriod } from '@/lib/period-generator'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import NumericInput from '@/components/ui/NumericInput'
 
 interface PayrollFormProps {
     onSuccess: () => void
@@ -400,6 +401,7 @@ export default function PayrollForm({ onSuccess, onCancel, initialEmployee, init
                 <div className="md:col-span-2">
                     <label className={labelClassName}>Empleado *</label>
                     <select
+                        title="Seleccionar Empleado"
                         required
                         value={formData.employee_id}
                         onChange={(e) => handleEmployeeChange(e.target.value)}
@@ -491,15 +493,20 @@ export default function PayrollForm({ onSuccess, onCancel, initialEmployee, init
                 {/* Basic Fields */}
                 <div>
                     <label className={labelClassName}>Monto Base * (COP)</label>
-                    <input type="number" required min="0" step="1000" value={formData.base_amount} onChange={(e) => setFormData({ ...formData, base_amount: e.target.value })} className={inputClassName} />
+                    <NumericInput
+                        required
+                        value={parseFloat(formData.base_amount) || 0}
+                        onChange={val => setFormData({ ...formData, base_amount: val.toString() })}
+                        className={inputClassName}
+                    />
                 </div>
                 <div>
                     <label className={labelClassName}>Fecha de Pago *</label>
-                    <input type="date" required value={formData.payment_date} onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })} className={inputClassName} />
+                    <input title="Fecha de Pago" type="date" required value={formData.payment_date} onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })} className={inputClassName} />
                 </div>
                 <div>
                     <label className={labelClassName}>Método de Pago *</label>
-                    <select required value={formData.payment_method} onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })} className={inputClassName}>
+                    <select title="Método de Pago" required value={formData.payment_method} onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })} className={inputClassName}>
                         <option value="cash">Efectivo</option>
                         <option value="transfer">Transferencia</option>
                         <option value="check">Cheque</option>
@@ -507,7 +514,7 @@ export default function PayrollForm({ onSuccess, onCancel, initialEmployee, init
                 </div>
                 <div>
                     <label className={labelClassName}>Estado *</label>
-                    <select required value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className={inputClassName}>
+                    <select title="Estado del Pago" required value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className={inputClassName}>
                         <option value="pending">Pendiente</option>
                         <option value="paid">Pagado</option>
                     </select>
@@ -517,11 +524,11 @@ export default function PayrollForm({ onSuccess, onCancel, initialEmployee, init
                 <div className="md:col-span-2">
                     <label className={labelClassName}>Comprobante de Pago *</label>
                     <div className="space-y-2">
-                        <input type="file" accept="image/*,.pdf" onChange={handleFileChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pp-gold focus:border-pp-gold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-pp-gold/10 file:text-pp-gold hover:file:bg-pp-gold/20 cursor-pointer" />
+                        <input title="Cargar comprobante" type="file" accept="image/*,.pdf" onChange={handleFileChange} required className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pp-gold focus:border-pp-gold file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-pp-gold/10 file:text-pp-gold hover:file:bg-pp-gold/20 cursor-pointer" />
                         {paymentProofPreview && (
                             <div className="relative inline-block mt-2">
                                 <img src={paymentProofPreview} alt="Preview" className="h-32 w-auto rounded-lg border border-gray-200 shadow-sm" />
-                                <button type="button" onClick={() => { setPaymentProof(null); setPaymentProofPreview('') }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md"><X className="h-3 w-3" /></button>
+                                <button title="Eliminar comprobante" type="button" onClick={() => { setPaymentProof(null); setPaymentProofPreview('') }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md"><X className="h-3 w-3" /></button>
                             </div>
                         )}
                     </div>
@@ -533,15 +540,20 @@ export default function PayrollForm({ onSuccess, onCancel, initialEmployee, init
                 <div>
                     <div className="flex justify-between items-center mb-2">
                         <h3 className="text-sm font-bold text-gray-700 font-display uppercase tracking-wide">Bonificaciones</h3>
-                        <Button type="button" onClick={() => addItem('bonus')} variant="ghost" size="sm" className="text-green-600 hover:bg-green-50 px-2"><Plus className="h-4 w-4 mr-1" />Agregar</Button>
+                        <Button title="Agregar Bonificación" type="button" onClick={() => addItem('bonus')} variant="ghost" size="sm" className="text-green-600 hover:bg-green-50 px-2"><Plus className="h-4 w-4 mr-1" />Agregar</Button>
                     </div>
                     {items.filter(i => i.item_type === 'bonus').map((item, index) => {
                         const actualIndex = items.indexOf(item)
                         return (
                             <div key={actualIndex} className="flex gap-2 mb-2 items-center">
                                 <input type="text" placeholder="Concepto" value={item.concept} onChange={(e) => updateItem(actualIndex, 'concept', e.target.value)} className={inputClassName} />
-                                <input type="number" placeholder="Monto" value={item.amount} onChange={(e) => updateItem(actualIndex, 'amount', e.target.value)} className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[--pp-gold] focus:border-[--pp-gold] outline-none font-sans" />
-                                <button type="button" onClick={() => removeItem(actualIndex)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X className="h-5 w-5" /></button>
+                                <NumericInput
+                                    placeholder="Monto"
+                                    value={parseFloat(item.amount) || 0}
+                                    onChange={val => updateItem(actualIndex, 'amount', val.toString())}
+                                    className="!w-32 !px-3 !py-2 !border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-[--pp-gold] focus:!border-[--pp-gold] !outline-none font-sans"
+                                />
+                                <button title="Eliminar bonificación" type="button" onClick={() => removeItem(actualIndex)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X className="h-5 w-5" /></button>
                             </div>
                         )
                     })}
@@ -549,15 +561,20 @@ export default function PayrollForm({ onSuccess, onCancel, initialEmployee, init
                 <div>
                     <div className="flex justify-between items-center mb-2">
                         <h3 className="text-sm font-bold text-gray-700 font-display uppercase tracking-wide">Deducciones</h3>
-                        <Button type="button" onClick={() => addItem('deduction')} variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 px-2"><Plus className="h-4 w-4 mr-1" />Agregar</Button>
+                        <Button title="Agregar Deducción" type="button" onClick={() => addItem('deduction')} variant="ghost" size="sm" className="text-red-600 hover:bg-red-50 px-2"><Plus className="h-4 w-4 mr-1" />Agregar</Button>
                     </div>
                     {items.filter(i => i.item_type === 'deduction').map((item, index) => {
                         const actualIndex = items.indexOf(item)
                         return (
                             <div key={actualIndex} className="flex gap-2 mb-2 items-center">
                                 <input type="text" placeholder="Concepto" value={item.concept} onChange={(e) => updateItem(actualIndex, 'concept', e.target.value)} className={inputClassName} />
-                                <input type="number" placeholder="Monto" value={item.amount} onChange={(e) => updateItem(actualIndex, 'amount', e.target.value)} className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[--pp-gold] focus:border-[--pp-gold] outline-none font-sans" />
-                                <button type="button" onClick={() => removeItem(actualIndex)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X className="h-5 w-5" /></button>
+                                <NumericInput
+                                    placeholder="Monto"
+                                    value={parseFloat(item.amount) || 0}
+                                    onChange={val => updateItem(actualIndex, 'amount', val.toString())}
+                                    className="!w-32 !px-3 !py-2 !border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-[--pp-gold] focus:!border-[--pp-gold] !outline-none font-sans"
+                                />
+                                <button title="Eliminar deducción" type="button" onClick={() => removeItem(actualIndex)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X className="h-5 w-5" /></button>
                             </div>
                         )
                     })}

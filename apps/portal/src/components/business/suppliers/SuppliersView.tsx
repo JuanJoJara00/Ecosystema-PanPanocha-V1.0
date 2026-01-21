@@ -14,8 +14,8 @@ import { SupplierStats, supplierService } from '@/services/supplier.service'
 // In SupplierList I had local SupplierStats interface.
 
 interface SuppliersViewProps {
-    initialSuppliers: any[] // Using any to avoid type mismatch unless I unified types. 
-    initialStats: Record<string, any>
+    initialSuppliers: Supplier[]
+    initialStats: Record<string, SupplierStats>
 }
 
 export default function SuppliersView({ initialSuppliers, initialStats }: SuppliersViewProps) {

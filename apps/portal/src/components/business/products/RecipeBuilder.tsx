@@ -21,6 +21,7 @@ import {
 import Button from '@/components/ui/Button'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import NumericInput from '@/components/ui/NumericInput'
 
 interface RecipeBuilderProps {
     product: { id: string, name: string, price?: number }
@@ -285,13 +286,11 @@ export default function RecipeBuilder({ product, onClose }: RecipeBuilderProps) 
                             {/* Quantity Input */}
                             <div className="md:col-span-3 h-full">
                                 <div className="relative h-full">
-                                    <input
-                                        type="number"
-                                        step="0.001"
+                                    <NumericInput
                                         placeholder="0.00"
-                                        className="w-full h-full bg-gray-50 dark:bg-slate-900/50 border border-transparent focus:border-pp-gold/50 rounded-2xl px-4 py-3.5 text-sm font-black text-pp-brown outline-none ring-0 transition-all shadow-inner text-center"
-                                        value={quantity}
-                                        onChange={e => setQuantity(e.target.value)}
+                                        className="!w-full !h-full !bg-gray-50 dark:!bg-slate-900/50 !border-transparent focus:!border-pp-gold/50 !rounded-2xl !px-4 !py-3.5 !text-sm !font-black !text-pp-brown !outline-none !ring-0 !transition-all !shadow-inner !text-center"
+                                        value={parseFloat(quantity) || 0}
+                                        onChange={val => setQuantity(val.toString())}
                                     />
                                     {selectedIngredientId && (
                                         <div className="absolute top-1/2 -translate-y-1/2 right-3 pointer-events-none">

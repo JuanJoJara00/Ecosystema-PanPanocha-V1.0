@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import NumericInput from '@/components/ui/NumericInput'
 
 interface OrderFormProps {
     isOpen: boolean
@@ -402,15 +403,10 @@ export default function OrderForm({ isOpen, onSuccess, onCancel, initialOrderId 
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6 text-right">
-                                                            <input
-                                                                required
-                                                                type="number"
-                                                                title={`Cantidad para ${item.name}`}
-                                                                min="0"
-                                                                placeholder="0"
-                                                                value={cart[item.id] || ''}
-                                                                onChange={(e) => updateCart(item.id, e.target.value)}
-                                                                className={`w-28 py-3 px-4 text-right rounded-2xl font-black text-lg outline-none transition-all border-2 ${inCart ? 'border-pp-gold bg-pp-gold/10 text-pp-brown' : 'border-gray-100 dark:border-white/5 bg-gray-50 focus:border-pp-gold/30'}`}
+                                                            <NumericInput
+                                                                className={`!w-28 !py-3 !px-4 !text-right !rounded-2xl !font-black !text-lg !outline-none !transition-all !border-2 ${inCart ? '!border-pp-gold !bg-pp-gold/10 !text-pp-brown' : '!border-gray-100 dark:!border-white/5 !bg-gray-50 focus:!border-pp-gold/30'}`}
+                                                                value={cart[item.id] || 0}
+                                                                onChange={val => updateCart(item.id, val.toString())}
                                                             />
                                                         </td>
                                                     </tr>

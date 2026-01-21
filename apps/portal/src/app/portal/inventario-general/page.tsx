@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Package, ChefHat } from 'lucide-react'
+import { Package, ChefHat, Globe } from 'lucide-react'
 
 export default function InventarioHubPage() {
     const router = useRouter()
@@ -17,7 +17,7 @@ export default function InventarioHubPage() {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl transition-all duration-500">
                 {/* Inventario (Materia Prima) */}
                 <div
                     onClick={() => router.push('/portal/inventario')}
@@ -50,7 +50,7 @@ export default function InventarioHubPage() {
                     onClick={() => router.push('/portal/products')}
                     className="cursor-pointer group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-10 flex flex-col items-center justify-center gap-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] h-[400px]"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-50 to-orange-50 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#FDF8F3] to-[#F7EFE5] opacity-50 group-hover:opacity-100 transition-opacity" />
 
                     <div className="relative z-10 w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center p-4">
                         <ChefHat className="h-16 w-16 text-pp-brown" />
@@ -68,6 +68,33 @@ export default function InventarioHubPage() {
                     <div className="relative z-10 mt-auto">
                         <span className="inline-flex items-center gap-2 text-pp-brown font-bold uppercase text-xs tracking-wider border-b-2 border-pp-brown/20 pb-1 group-hover:border-pp-brown transition-colors">
                             Ver Productos <ChefHat className="h-4 w-4" />
+                        </span>
+                    </div>
+                </div>
+
+                {/* Catálogos y Canales */}
+                <div
+                    onClick={() => router.push('/portal/catalogos')}
+                    className="cursor-pointer group relative overflow-hidden bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-10 flex flex-col items-center justify-center gap-6 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] h-[400px]"
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#FFFBEB] to-[#FEF3C7]/20 opacity-50 group-hover:opacity-100 transition-opacity" />
+
+                    <div className="relative z-10 w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center p-4">
+                        <Globe className="h-16 w-16 text-pp-gold" />
+                    </div>
+
+                    <div className="relative z-10 text-center">
+                        <h2 className="text-2xl font-bold text-gray-800 font-display uppercase mb-2">
+                            Catálogos y Canales
+                        </h2>
+                        <p className="text-sm text-gray-500 font-medium px-8">
+                            Diferentes precios por sede o canal
+                        </p>
+                    </div>
+
+                    <div className="relative z-10 mt-auto">
+                        <span className="inline-flex items-center gap-2 text-pp-gold font-bold uppercase text-xs tracking-wider border-b-2 border-pp-gold/20 pb-1 group-hover:border-pp-gold transition-colors">
+                            Gestionar Canales <Globe className="h-4 w-4" />
                         </span>
                     </div>
                 </div>

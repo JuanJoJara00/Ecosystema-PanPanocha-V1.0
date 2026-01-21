@@ -94,7 +94,7 @@ export default function SupplierDetail({ supplier, onClose, isOpen }: SupplierDe
 
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/20">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-gray-100">
 
                 {/* Left Panel: Profile & Identity */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar border-r border-gray-100">
@@ -133,15 +133,15 @@ export default function SupplierDetail({ supplier, onClose, isOpen }: SupplierDe
                     <div className="p-10 space-y-12">
                         {/* Highlights Grid */}
                         <div className="grid grid-cols-3 gap-6">
-                            <div className="p-4 rounded-3xl bg-gray-50/50 border border-gray-100 flex flex-col gap-1">
+                            <div className="p-4 rounded-3xl bg-white border border-gray-100 shadow-sm flex flex-col gap-1">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Categoría</span>
                                 <span className="text-sm font-black text-pp-brown uppercase">{supplier.category || 'Varios'}</span>
                             </div>
-                            <div className="p-4 rounded-3xl bg-gray-50/50 border border-gray-100 flex flex-col gap-1">
+                            <div className="p-4 rounded-3xl bg-white border border-gray-100 shadow-sm flex flex-col gap-1">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Términos</span>
                                 <span className="text-sm font-black text-pp-brown uppercase">{supplier.payment_terms || 'Contado'}</span>
                             </div>
-                            <div className="p-4 rounded-3xl bg-gray-50/50 border border-gray-100 flex flex-col gap-1">
+                            <div className="p-4 rounded-3xl bg-white border border-gray-100 shadow-sm flex flex-col gap-1">
                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Lead Time</span>
                                 <span className="text-sm font-black text-pp-brown uppercase">{supplier.delivery_time_days || 0} Días</span>
                             </div>
@@ -236,7 +236,7 @@ export default function SupplierDetail({ supplier, onClose, isOpen }: SupplierDe
                 </div>
 
                 {/* Right Panel: Analytics & History */}
-                <div className="w-full md:w-[450px] bg-gray-50/50 p-10 flex flex-col">
+                <div className="w-full md:w-[450px] bg-white p-10 flex flex-col border-l border-gray-50">
                     <div className="flex-1 space-y-10">
                         {/* Visual Summary Card */}
                         <div className="bg-pp-brown p-8 rounded-[2.8rem] text-white shadow-2xl shadow-pp-brown/30 relative overflow-hidden group">

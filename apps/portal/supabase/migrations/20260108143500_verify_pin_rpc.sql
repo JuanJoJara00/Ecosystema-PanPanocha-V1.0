@@ -17,7 +17,7 @@ BEGIN
     FROM public.users 
     WHERE pin_code = input_pin 
     AND role IN ('owner', 'admin', 'dev') 
-    AND (deleted_at IS NULL)
+    AND (active = TRUE)
   ) INTO valid_user;
 
   RETURN valid_user;

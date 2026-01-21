@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import NumericInput from '@/components/ui/NumericInput'
 import Select from '@/components/ui/Select'
 import Badge from '@/components/ui/Badge'
 import { Employee } from '@panpanocha/types'
@@ -277,13 +278,12 @@ export default function EmployeeFormModal({
                                             />
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Salario Base Asignado</p>
                                             <div className="relative">
-                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-bold text-pp-gold">$</span>
-                                                <input
-                                                    type="number"
-                                                    value={formData.base_salary}
-                                                    onChange={e => setFormData({ ...formData, base_salary: e.target.value })}
-                                                    className="w-full bg-transparent border-none p-0 pl-7 text-4xl font-black text-gray-900 dark:text-white font-display focus:ring-0 outline-none"
+                                                <NumericInput
+                                                    value={parseFloat(formData.base_salary) || 0}
+                                                    onChange={val => setFormData({ ...formData, base_salary: val.toString() })}
+                                                    className="!bg-transparent !border-none !p-0 !pl-7 !text-4xl !font-black !text-gray-900 dark:!text-white !font-display !shadow-none"
                                                     placeholder="0"
+                                                    startIcon={<span className="text-3xl font-bold text-pp-gold">$</span>}
                                                 />
                                             </div>
                                             <div className="h-px bg-gray-100 dark:bg-white/5 w-full my-6" />

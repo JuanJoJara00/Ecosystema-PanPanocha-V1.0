@@ -215,13 +215,13 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
 
     return (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/20">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-gray-100 dark:border-white/5">
 
                 {/* Left Panel: Itemized List & Context (3/5) */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar border-r border-gray-100 dark:border-white/5 bg-white dark:bg-slate-900">
 
                     {/* Header Banner */}
-                    <div className="p-10 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-slate-800/20 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
+                    <div className="p-10 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-slate-900 flex items-center justify-between sticky top-0 z-10">
                         <div className="flex items-center gap-5">
                             <div className="h-16 w-16 rounded-2xl bg-pp-brown flex items-center justify-center text-pp-gold shadow-lg shadow-pp-brown/20">
                                 <ShoppingCart size={32} />
@@ -400,7 +400,7 @@ export default function OrderDetailModal({ orderId, onClose, onEdit, onDelete, o
                 </div>
 
                 {/* Right Panel: Logistics & Global Actions (2/5) */}
-                <div className="w-full md:w-[450px] bg-gray-50/50 dark:bg-slate-800/10 p-10 flex flex-col justify-between">
+                <div className="w-full md:w-[450px] bg-white dark:bg-slate-900 p-10 flex flex-col justify-between">
                     <div className="flex-1 space-y-10">
                         {/* Order Identity Card */}
                         <div className="bg-pp-brown p-8 rounded-[2.8rem] text-white shadow-2xl shadow-pp-brown/30 relative overflow-hidden group">

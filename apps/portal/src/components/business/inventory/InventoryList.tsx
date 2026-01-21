@@ -60,7 +60,7 @@ export default function InventoryList() {
     const [suppliers, setSuppliers] = useState<any[]>([])
     // Delete PIN Modal State
     const [showPinModal, setShowPinModal] = useState(false)
-    const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null)
+    const [pinAction, setPinAction] = useState<{ type: 'EDIT' | 'DELETE', item: InventoryItem } | null>(null)
 
     // Dashboard Interaction State
     const [activeKpi, setActiveKpi] = useState<string | null>(null)
@@ -130,8 +130,14 @@ export default function InventoryList() {
                 .order('name', { ascending: true })  // TODO: Change back to 'sku' after cache refresh
 
             if (itemsError) throw itemsError
-            // Cast strictly, ensuring we handle potential mismatches if needed
-            setItems(itemsData as unknown as InventoryItem[] || [])
+            const fetchedItems = itemsData as unknown as InventoryItem[] || []
+            setItems(fetchedItems)
+
+            // Refresh selectedItem if it was updated
+            if (selectedItem) {
+                const updatedItem = fetchedItems.find(i => i.id === selectedItem.id)
+                if (updatedItem) setSelectedItem(updatedItem)
+            }
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -140,13 +146,18 @@ export default function InventoryList() {
     }
 
 
-    // New Delete Handlers
-    const handleDeleteClick = (item: InventoryItem) => {
-        setItemToDelete(item)
+    // Action Handlers with PIN Protection
+    const handleEditClick = (item: InventoryItem) => {
+        setPinAction({ type: 'EDIT', item })
         setShowPinModal(true)
     }
 
-    const handleDeleteConfirmed = async (inputPin: string) => {
+    const handleDeleteClick = (item: InventoryItem) => {
+        setPinAction({ type: 'DELETE', item })
+        setShowPinModal(true)
+    }
+
+    const handlePinConfirmed = async (inputPin: string) => {
         const { data: isValid, error: pinError } = await supabase.rpc('verify_action_pin', { input_pin: inputPin })
 
         if (pinError || !isValid) {
@@ -155,9 +166,14 @@ export default function InventoryList() {
         }
 
         setShowPinModal(false)
-        if (itemToDelete) {
-            await performDelete(itemToDelete.id)
-            setItemToDelete(null)
+        const action = pinAction
+        setPinAction(null)
+
+        if (action?.type === 'DELETE') {
+            await performDelete(action.item.id)
+        } else if (action?.type === 'EDIT') {
+            setEditingItem(action.item)
+            setIsFormModalOpen(true)
         }
     }
 
@@ -181,8 +197,7 @@ export default function InventoryList() {
     }
 
     const openEdit = (item: any) => {
-        setEditingItem(item)
-        setIsFormModalOpen(true)
+        handleEditClick(item)
     }
 
     const handleFormSuccess = () => {
@@ -384,11 +399,11 @@ export default function InventoryList() {
             {/* LEFT PANEL - Static (no scroll) */}
             <div className="w-1/2 flex-shrink-0 flex flex-col gap-3 overflow-y-auto">
                 {/* UNIFIED HEADER BLOCK */}
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-white/5">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-white/5">
                     {/* Row 1: Title & Main Type Select */}
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
                         <div className="flex items-center gap-3">
-                            <div className="relative h-10 w-10 shrink-0 bg-pp-gold/10 rounded-xl overflow-hidden flex items-center justify-center p-1">
+                            <div className="relative h-14 w-14 shrink-0 bg-pp-gold/10 rounded-xl overflow-hidden flex items-center justify-center p-1">
                                 <Image
                                     src={appConfig.company.logoUrl}
                                     alt={appConfig.company.name}
@@ -397,10 +412,10 @@ export default function InventoryList() {
                                 />
                             </div>
                             <div>
-                                <h1 className="text-lg font-black text-gray-900 dark:text-white font-display uppercase tracking-tight">
-                                    Inventario {activeType === 'all' ? 'General' : (activeType === 'raw_material' ? 'Materia Prima' : 'Insumos')}
+                                <h1 className="text-2xl font-black text-gray-900 dark:text-white font-display uppercase tracking-tight">
+                                    {activeType === 'all' ? 'Materia prima & Insumos' : (activeType === 'raw_material' ? 'Materia Prima' : 'Insumos')}
                                 </h1>
-                                <p className="text-gray-500 font-medium text-xs">
+                                <p className="text-gray-500 font-medium text-sm">
                                     Gestión de {activeType === 'all' ? 'todos los items' : (activeType === 'raw_material' ? 'materia prima para recetas' : 'insumos y suministros')}
                                 </p>
                             </div>
@@ -722,7 +737,7 @@ export default function InventoryList() {
                 {
                     selectedItem && (
                         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-in fade-in duration-300">
-                            <div className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-white/20">
+                            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in-95 duration-300 border border-gray-100">
                                 {/* Left Panel: Information */}
                                 <div className="flex-1 overflow-y-auto custom-scrollbar border-r border-gray-100">
                                     {/* Header Section */}
@@ -785,7 +800,7 @@ export default function InventoryList() {
                                         </div>
 
                                         {/* Configuration Details */}
-                                        <div className="bg-gray-50/50 rounded-3xl p-6 border border-gray-100">
+                                        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
                                                 <Cog className="h-3 w-3" /> Configuración Operativa
                                             </h3>
@@ -803,7 +818,7 @@ export default function InventoryList() {
 
                                         {/* Supplier */}
                                         {selectedItem.suppliers && (
-                                            <div className="bg-orange-50/30 rounded-3xl p-6 border border-orange-100/50">
+                                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                                                 <h3 className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                                     <Truck className="h-3 w-3" /> Proveedor Principal
                                                 </h3>
@@ -822,7 +837,7 @@ export default function InventoryList() {
                                 </div>
 
                                 {/* Right Panel: Analytics & Actions */}
-                                <div className="w-full md:w-[400px] bg-gray-50/50 p-8 flex flex-col">
+                                <div className="w-full md:w-[400px] bg-white p-8 flex flex-col">
                                     <div className="flex-1 space-y-8">
                                         {/* Stock Section */}
                                         <div className="space-y-4">
@@ -895,8 +910,7 @@ export default function InventoryList() {
                                             <Button
                                                 variant="secondary"
                                                 onClick={() => {
-                                                    setEditingItem(selectedItem)
-                                                    setIsFormModalOpen(true)
+                                                    handleEditClick(selectedItem)
                                                 }}
                                                 className="rounded-2xl bg-orange-100 text-orange-700 hover:bg-orange-200 border-none font-bold text-xs h-12 uppercase tracking-widest"
                                             >
@@ -1112,10 +1126,13 @@ export default function InventoryList() {
                 {/* PIN MODAL */}
                 {showPinModal && (
                     <PinCodeModal
-                        title="Autorizar Eliminación"
+                        title={pinAction?.type === 'DELETE' ? "Autorizar Eliminación" : "Autorizar Edición"}
                         subtitle="Ingresa PIN administrativo"
-                        onClose={() => setShowPinModal(false)}
-                        onSubmit={handleDeleteConfirmed}
+                        onClose={() => {
+                            setShowPinModal(false)
+                            setPinAction(null)
+                        }}
+                        onSubmit={handlePinConfirmed}
                     />
                 )}
             </div>
