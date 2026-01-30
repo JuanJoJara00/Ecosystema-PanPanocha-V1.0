@@ -106,7 +106,7 @@ export default function ExpensesList() {
         const distribution = Object.entries(catMap)
             .map(([name, value]) => ({
                 name,
-                value: Number(((value / totalAmount) * 100).toFixed(1))
+                value: Number((((value as number) / totalAmount) * 100).toFixed(1))
             }))
             .sort((a, b) => b.value - a.value)
 
