@@ -288,6 +288,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
                                         placeholder="Buscar productos..."
                                         value={searchTerm}
                                         onChange={e => setSearchTerm(e.target.value)}
+                                        aria-label="Buscar productos"
                                         autoFocus
                                     />
                                 </div>
@@ -343,7 +344,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
                                     <ShoppingBag size={18} /> Carrito
                                 </h3>
                                 {cart.length > 0 && (
-                                    <button onClick={clearCart} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Limpiar carrito">
+                                    <button onClick={clearCart} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors" title="Limpiar carrito" aria-label="Limpiar carrito">
                                         <Trash2 size={16} />
                                     </button>
                                 )}
@@ -361,9 +362,9 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
                                         <div key={item.id} className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-3 group relative">
                                             {/* Qty Controls */}
                                             <div className="flex flex-col items-center bg-[#FFF8F0] border border-[#FFE4C4] rounded-xl w-8 shrink-0">
-                                                <button onClick={() => updateQuantity(item.id, 1)} title="Aumentar cantidad" className="h-7 w-full flex items-center justify-center hover:bg-[#FFE4C4]/50 rounded-t-xl text-pp-brown"><Plus size={12} strokeWidth={3} /></button>
+                                                <button onClick={() => updateQuantity(item.id, 1)} title="Aumentar cantidad" aria-label="Aumentar cantidad" className="h-7 w-full flex items-center justify-center hover:bg-[#FFE4C4]/50 rounded-t-xl text-pp-brown"><Plus size={12} strokeWidth={3} /></button>
                                                 <span className="text-xs font-bold text-pp-brown">{item.quantity}</span>
-                                                <button onClick={() => updateQuantity(item.id, -1)} title="Disminuir cantidad" className="h-7 w-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 rounded-b-xl text-pp-brown/50"><Minus size={12} strokeWidth={3} /></button>
+                                                <button onClick={() => updateQuantity(item.id, -1)} title="Disminuir cantidad" aria-label="Disminuir cantidad" className="h-7 w-full flex items-center justify-center hover:bg-red-50 hover:text-red-500 rounded-b-xl text-pp-brown/50"><Minus size={12} strokeWidth={3} /></button>
                                             </div>
 
                                             <div className="flex-1 py-1">
@@ -377,6 +378,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
                                             <button
                                                 onClick={() => removeFromCart(item.id)}
                                                 title="Eliminar del carrito"
+                                                aria-label="Eliminar del carrito"
                                                 className="absolute -top-2 -right-2 bg-white border border-gray-200 shadow-sm rounded-full p-1 text-gray-300 hover:text-red-500 hover:border-red-200 transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
                                             >
                                                 <Trash2 size={12} />
@@ -516,7 +518,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
                                             ))}
                                             <button onClick={() => handleKeypad('00')} className="bg-white rounded-xl shadow-sm border-b-[3px] border-gray-200 text-2xl font-black text-gray-800 hover:bg-[#D4AF37] hover:border-[#B3932B] hover:text-white transition-all active:scale-95 active:border-b-0 active:translate-y-[3px]">00</button>
                                             <button onClick={() => handleKeypad('0')} className="bg-white rounded-xl shadow-sm border-b-[3px] border-gray-200 text-3xl font-black text-gray-800 hover:bg-[#D4AF37] hover:border-[#B3932B] hover:text-white transition-all active:scale-95 active:border-b-0 active:translate-y-[3px]">0</button>
-                                            <button onClick={() => handleKeypad('back')} className="bg-red-50 rounded-xl shadow-sm border-b-[3px] border-red-100 text-red-500 hover:bg-red-100 hover:border-red-200 transition-all active:scale-95 active:border-b-0 active:translate-y-[3px] flex items-center justify-center">
+                                            <button onClick={() => handleKeypad('back')} aria-label="Borrar último dígito" className="bg-red-50 rounded-xl shadow-sm border-b-[3px] border-red-100 text-red-500 hover:bg-red-100 hover:border-red-200 transition-all active:scale-95 active:border-b-0 active:translate-y-[3px] flex items-center justify-center">
                                                 <Delete size={24} />
                                             </button>
                                         </div>

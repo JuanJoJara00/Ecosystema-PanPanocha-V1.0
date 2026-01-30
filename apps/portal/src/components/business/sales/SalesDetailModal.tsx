@@ -96,7 +96,7 @@ export default function SalesDetailModal({ saleId, onClose }: SalesDetailModalPr
                                 </div>
                             </div>
                         </div>
-                        <button onClick={onClose} title="Cerrar" className="p-2 hover:bg-gray-100 rounded-full text-gray-400">
+                        <button onClick={onClose} title="Cerrar" aria-label="Cerrar modal" className="p-2 hover:bg-gray-100 rounded-full text-gray-400">
                             <X size={24} />
                         </button>
                     </div>
