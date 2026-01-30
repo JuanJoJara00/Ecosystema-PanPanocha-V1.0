@@ -30,6 +30,7 @@ import {
     Globe,
     Calendar,
     Smile,
+    Receipt,
     LucideIcon
 } from 'lucide-react'
 import { twMerge } from 'tailwind-merge'
@@ -91,7 +92,7 @@ export default function Sidebar() {
     // Navigation with submodules
     const navigation: NavItem[] = [
         { name: 'Menú Principal', href: '/portal/dashboard', icon: LayoutDashboard },
-        { name: 'Cierre de Caja', href: '/portal/cierre-caja', icon: DollarSign },
+
         {
             name: 'Inventario',
             href: '/portal/inventario-general',
@@ -109,6 +110,16 @@ export default function Sidebar() {
             submodules: [
                 { name: 'Pedidos', href: '/portal/pedidos', icon: Truck, color: 'blue' },
                 { name: 'Proveedores', href: '/portal/proveedores', icon: Users, color: 'indigo' }
+            ]
+        },
+        {
+            name: 'Finanzas',
+            href: '/portal/finanzas',
+            icon: DollarSign,
+            submodules: [
+                { name: 'Ventas', href: '/portal/ventas', icon: ShoppingBag, color: 'blue' },
+                { name: 'Gastos', href: '/portal/gastos', icon: Wallet, color: 'rose' },
+                { name: 'Cierre de Caja', href: '/portal/cierre-caja', icon: Receipt, color: 'emerald' }
             ]
         },
         {

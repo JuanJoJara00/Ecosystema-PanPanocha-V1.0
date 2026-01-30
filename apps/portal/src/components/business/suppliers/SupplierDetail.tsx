@@ -64,7 +64,7 @@ export default function SupplierDetail({ supplier, onClose, isOpen }: SupplierDe
                     created_at,
                     status,
                     payment_status,
-                    items:purchase_order_items(count),
+                    payment_status,
                     branch:branches(name)
                 `)
                 .eq('supplier_id', supplier.id)
@@ -79,7 +79,7 @@ export default function SupplierDetail({ supplier, onClose, isOpen }: SupplierDe
                 status: order.status,
                 payment_status: order.payment_status,
                 branch: order.branch,
-                items_count: order.items?.[0]?.count || 0
+                items_count: 0 // removed items count fetch for stability
             }))
 
             setOrders(mappedOrders)

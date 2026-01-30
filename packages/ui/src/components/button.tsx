@@ -44,14 +44,15 @@ export interface ButtonProps
     isLoading?: boolean
     startIcon?: React.ReactNode
     endIcon?: React.ReactNode
+    fullWidth?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, variant, size, asChild = false, isLoading = false, startIcon, endIcon, children, ...props }, ref) => {
+    ({ className, variant, size, asChild = false, isLoading = false, startIcon, endIcon, fullWidth = false, children, ...props }, ref) => {
         const Comp = asChild ? Slot : "button"
         return (
             <Comp
-                className={cn(buttonVariants({ variant, size, className }))}
+                className={cn(buttonVariants({ variant, size, className }), fullWidth ? "w-full" : "")}
                 ref={ref}
                 disabled={isLoading || props.disabled}
                 {...props}

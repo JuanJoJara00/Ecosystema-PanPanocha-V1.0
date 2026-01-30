@@ -9,6 +9,7 @@ interface DateRangeFilterProps {
     onEndDateChange: (date: string) => void
     onFilter: () => void
     loading?: boolean
+    className?: string
 }
 
 export default function DateRangeFilter({
@@ -17,10 +18,11 @@ export default function DateRangeFilter({
     onStartDateChange,
     onEndDateChange,
     onFilter,
-    loading = false
+    loading = false,
+    className
 }: DateRangeFilterProps) {
     return (
-        <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center bg-gray-50 dark:bg-slate-900 p-2 rounded-xl border border-gray-200 dark:border-white/10">
+        <div className={`flex flex-col sm:flex-row gap-2 items-end sm:items-center bg-gray-50 dark:bg-slate-900 p-2 rounded-xl border border-gray-200 dark:border-white/10 ${className || ''}`}>
             <div className="flex flex-col">
                 <label className="text-[10px] text-gray-500 font-bold uppercase ml-1">Desde</label>
                 <input

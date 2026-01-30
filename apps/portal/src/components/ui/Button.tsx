@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'; // Assuming Portal has a lib/utils or I should
 
 interface ButtonProps extends Omit<SharedButtonProps, 'variant' | 'size'> {
     variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost' | 'outline';
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'sm' | 'md' | 'lg' | 'icon';
 }
 
 export default function Button({
@@ -28,7 +28,8 @@ export default function Button({
     const sizeMap: Record<string, SharedButtonProps['size']> = {
         sm: 'sm',
         md: 'default',
-        lg: 'lg'
+        lg: 'lg',
+        icon: 'icon'
     };
 
     return (

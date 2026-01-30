@@ -1,19 +1,21 @@
 import { supplierService } from '@/services/supplier.service'
 import SuppliersView from '@/components/business/suppliers/SuppliersView'
 import { Supplier } from '@panpanocha/types'
+import { createClient } from '@/lib/supabase-server'
 
 export default async function ProveedoresPage() {
     let suppliers: Supplier[] = []
     let stats = {}
+    const supabase = await createClient()
 
     try {
         // Parallel data fetching for performance with fail-safe
         const [suppliersData, statsData] = await Promise.all([
-            supplierService.getAll().catch(e => {
+            supplierService.getAll(supabase).catch(e => {
                 console.error('Error fetching suppliers:', e)
                 return []
             }),
-            supplierService.getStats().catch(e => {
+            supplierService.getStats(supabase).catch(e => {
                 console.error('Error fetching supplier stats:', e)
                 return {}
             })

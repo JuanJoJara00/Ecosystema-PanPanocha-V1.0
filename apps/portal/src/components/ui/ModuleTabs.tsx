@@ -14,6 +14,7 @@ interface ModuleTabsProps {
     onTabChange: (id: string) => void
     labelAll?: string
     className?: string
+    variant?: 'pill' | 'underline'
 }
 
 export default function ModuleTabs({
@@ -21,7 +22,8 @@ export default function ModuleTabs({
     activeTabId,
     onTabChange,
     labelAll,
-    className = ''
+    className = '',
+    variant = 'pill'
 }: ModuleTabsProps) {
     return (
         <div className={twMerge("flex overflow-x-auto gap-2 p-1.5 bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-white/5 shadow-sm max-w-full no-scrollbar items-center", className)}>
