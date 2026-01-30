@@ -1,5 +1,5 @@
 
-import { SalesItem, Sale, Expense } from '@panpanocha/types'
+import { SaleItem, Sale, Expense } from '@panpanocha/types'
 
 export const MOCK_SALES: any[] = [
     {
