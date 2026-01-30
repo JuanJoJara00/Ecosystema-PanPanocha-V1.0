@@ -18,7 +18,8 @@ import {
     ArrowLeft,
     UploadCloud,
     Banknote,
-    Smartphone
+    Smartphone,
+    CheckCircle2
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -537,6 +538,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
                                             accept="image/*,.pdf"
                                             className="absolute inset-0 opacity-0 cursor-pointer"
                                             onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                                            aria-label="Subir comprobante de pago"
                                         />
                                     </div>
                                 )}
