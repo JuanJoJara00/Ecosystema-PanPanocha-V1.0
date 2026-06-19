@@ -485,9 +485,15 @@ CREATE TABLE public.sales (
     synced boolean DEFAULT false,
     status public.sale_status DEFAULT 'pending'::public.sale_status,
     payment_method public.payment_method DEFAULT 'cash_panpanocha'::public.payment_method,
-    channel_id uuid
+    channel_id uuid,
+    discount_amount numeric(10,2) DEFAULT 0,
+    tip_amount numeric(10,2) DEFAULT 0,
+    payment_data jsonb
 );
 COMMENT ON COLUMN public.sales.channel_id IS 'Reference to the sales channel (e.g. Retail, Delivery) where this sale occurred';
+COMMENT ON COLUMN public.sales.discount_amount IS 'Total discount applied to the sale total (e.g. employee/courtesy discounts from the direct-sale POS flow).';
+COMMENT ON COLUMN public.sales.tip_amount IS 'Tip collected as part of the sale.';
+COMMENT ON COLUMN public.sales.payment_data IS 'Payment method metadata: cash received/change for cash sales, or a payment proof URL for transfer/card sales.';
 
 -- Tabla: sale_items
 CREATE TABLE public.sale_items (
@@ -1128,7 +1134,8 @@ BEGIN
             INSERT INTO public.sales (
                 id, organization_id, branch_id, shift_id,
                 total_amount, payment_method, status,
-                channel_id, created_at, synced
+                channel_id, discount_amount, tip_amount, payment_data,
+                created_at, synced
             )
             VALUES (
                 v_sale_id,
@@ -1139,6 +1146,9 @@ BEGIN
                 (sale_record->>'payment_method')::public.payment_method,
                 (sale_record->>'status')::public.sale_status,
                 (sale_record->>'channel_id')::uuid,
+                COALESCE((sale_record->>'discount_amount')::numeric, 0),
+                COALESCE((sale_record->>'tip_amount')::numeric, 0),
+                (sale_record->'payment_data'),
                 (sale_record->>'created_at')::timestamptz,
                 true
             )
@@ -1146,6 +1156,9 @@ BEGIN
                 total_amount = EXCLUDED.total_amount,
                 payment_method = EXCLUDED.payment_method,
                 status = EXCLUDED.status,
+                discount_amount = EXCLUDED.discount_amount,
+                tip_amount = EXCLUDED.tip_amount,
+                payment_data = EXCLUDED.payment_data,
                 synced = true;
 
             -- 2. Upsert Sale Items (Iterate through items array in JSON)
