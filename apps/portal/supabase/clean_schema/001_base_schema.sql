@@ -10,6 +10,10 @@
 -- No data (COPY/INSERT) is included - structure only.
 -- =====================================================================
 
+-- pgcrypto is the one extension this file depends on directly (PIN hashing
+-- below); everything else relies on what Supabase provisions automatically.
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 -- =====================================================================
 -- ENUM TYPES
 -- =====================================================================
@@ -83,6 +87,12 @@ CREATE TYPE public.payroll_status AS ENUM (
     'paid'
 );
 COMMENT ON TYPE public.payroll_status IS 'Payment status for employee payroll records.';
+
+CREATE TYPE public.purchase_order_payment_status AS ENUM (
+    'pending',
+    'paid'
+);
+COMMENT ON TYPE public.purchase_order_payment_status IS 'Whether a purchase order has been paid to the supplier yet. Split from payroll_status, which it incorrectly reused before.';
 
 CREATE TYPE public.purchase_order_status AS ENUM (
     'pending',
@@ -174,13 +184,14 @@ CREATE TABLE public.users (
     organization_id uuid NOT NULL,
     email text,
     full_name text,
-    pin_code text,
+    pin_code_hash text,
     created_at timestamp with time zone DEFAULT now(),
     active boolean DEFAULT true,
     branch_id uuid,
     employee_id uuid,
     role public.user_role DEFAULT 'empleado'::public.user_role
 );
+COMMENT ON COLUMN public.users.pin_code_hash IS 'bcrypt hash of the staff PIN (extensions.crypt() / gen_salt(''bf'')) - never store the raw PIN. Previously the plaintext column "pin_code".';
 
 -- Tabla: categories
 CREATE TABLE public.categories (
@@ -195,7 +206,7 @@ CREATE TABLE public.categories (
 -- Tabla: clients
 CREATE TABLE public.clients (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid,
+    organization_id uuid NOT NULL,
     full_name text NOT NULL,
     phone text,
     email text,
@@ -204,7 +215,7 @@ CREATE TABLE public.clients (
 
 -- Tabla: sales_channels
 CREATE TABLE public.sales_channels (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     name text NOT NULL,
     type text DEFAULT 'retail'::text,
@@ -314,7 +325,6 @@ CREATE TABLE public.products (
     name text NOT NULL,
     description text,
     price numeric(10,2) DEFAULT 0 NOT NULL,
-    cost_price numeric(10,2) DEFAULT 0,
     sku text,
     tax_rate numeric(5,4) DEFAULT 0,
     active boolean DEFAULT true,
@@ -329,7 +339,7 @@ COMMENT ON COLUMN public.products.cost IS 'Estimated unit cost for COGS calculat
 -- Tabla: branch_ingredients (per-branch stock of inventory_items)
 CREATE TABLE public.branch_ingredients (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid,
+    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     ingredient_id uuid NOT NULL,
     current_stock numeric(10,3) DEFAULT 0,
@@ -359,7 +369,7 @@ COMMENT ON TABLE public.product_combos IS 'Links a parent Combo product to its c
 
 -- Tabla: product_prices (per channel/branch price overrides)
 CREATE TABLE public.product_prices (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     product_id uuid NOT NULL,
     channel_id uuid,
@@ -372,7 +382,7 @@ CREATE TABLE public.product_prices (
 
 -- Tabla: promotions
 CREATE TABLE public.promotions (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     name text NOT NULL,
     description text,
@@ -393,7 +403,7 @@ COMMENT ON COLUMN public.promotions.config IS 'Dynamic configuration for complex
 
 -- Tabla: branch_channels (which sales channels are active per branch)
 CREATE TABLE public.branch_channels (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     channel_id uuid NOT NULL,
@@ -406,7 +416,7 @@ CREATE TABLE public.branch_channels (
 
 -- Tabla: devices (registered POS terminals)
 CREATE TABLE public.devices (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     name text NOT NULL,
@@ -422,7 +432,7 @@ CREATE TABLE public.devices (
 
 -- Tabla: tables (restaurant/dine-in tables)
 CREATE TABLE public.tables (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     name text NOT NULL,
@@ -437,7 +447,7 @@ CREATE TABLE public.tables (
 -- Tabla: shifts (cash register / work shifts)
 CREATE TABLE public.shifts (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid,
+    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     user_id uuid NOT NULL,
     start_time timestamp with time zone DEFAULT now() NOT NULL,
@@ -467,7 +477,7 @@ COMMENT ON COLUMN public.shifts.closed_by_method IS 'Indicates if the shift was 
 -- Tabla: sales
 CREATE TABLE public.sales (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid,
+    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     shift_id uuid,
     total_amount numeric(10,2) DEFAULT 0 NOT NULL,
@@ -482,7 +492,7 @@ COMMENT ON COLUMN public.sales.channel_id IS 'Reference to the sales channel (e.
 -- Tabla: sale_items
 CREATE TABLE public.sale_items (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid,
+    organization_id uuid NOT NULL,
     sale_id uuid NOT NULL,
     product_id uuid NOT NULL,
     quantity numeric(10,2) DEFAULT 1 NOT NULL,
@@ -496,9 +506,8 @@ COMMENT ON COLUMN public.sale_items.promotion_id IS 'Reference to the promotion 
 COMMENT ON COLUMN public.sale_items.discount_amount IS 'The total discount value applied to this line item (unit_discount * quantity)';
 
 -- Tabla: orders (dine-in / kitchen orders)
--- NOTE: table_id has no FK constraint in the source backup (see report).
 CREATE TABLE public.orders (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     branch_id uuid,
     sale_id uuid,
@@ -517,7 +526,7 @@ CREATE TABLE public.orders (
 
 -- Tabla: order_items
 CREATE TABLE public.order_items (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     order_id uuid NOT NULL,
     product_id uuid NOT NULL,
@@ -530,7 +539,7 @@ CREATE TABLE public.order_items (
 -- Tabla: expenses
 CREATE TABLE public.expenses (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    organization_id uuid,
+    organization_id uuid NOT NULL,
     branch_id uuid NOT NULL,
     shift_id uuid,
     description text NOT NULL,
@@ -588,7 +597,7 @@ CREATE TABLE public.rappi_deliveries (
 
 -- Tabla: stock_reservations (transient stock holds for carts/orders/deliveries)
 CREATE TABLE public.stock_reservations (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     product_id uuid NOT NULL,
     quantity numeric(10,2) NOT NULL,
@@ -602,7 +611,7 @@ CREATE TABLE public.stock_reservations (
 
 -- Tabla: tip_distributions
 CREATE TABLE public.tip_distributions (
-    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
     organization_id uuid NOT NULL,
     shift_id uuid NOT NULL,
     employee_id uuid NOT NULL,
@@ -652,7 +661,7 @@ CREATE TABLE public.purchase_orders (
     supplier_id uuid NOT NULL,
     requested_by uuid NOT NULL,
     status public.purchase_order_status DEFAULT 'pending'::public.purchase_order_status,
-    payment_status public.payroll_status DEFAULT 'pending'::public.payroll_status,
+    payment_status public.purchase_order_payment_status DEFAULT 'pending'::public.purchase_order_payment_status,
     total_amount numeric(15,2) DEFAULT 0,
     invoice_url text,
     payment_proof_url text,
@@ -897,7 +906,8 @@ ALTER TABLE ONLY public.orders
     ADD CONSTRAINT orders_sale_id_fkey FOREIGN KEY (sale_id) REFERENCES public.sales(id) ON DELETE SET NULL;
 ALTER TABLE ONLY public.orders
     ADD CONSTRAINT orders_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id) ON DELETE SET NULL;
--- NOTE: orders.table_id has NO foreign key in the source backup (see report - dangling reference risk).
+ALTER TABLE ONLY public.orders
+    ADD CONSTRAINT orders_table_id_fkey FOREIGN KEY (table_id) REFERENCES public.tables(id) ON DELETE SET NULL;
 
 ALTER TABLE ONLY public.order_items
     ADD CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE CASCADE;
@@ -932,7 +942,8 @@ ALTER TABLE ONLY public.tip_distributions
     ADD CONSTRAINT tip_distributions_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 ALTER TABLE ONLY public.tip_distributions
     ADD CONSTRAINT tip_distributions_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.shifts(id) ON DELETE CASCADE;
--- NOTE: tip_distributions.employee_id has NO foreign key in the source backup (see report).
+ALTER TABLE ONLY public.tip_distributions
+    ADD CONSTRAINT tip_distributions_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES public.employees(id) ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.payroll
     ADD CONSTRAINT payroll_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
@@ -1188,21 +1199,38 @@ $$;
 
 CREATE FUNCTION public.verify_action_pin(input_pin text) RETURNS boolean
     LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
     AS $$
 DECLARE
   valid_user boolean;
 BEGIN
-  -- Roles allowed: 'owner', 'admin', 'dev'
+  -- Roles allowed: 'owner', 'admin', 'dev'. Scoped to the caller's own
+  -- organization so a PIN cannot be validated against a different tenant.
   SELECT EXISTS (
     SELECT 1
     FROM public.users
-    WHERE pin_code = input_pin
+    WHERE pin_code_hash = extensions.crypt(input_pin, pin_code_hash)
     AND role IN ('owner', 'admin', 'dev')
-    AND (active = TRUE)
+    AND active = TRUE
+    AND organization_id = public.get_jwt_organization_id()
   ) INTO valid_user;
 
   RETURN valid_user;
 END;
+$$;
+
+CREATE FUNCTION public.verify_pin_login(input_pin text) RETURNS TABLE(id uuid, full_name text, role public.user_role, organization_id uuid, branch_id uuid)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+    -- Used by the POS PIN-login flow (no session/org context yet, hence no
+    -- get_jwt_organization_id() scoping here - mirrors the previous
+    -- cross-organization lookup behavior, now against the hashed PIN.
+    SELECT u.id, u.full_name, u.role, u.organization_id, u.branch_id
+    FROM public.users u
+    WHERE u.active = true
+      AND u.pin_code_hash = extensions.crypt(input_pin, u.pin_code_hash)
+    LIMIT 1;
 $$;
 
 -- RLS helper: resolves the caller's organization_id from either auth flow used
@@ -1229,6 +1257,7 @@ GRANT ALL ON FUNCTION public.update_provisioning_updated_at() TO authenticated;
 GRANT ALL ON FUNCTION public.update_shifts_updated_at() TO authenticated;
 GRANT ALL ON FUNCTION public.upsert_sales_batch(payload jsonb) TO authenticated;
 GRANT ALL ON FUNCTION public.verify_action_pin(input_pin text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.verify_pin_login(input_pin text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.get_jwt_organization_id() TO authenticated, anon;
 
 -- =====================================================================

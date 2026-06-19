@@ -774,7 +774,7 @@ export type Database = {
         Row: {
           active: boolean | null
           category_id: string | null
-          cost_price: number | null
+          cost: number | null
           created_at: string | null
           description: string | null
           id: string
@@ -788,7 +788,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           category_id?: string | null
-          cost_price?: number | null
+          cost?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -802,7 +802,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           category_id?: string | null
-          cost_price?: number | null
+          cost?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -1310,7 +1310,7 @@ export type Database = {
           full_name: string | null
           id: string
           organization_id: string
-          pin_code: string | null
+          pin_code_hash: string | null
           role: Database["public"]["Enums"]["user_role"] | null
         }
         Insert: {
@@ -1322,7 +1322,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id: string
-          pin_code?: string | null
+          pin_code_hash?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
         }
         Update: {
@@ -1334,7 +1334,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id?: string
-          pin_code?: string | null
+          pin_code_hash?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: [

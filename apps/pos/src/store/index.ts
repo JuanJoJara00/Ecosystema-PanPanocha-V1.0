@@ -847,6 +847,7 @@ export const usePosStore = create<PosState>()(persist((set, get) => ({
         const shift: Shift = {
             id: crypto.randomUUID(),
             branch_id: branchId,
+            organization_id: get().organizationId,
             user_id: currentUser.id, // Ensure we use ID here
             start_time: new Date().toISOString(),
             initial_cash: initialCash,

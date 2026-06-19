@@ -38,6 +38,7 @@ export default function ExpensesFormModal({ isOpen, onClose, onSuccess }: Expens
     const [branches, setBranches] = useState<any[]>([])
     const [selectedBranchId, setSelectedBranchId] = useState<string>('')
     const [userId, setUserId] = useState<string | null>(null)
+    const [organizationId, setOrganizationId] = useState<string | null>(null)
 
     // New Fields
     const [status, setStatus] = useState<'paid' | 'pending'>('paid')
@@ -63,7 +64,11 @@ export default function ExpensesFormModal({ isOpen, onClose, onSuccess }: Expens
     useEffect(() => {
         const getUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
-            if (user) setUserId(user.id)
+            if (user) {
+                setUserId(user.id)
+                const { data: profile } = await supabase.from('users').select('organization_id').eq('id', user.id).single()
+                if (profile?.organization_id) setOrganizationId(profile.organization_id)
+            }
         }
         getUser()
         fetchBranches()
@@ -121,7 +126,7 @@ export default function ExpensesFormModal({ isOpen, onClose, onSuccess }: Expens
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!amount || !description || !selectedBranchId) return
-        if (!userId) {
+        if (!userId || !organizationId) {
             alert('Error: No se pudo identificar al usuario actual.')
             return
         }
@@ -151,6 +156,7 @@ export default function ExpensesFormModal({ isOpen, onClose, onSuccess }: Expens
                 amount: parseFloat(amount),
                 description: description,
                 branch_id: selectedBranchId,
+                organization_id: organizationId,
                 category: category.toLowerCase(),
                 user_id: userId,
                 voucher_number: voucherNumber || null,

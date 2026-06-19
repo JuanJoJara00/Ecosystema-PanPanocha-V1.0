@@ -45,12 +45,11 @@ export async function POST(request: Request) {
         }
 
         // 1. Find User by PIN
-        // We use the admin client to bypass RLS and find the user
-        const { data: users, error: userError } = await supabaseAdmin
-            .from('users')
-            .select('*')
-            .eq('pin_code', pin)
-            .eq('active', true);
+        // We use the admin client to call the SECURITY DEFINER RPC, which compares
+        // the PIN against the bcrypt hash server-side (pin_code_hash is never
+        // plaintext and never leaves the database).
+        const { data: pinUsers, error: userError } = await supabaseAdmin
+            .rpc('verify_pin_login', { input_pin: pin });
 
         if (userError) {
             console.error('Database Error:', userError);
@@ -64,14 +63,11 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        if (!users || users.length === 0) {
+        if (!pinUsers || pinUsers.length === 0) {
             return NextResponse.json({ error: 'PIN incorrecto o usuario inactivo' }, { status: 401 });
         }
 
-        // Handle multiple users with same PIN?
-        // For '0000', we might have clashes. We prioritise 'owner' role or just take the first one.
-        // Ideally, we'd warn, but for now we take the first valid one.
-        const pinUser = users[0];
+        const pinUser = pinUsers[0];
 
         if (!pinUser.organization_id) {
             return NextResponse.json({ error: 'El usuario no tiene una organización asignada' }, { status: 403 });
