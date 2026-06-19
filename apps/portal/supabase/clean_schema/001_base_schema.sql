@@ -1116,58 +1116,54 @@ BEGIN
             -- 1. Upsert Sale Header
             INSERT INTO public.sales (
                 id, organization_id, branch_id, shift_id,
-                subtotal, discount, total,
-                payment_method, status,
-                created_at, updated_at,
-                customer_id, created_by
+                total_amount, payment_method, status,
+                channel_id, created_at, synced
             )
             VALUES (
                 v_sale_id,
                 (sale_record->>'organization_id')::uuid,
                 (sale_record->>'branch_id')::uuid,
                 (sale_record->>'shift_id')::uuid,
-                (sale_record->>'subtotal')::numeric,
-                (sale_record->>'discount')::numeric,
-                (sale_record->>'total')::numeric,
-                sale_record->>'payment_method',
-                sale_record->>'status',
+                (sale_record->>'total_amount')::numeric,
+                (sale_record->>'payment_method')::public.payment_method,
+                (sale_record->>'status')::public.sale_status,
+                (sale_record->>'channel_id')::uuid,
                 (sale_record->>'created_at')::timestamptz,
-                NOW(), -- updated_at
-                (sale_record->>'customer_id')::uuid,
-                (sale_record->>'created_by')::uuid
+                true
             )
             ON CONFLICT (id) DO UPDATE SET
-                subtotal = EXCLUDED.subtotal,
-                discount = EXCLUDED.discount,
-                total = EXCLUDED.total,
+                total_amount = EXCLUDED.total_amount,
                 payment_method = EXCLUDED.payment_method,
                 status = EXCLUDED.status,
-                updated_at = NOW();
+                synced = true;
 
             -- 2. Upsert Sale Items (Iterate through items array in JSON)
             IF sale_record ? 'items' AND jsonb_array_length(sale_record->'items') > 0 THEN
                 FOR item_record IN SELECT * FROM jsonb_array_elements(sale_record->'items')
                 LOOP
                     INSERT INTO public.sale_items (
-                        id, sale_id, product_id,
-                        quantity, unit_price, total_price,
-                        initial_cost, created_at
+                        id, organization_id, sale_id, product_id,
+                        quantity, unit_price, tax_amount,
+                        promotion_id, discount_amount
                     )
                     VALUES (
                         (item_record->>'id')::uuid,
+                        (sale_record->>'organization_id')::uuid,
                         v_sale_id,
                         (item_record->>'product_id')::uuid,
-                        (item_record->>'quantity')::int,
+                        (item_record->>'quantity')::numeric,
                         (item_record->>'unit_price')::numeric,
-                        (item_record->>'total_price')::numeric,
-                        (item_record->>'initial_cost')::numeric,
-                        (item_record->>'created_at')::timestamptz
+                        COALESCE((item_record->>'tax_amount')::numeric, 0),
+                        (item_record->>'promotion_id')::uuid,
+                        COALESCE((item_record->>'discount_amount')::numeric, 0)
                     )
+                    -- total_price is GENERATED ALWAYS (quantity * unit_price); cannot be inserted
                     ON CONFLICT (id) DO UPDATE SET
                         quantity = EXCLUDED.quantity,
                         unit_price = EXCLUDED.unit_price,
-                        total_price = EXCLUDED.total_price,
-                        initial_cost = EXCLUDED.initial_cost;
+                        tax_amount = EXCLUDED.tax_amount,
+                        promotion_id = EXCLUDED.promotion_id,
+                        discount_amount = EXCLUDED.discount_amount;
                 END LOOP;
             END IF;
 
@@ -1189,9 +1185,6 @@ BEGIN
     );
 END;
 $$;
--- NOTE: this function references columns (subtotal, discount, total, customer_id, initial_cost)
--- that DO NOT exist on public.sales / public.sale_items as defined in this same backup.
--- Calling it as-is will fail with "column does not exist" (see report).
 
 CREATE FUNCTION public.verify_action_pin(input_pin text) RETURNS boolean
     LANGUAGE plpgsql SECURITY DEFINER
@@ -1212,6 +1205,22 @@ BEGIN
 END;
 $$;
 
+-- RLS helper: resolves the caller's organization_id from either auth flow used
+-- by the app. Staff sign in with email/password (auth.uid() = public.users.id,
+-- see apps/portal/src/app/login/page.tsx); POS devices sign in via PIN through
+-- a throwaway device user that carries organization_id in its JWT user_metadata
+-- (see apps/portal/src/app/api/auth/pin-login/route.ts). SECURITY DEFINER avoids
+-- RLS recursion when querying public.users from within a policy.
+CREATE FUNCTION public.get_jwt_organization_id() RETURNS uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+    SELECT COALESCE(
+        (auth.jwt() -> 'user_metadata' ->> 'organization_id')::uuid,
+        (SELECT organization_id FROM public.users WHERE id = auth.uid())
+    );
+$$;
+
 GRANT ALL ON FUNCTION public.deduct_ingredients_on_sale() TO authenticated;
 GRANT ALL ON FUNCTION public.get_branch_products_stock(p_branch_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.get_supplier_stats() TO authenticated;
@@ -1220,6 +1229,7 @@ GRANT ALL ON FUNCTION public.update_provisioning_updated_at() TO authenticated;
 GRANT ALL ON FUNCTION public.update_shifts_updated_at() TO authenticated;
 GRANT ALL ON FUNCTION public.upsert_sales_batch(payload jsonb) TO authenticated;
 GRANT ALL ON FUNCTION public.verify_action_pin(input_pin text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_jwt_organization_id() TO authenticated, anon;
 
 -- =====================================================================
 -- TRIGGERS
@@ -1231,19 +1241,194 @@ CREATE TRIGGER trg_provisioning_updated_at BEFORE UPDATE ON public.provisioning_
 
 -- =====================================================================
 -- ROW LEVEL SECURITY
--- Only branch_channels had coherent, working policies in the source
--- backup (authenticated-only access). They are reproduced here.
--- The other 7 tables that had RLS enabled in the source (devices,
--- order_items, orders, rappi_deliveries, stock_reservations, tables,
--- tip_distributions) had ZERO policies attached - that combination
--- blocks all anon/authenticated access entirely. NOT reproduced here;
--- see report for details and recommendation.
+-- The source backup only had RLS+policies on branch_channels (and that
+-- policy only checked auth.role() = 'authenticated', with no tenant
+-- scoping at all); 7 more tables had RLS enabled with ZERO policies
+-- (total lockout for anon/authenticated), and the remaining 27 tables
+-- had no RLS at all (fully exposed to anon/authenticated via GRANTs).
+-- All 35 tables now get RLS enabled plus an organization-scoped policy
+-- built on get_jwt_organization_id(). service_role (used by all backend
+-- API routes) bypasses RLS entirely, so this does not affect existing
+-- app behavior - it only closes the gap for any direct anon/authenticated
+-- access (e.g. the portal's browser client in lib/supabase-server.ts).
 -- =====================================================================
 
-ALTER TABLE public.branch_channels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.organizations TO authenticated
+    USING (id = public.get_jwt_organization_id())
+    WITH CHECK (id = public.get_jwt_organization_id());
 
-CREATE POLICY "Users can manage branch_channels" ON public.branch_channels USING ((auth.role() = 'authenticated'::text));
-CREATE POLICY "Users can view branch_channels" ON public.branch_channels FOR SELECT USING ((auth.role() = 'authenticated'::text));
+ALTER TABLE public.branches ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.branches TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.users TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.categories TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.clients TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.sales_channels ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.sales_channels TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.suppliers TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+-- role_permissions is a global role->permission catalog, not tenant data.
+ALTER TABLE public.role_permissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "authenticated_read" ON public.role_permissions FOR SELECT TO authenticated
+    USING (true);
+
+ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.employees TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.employee_custom_permissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.employee_custom_permissions TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.employees e WHERE e.id = employee_custom_permissions.employee_id AND e.organization_id = public.get_jwt_organization_id()))
+    WITH CHECK (EXISTS (SELECT 1 FROM public.employees e WHERE e.id = employee_custom_permissions.employee_id AND e.organization_id = public.get_jwt_organization_id()));
+
+ALTER TABLE public.inventory_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.inventory_items TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.products TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.branch_ingredients ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.branch_ingredients TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.product_recipes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.product_recipes TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.products p WHERE p.id = product_recipes.product_id AND p.organization_id = public.get_jwt_organization_id()))
+    WITH CHECK (EXISTS (SELECT 1 FROM public.products p WHERE p.id = product_recipes.product_id AND p.organization_id = public.get_jwt_organization_id()));
+
+ALTER TABLE public.product_combos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.product_combos TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.products p WHERE p.id = product_combos.parent_product_id AND p.organization_id = public.get_jwt_organization_id()))
+    WITH CHECK (EXISTS (SELECT 1 FROM public.products p WHERE p.id = product_combos.parent_product_id AND p.organization_id = public.get_jwt_organization_id()));
+
+ALTER TABLE public.product_prices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.product_prices TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.promotions TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+CREATE POLICY "anon_read_active" ON public.promotions FOR SELECT TO anon
+    USING (is_active = true);
+
+ALTER TABLE public.branch_channels ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.branch_channels TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.devices ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.devices TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.tables ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.tables TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.shifts TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.sales TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.sale_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.sale_items TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.orders TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.order_items TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.expenses TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.deliveries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.deliveries TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.rappi_deliveries ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.rappi_deliveries TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.stock_reservations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.stock_reservations TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.tip_distributions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.tip_distributions TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.payroll ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.payroll TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.payroll_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.payroll_items TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.payroll pr WHERE pr.id = payroll_items.payroll_id AND pr.organization_id = public.get_jwt_organization_id()))
+    WITH CHECK (EXISTS (SELECT 1 FROM public.payroll pr WHERE pr.id = payroll_items.payroll_id AND pr.organization_id = public.get_jwt_organization_id()));
+
+ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.purchase_orders TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
+
+ALTER TABLE public.purchase_order_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.purchase_order_items TO authenticated
+    USING (EXISTS (SELECT 1 FROM public.purchase_orders po WHERE po.id = purchase_order_items.order_id AND po.organization_id = public.get_jwt_organization_id()))
+    WITH CHECK (EXISTS (SELECT 1 FROM public.purchase_orders po WHERE po.id = purchase_order_items.order_id AND po.organization_id = public.get_jwt_organization_id()));
+
+ALTER TABLE public.provisioning_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "org_isolation" ON public.provisioning_sessions TO authenticated
+    USING (organization_id = public.get_jwt_organization_id())
+    WITH CHECK (organization_id = public.get_jwt_organization_id());
 
 -- =====================================================================
 -- GRANTS (table-level privileges for PostgREST roles)
@@ -1276,7 +1461,6 @@ GRANT ALL ON TABLE public.promotions TO authenticated;
 GRANT SELECT ON TABLE public.promotions TO anon;
 GRANT ALL ON TABLE public.provisioning_sessions TO authenticated;
 GRANT ALL ON TABLE public.provisioning_sessions TO service_role;
-GRANT ALL ON TABLE public.provisioning_sessions TO anon;
 GRANT ALL ON TABLE public.purchase_order_items TO authenticated;
 GRANT ALL ON TABLE public.purchase_order_items TO service_role;
 GRANT ALL ON TABLE public.purchase_orders TO authenticated;
@@ -1298,4 +1482,3 @@ GRANT ALL ON TABLE public.tip_distributions TO authenticated;
 GRANT ALL ON TABLE public.tip_distributions TO service_role;
 GRANT ALL ON TABLE public.users TO authenticated;
 GRANT ALL ON TABLE public.users TO service_role;
-GRANT ALL ON TABLE public.users TO anon;
