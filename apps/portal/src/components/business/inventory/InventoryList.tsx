@@ -244,6 +244,7 @@ export default function InventoryList() {
             const payload = {
                 branch_id: branchId,
                 ingredient_id: selectedItemForAvailability.id,
+                organization_id: selectedItemForAvailability.organization_id,
                 is_active: newStatus,
                 // Only touch stock if creating fresh (no existing record), otherwise preserve.
                 // However, upsert needs all non-default fields. invalid if current_stock is not null?

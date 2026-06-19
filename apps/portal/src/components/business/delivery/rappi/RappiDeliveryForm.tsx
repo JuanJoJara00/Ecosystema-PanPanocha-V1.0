@@ -244,20 +244,22 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel, is
 
             // --- SYNC TO SALES (For Performance Reporting) ---
             if (rappiChannelId && user) {
-                // Check if sale already exists? For now assume insert new sale for 'new' orders or update if we had a link. 
+                // Check if sale already exists? For now assume insert new sale for 'new' orders or update if we had a link.
                 // Since rappi_deliveries doesn't store sale_id yet, we'll just insert a NEW sale for every submission for now (Simulated Connection)
                 // In a real app we'd link them. For this task: "Connect it".
+
+                const { data: profile } = await supabase.from('users').select('organization_id').eq('id', user.id).single()
+                const organizationId = dataToSave.organization_id || profile?.organization_id
 
                 const { data: saleData, error: saleError } = await supabase
                     .from('sales')
                     .insert({
-                        organization_id: dataToSave.organization_id || (await supabase.from('users').select('organization_id').eq('id', user.id).single()).data?.organization_id, // Fetch org if missing
+                        organization_id: organizationId,
                         branch_id: formData.branch_id,
                         channel_id: rappiChannelId,
                         total_amount: calculateProductTotal(),
                         status: 'completed', // Rappi orders are usually paid
-                        payment_method: 'rappi',
-                        user_id: user.id
+                        payment_method: 'rappi'
                     })
                     .select()
                     .single()
@@ -266,12 +268,13 @@ export default function RappiDeliveryForm({ initialData, onSuccess, onCancel, is
                     console.error('Error creating linked sale:', saleError)
                 } else if (saleData) {
                     // Create Sale Items
+                    // total_price is a GENERATED column (quantity * unit_price); never insert it directly.
                     const saleItems = productList.map(p => ({
                         sale_id: saleData.id,
+                        organization_id: organizationId,
                         product_id: p.id,
                         quantity: p.quantity,
-                        unit_price: p.price,
-                        total_price: p.price * p.quantity
+                        unit_price: p.price
                     }))
 
                     const { error: itemsError } = await supabase.from('sale_items').insert(saleItems)

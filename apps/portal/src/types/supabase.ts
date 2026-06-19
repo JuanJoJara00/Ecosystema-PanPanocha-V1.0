@@ -774,7 +774,7 @@ export type Database = {
         Row: {
           active: boolean | null
           category_id: string | null
-          cost_price: number | null
+          cost: number | null
           created_at: string | null
           description: string | null
           id: string
@@ -788,7 +788,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           category_id?: string | null
-          cost_price?: number | null
+          cost?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -802,7 +802,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           category_id?: string | null
-          cost_price?: number | null
+          cost?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -1126,34 +1126,43 @@ export type Database = {
         Row: {
           branch_id: string
           created_at: string | null
+          discount_amount: number | null
           id: string
           organization_id: string | null
+          payment_data: Json | null
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           shift_id: string | null
           status: Database["public"]["Enums"]["sale_status"] | null
           synced: boolean | null
+          tip_amount: number | null
           total_amount: number
         }
         Insert: {
           branch_id: string
           created_at?: string | null
+          discount_amount?: number | null
           id?: string
           organization_id?: string | null
+          payment_data?: Json | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           shift_id?: string | null
           status?: Database["public"]["Enums"]["sale_status"] | null
           synced?: boolean | null
+          tip_amount?: number | null
           total_amount?: number
         }
         Update: {
           branch_id?: string
           created_at?: string | null
+          discount_amount?: number | null
           id?: string
           organization_id?: string | null
+          payment_data?: Json | null
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           shift_id?: string | null
           status?: Database["public"]["Enums"]["sale_status"] | null
           synced?: boolean | null
+          tip_amount?: number | null
           total_amount?: number
         }
         Relationships: [
@@ -1310,7 +1319,7 @@ export type Database = {
           full_name: string | null
           id: string
           organization_id: string
-          pin_code: string | null
+          pin_code_hash: string | null
           role: Database["public"]["Enums"]["user_role"] | null
         }
         Insert: {
@@ -1322,7 +1331,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id: string
-          pin_code?: string | null
+          pin_code_hash?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
         }
         Update: {
@@ -1334,7 +1343,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           organization_id?: string
-          pin_code?: string | null
+          pin_code_hash?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: [

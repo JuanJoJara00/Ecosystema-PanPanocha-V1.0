@@ -11,7 +11,6 @@ export interface User extends TenantEntity {
 
     // Auth & Access
     is_active?: boolean;
-    pin_code?: string; // POS Login
 
     created_at?: ISODateString;
     updated_at?: ISODateString;

@@ -279,6 +279,7 @@ export default function InventoryForm({ onSuccess, onCancel, initialData, branch
                     await supabase.from('branch_ingredients').upsert({
                         branch_id: branch.id,
                         ingredient_id: newItem.id,
+                        organization_id: organizationId,
                         current_stock: finalStock,
                         min_stock_alert: finalAlert, // Save per-branch alert
                         last_updated: new Date().toISOString()

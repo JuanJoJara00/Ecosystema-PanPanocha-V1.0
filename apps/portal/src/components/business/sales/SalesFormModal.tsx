@@ -48,6 +48,13 @@ interface CartItem {
 const BILLS = [100000, 50000, 20000, 10000, 5000, 2000]
 const COINS = [1000, 500, 200, 100, 50]
 
+// UI labels (Spanish) -> public.payment_method enum values
+const PAYMENT_METHOD_MAP = {
+    'Efectivo': 'cash_panpanocha',
+    'Transferencia': 'transfer',
+    'Tarjeta': 'card'
+} as const
+
 export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesFormModalProps) {
     const [step, setStep] = useState<'branch' | 'pos' | 'payment'>('branch')
     const [branches, setBranches] = useState<any[]>([])
@@ -57,6 +64,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
     const [loading, setLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [processing, setProcessing] = useState(false)
+    const [organizationId, setOrganizationId] = useState<string | null>(null)
 
     // Payment State
     const [paymentMethod, setPaymentMethod] = useState<'Efectivo' | 'Transferencia' | 'Tarjeta'>('Efectivo')
@@ -70,6 +78,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
     useEffect(() => {
         if (isOpen) {
             fetchBranches()
+            fetchOrganizationId()
             setStep('branch')
             setCart([])
             setSelectedBranch(null)
@@ -91,6 +100,13 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
     const fetchBranches = async () => {
         const { data } = await supabase.from('branches').select('*').order('name')
         setBranches(data || [])
+    }
+
+    const fetchOrganizationId = async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: profile } = await supabase.from('users').select('organization_id').eq('id', user.id).single()
+        if (profile?.organization_id) setOrganizationId(profile.organization_id)
     }
 
     const fetchProducts = async (branchId: string) => {
@@ -184,7 +200,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
 
     // --- Checkout Logic ---
     const handleCheckout = async () => {
-        if (!selectedBranch) return
+        if (!selectedBranch || !organizationId) return
         setProcessing(true)
         try {
             let proofUrl = null
@@ -194,9 +210,10 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
 
             // 1. Create Sale
             const { data: sale, error: saleError } = await supabase.from('sales').insert({
+                organization_id: organizationId,
                 branch_id: selectedBranch.id,
                 total_amount: totalToPay,
-                payment_method: paymentMethod,
+                payment_method: PAYMENT_METHOD_MAP[paymentMethod],
                 status: 'completed',
                 created_at: new Date().toISOString(),
                 discount_amount: discountAmount,
@@ -211,13 +228,13 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
             if (saleError) throw saleError
 
             // 2. Create Items
+            // total_price is a GENERATED column (quantity * unit_price); never insert it directly.
             const itemsToInsert = cart.map(item => ({
                 sale_id: sale.id,
+                organization_id: organizationId,
                 product_id: item.product.id,
                 quantity: item.quantity,
-                unit_price: item.product.price,
-                total_price: item.product.price * item.quantity,
-                product_name: item.product.name
+                unit_price: item.product.price
             }))
 
             const { error: itemsError } = await supabase.from('sale_items').insert(itemsToInsert)
@@ -546,7 +563,7 @@ export default function SalesFormModal({ isOpen, onClose, onSuccess }: SalesForm
                                 <Button
                                     fullWidth
                                     onClick={handleCheckout}
-                                    disabled={!canPay || processing}
+                                    disabled={!canPay || !organizationId || processing}
                                     className={`h-16 rounded-xl text-xl font-black uppercase tracking-widest shadow-lg ${canPay
                                         ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-400 hover:to-emerald-500 shadow-green-900/20'
                                         : 'bg-gray-100 text-gray-300'}`}
