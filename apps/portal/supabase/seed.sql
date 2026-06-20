@@ -3,10 +3,23 @@
 -- IDs are fixed UUIDs (not gen_random_uuid()) so re-running db reset gives
 -- you the same org/branch/user/products every time.
 
--- 1. Organization (the tenant)
-INSERT INTO public.organizations (id, name, nit, address, phone, email)
+-- 1. Organizations (The Tenant)
+INSERT INTO public.organizations (id, name, nit, address, phone, email, created_at, updated_at)
+VALUES 
+('org_default', 'Pan Panocha', '900.123.456-7', 'Calle 123 # 45-67', '3001234567', 'admin@panpanocha.com', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Branches
+INSERT INTO public.branches (id, organization_id, name, city, address, phone, created_at, updated_at)
 VALUES
-('a0000000-0000-0000-0000-000000000001', 'Pan Panocha', '900.123.456-7', 'Calle 123 # 45-67', '3001234567', 'admin@panpanocha.com')
+('branch_main', 'org_default', 'Sede Principal', 'Bogotá', 'Calle 123 # 45-67', '3001234567', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. Users (App Users - matching Supabase Auth is trickier in seed, we just insert the public profile)
+-- NOTE: You must sign up this user in Supabase Auth carefully, or we assume a dev/test user 'user_admin'
+INSERT INTO public.users (id, organization_id, full_name, email, role, pin_code_hash, created_at, updated_at)
+VALUES
+('user_admin', 'org_default', 'Administrador General', 'admin@panpanocha.com', 'admin', extensions.crypt('1234', extensions.gen_salt('bf')), NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Branch
